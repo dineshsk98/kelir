@@ -1,0 +1,386 @@
+---
+doc: spec
+status: approved
+---
+
+# Birthday Capsule (working title) — Technical Spec
+
+## How This Works, In Plain Language
+The whole app runs on one laptop, at $0.
+
+- **The web app** (React) is what people see: the welcome page, the sender's history and capsule editor, and the recipient's capsule page.
+- **The API** (FastAPI, Python) is the always-on program behind it. It checks who's signed in, saves capsules, stores uploaded or recorded media in a local `uploads/` folder, and serves the web app's files.
+- **The database** (PostgreSQL, already installed) is the permanent record: senders, capsules, statuses and thank-you replies.
+- **The delivery loop** is a small timer inside the API. Every 30 seconds it asks the database, "which capsules have reached their recipient's midnight?"
+  - For each one, it marks the capsule Delivered and sends the birthday email through a free Gmail account made for the app.
+  - The "exactly once" promise comes from the database itself: a capsule can only move from Scheduled to Delivered once.
+- **The midnight math** lives in one small, plain Python module with no web code in it, so it can be tested on its own. It turns "14 March, Tokyo" into the exact instant to send, handling daylight saving and Feb 29.
+- **The private link** in the email carries a long random secret. We store only a scrambled (hashed) copy, so a guessed link or a leaked database gives nobody a working link.
+
+Why this shape: it keeps the pieces you already chose, but swaps every paid or hosted service for its free local equivalent. Nothing changes in the product.
+
+## The Core Journey Through the System
+PRD ref: `prd.md > The Core Journey`.
+
+1. **Welcome and sign-in.**
+   - The sender opens `http://localhost:8000` and clicks "Sign in with Google".
+   - Google's sign-in button returns a signed ID token.
+   - The API checks it with Google's public keys, creates or finds the sender row, and sets a signed session cookie (30 days).
+2. **History.** The web app calls `GET /v1/capsules` and lists the sender's capsules.
+3. **Make a capsule.** The editor walks through the steps: Who → Message → Gift → When → Preview.
+   - The city picker reads a bundled `cities.json` to get each city's time zone.
+   - Recording uses the browser's microphone and camera; uploads come from a file.
+   - Any media is uploaded first with `POST /v1/uploads`, which returns an `upload_id`.
+   - Save then calls `POST /v1/capsules` with the details and that `upload_id`, so a capsule never exists without its media.
+4. **The API schedules it.**
+   - It calls `engine.next_delivery(...)` to compute `deliver_at` (a UTC instant) and stores the capsule as `scheduled`.
+   - "Send now", or a birthday that has already started, gives `deliver_at = now`.
+5. **Delivery.**
+   - The loop claims due capsules (`deliver_at <= now`, status `scheduled`) and creates each one's link secret.
+   - It saves the hash, marks the capsule `delivered`, and emails "<Sender> has sent you a surprise for your special day."
+   - The email comes from "<Sender> via <Name>", with replies going to the sender.
+6. **Opening.**
+   - The recipient taps `…/c/<secret>`. The web app loads `GET /v1/c/<secret>` and plays the staged opening.
+   - The first open marks the capsule `opened`.
+7. **Thank-you.** `POST /v1/c/<secret>/reply` stores the reply, and the sender sees it in their history.
+
+## Stack
+| Part | Choice | Why |
+|---|---|---|
+| Web app | React 18 + Vite + TypeScript, React Router | Dinesh's choice (right tool; the API owns request-time concerns). TypeScript is a derived detail: it catches mistakes early. |
+| API | Python 3.11, FastAPI, Uvicorn; all async | Dinesh's choice (API-only; one consistent async style). |
+| Database access | SQLAlchemy 2.0 (async) + asyncpg; Alembic migrations | Dinesh's choice. |
+| Database | PostgreSQL 14 (already installed locally) | Dinesh's choice; $0. |
+| Midnight math | Python `zoneinfo` + `tzdata` (Windows needs the `tzdata` package) | The IANA time-zone database; no fixed offsets. |
+| Sign-in | Google Identity Services button + `google-auth` for ID-token verification | Only basic email/profile access, so no Google review. $0. |
+| Email | `aiosmtplib` → Gmail SMTP (`smtp.gmail.com:587`, STARTTLS) with an app password | $0. Real inboxes, and genuine Gmail sending keeps spam filters friendly. |
+| Opening animation | CSS transforms + a canvas for confetti, driven by `requestAnimationFrame` and refs | No heavy dependencies. Per-frame values stay out of React state. |
+| Sound effects | Synthesized in the browser with the Web Audio API | Original sounds, so no licensing risk. |
+| Tests | pytest + pytest-asyncio on a real Postgres test database; httpx for API tests | Dinesh's choice (tests run on real Postgres). |
+
+Docs:
+- [FastAPI](https://fastapi.tiangolo.com/) · [SQLAlchemy async](https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html) · [Alembic](https://alembic.sqlalchemy.org/)
+- [zoneinfo](https://docs.python.org/3/library/zoneinfo.html) · [Vite](https://vite.dev/) · [React Router](https://reactrouter.com/)
+- [Google Identity Services](https://developers.google.com/identity/gsi/web/guides/overview) · [verify ID tokens](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)
+- [Gmail app passwords](https://support.google.com/accounts/answer/185833) · [aiosmtplib](https://aiosmtplib.readthedocs.io/)
+- [MediaRecorder](https://developer.mozilla.org/en-US/docs/Web/API/MediaRecorder) · [Web Audio API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
+
+Unverified, to check early in the build:
+- Gmail's SMTP daily limit (about 500 a day for a personal account).
+- Whether an app password still requires 2-Step Verification on that account (it did).
+
+## Where It Runs and How Someone Tries It
+**Runtime:** local only, $0. Hosting is optional and can be revisited in `6-ship` (a free-tier plan is possible without a domain).
+
+**Requires:**
+- Node 22, Python 3.11 and PostgreSQL 14 (all present).
+- A `.env` created from `.env.example`. Dinesh fills in the secrets himself:
+  - `GOOGLE_CLIENT_ID`: a free OAuth client from Google Cloud Console, with `http://localhost:8000` and `http://localhost:5173` as authorized origins
+  - `SESSION_SECRET`
+  - `DATABASE_URL`
+  - `SMTP_USER` and `SMTP_APP_PASSWORD`: the app's own Gmail account
+  - `APP_BASE_URL`: the address the email links use
+  - `DEMO_MODE=true`
+  - `MAILER=smtp|console`: console only prints emails, for development and tests
+
+**Develop:**
+- `backend`: `uvicorn app.main:app --reload`
+- `frontend`: `npm run dev`
+- Vite serves `:5173` and proxies `/v1` to `:8000`.
+
+**Demo / recording:**
+- `frontend`: `npm run build`, then `backend`: `uvicorn app.main:app --host 0.0.0.0`.
+- Open `http://localhost:8000`. The API serves the built app, with an `index.html` fallback for client-side routes.
+- To open the email on a phone, set `APP_BASE_URL=http://<laptop-LAN-IP>:8000` so the link works on the same Wi-Fi. The recipient page needs no camera or microphone, so plain http on the LAN is fine.
+
+**What to show:**
+1. Sign in.
+2. Make a capsule for someone in Tokyo.
+3. History shows "Delivers 00:00, 14 Mar in Tokyo (20:30, 13 Mar your time)".
+4. Press "Simulate their midnight".
+5. The real email arrives on the phone.
+6. Tap it, and the staged opening plays.
+7. Send a thank-you, and it appears in the sender's history.
+
+## Look and Feel
+Carries forward `prd.md > Look and Feel` and `scope.md > Inspiration & Identity`:
+- Warm, personal and celebratory; never corporate or "automated greeting".
+- The opening is paced like a game reward opening, with original art and synthesized sound only.
+
+**Build approach (direction still open):**
+1. The first front-end step builds the opening stages against CSS design tokens (`styles/tokens.css`: colors, type, radius, shadow, glow).
+2. It then offers **two quick token sets** for Dinesh to pick from on screen.
+3. Every other screen uses the chosen tokens.
+
+Typography: one rounded, friendly sans for the UI and one handwritten-style display face for the card message, both free Google Fonts (e.g. Nunito + Caveat), bundled locally so the app works offline. Copy is short, warm and second-person.
+
+## Components
+
+### Midnight engine (`backend/app/engine/`)
+Pure sync functions, no framework imports. They implement `prd.md > Delivery at the recipient's midnight`.
+- `celebration_date(year, month, day, feb29_pref)`: a Feb 29 birthday uses Feb 28 or Mar 1 in non-leap years.
+- `start_of_local_day(date, tz)`: the first instant whose local date is `date`. Normally 00:00; if daylight saving skips midnight, the first valid moment after the gap. Returned as UTC.
+- `next_delivery(month, day, feb29_pref, tz, now)`:
+  - today's local date is the celebration date → `now` (the birthday has started: send immediately)
+  - otherwise → `start_of_local_day` of the next celebration date
+- `due_now(send_mode, …, now)` wraps this for "Send now".
+
+### Sign-in and sessions (`backend/app/auth.py`, `routes/auth.py`)
+Implements `prd.md > Sign-in and history`.
+- `POST /v1/auth/google {credential}`: verifies the Google ID token (audience = our client ID), upserts the sender by Google `sub`, and sets a signed, httpOnly, SameSite=Lax session cookie.
+- `POST /v1/auth/logout` and `GET /v1/me`.
+
+### Capsules API (`routes/capsules.py`)
+Implements `prd.md > Creating a capsule` and `prd.md > Editing and cancelling (until opened)`.
+
+| Endpoint | What it does |
+|---|---|
+| `GET /v1/capsules` | The sender's list, newest first, each with its reply if any. |
+| `POST /v1/capsules` | Validates the fields, computes `deliver_at`, and creates the capsule with status `scheduled`. |
+| `GET /v1/capsules/{id}` | Detail and preview data (owner only). |
+| `PATCH /v1/capsules/{id}` | Only while `scheduled` or `delivered`: recomputes `deliver_at` if still `scheduled`; returns `409 CAPSULE_FINAL` once opened. |
+| `POST /v1/uploads` | Multipart upload. Checks type and size, saves to `uploads/<sender_id>/<upload_id>…` and returns `{upload_id, media_kind}`. Create and PATCH take an `upload_id` to attach or replace media; a file never attached is removed on the next start. |
+| `GET /v1/capsules/{id}/media` | Streams the media to the owner (for preview). |
+| `POST /v1/capsules/{id}/cancel` | Status → `cancelled`; not allowed once opened. |
+
+### Delivery loop and mailer (`backend/app/delivery/`)
+Implements `prd.md > Delivery at the recipient's midnight` and `prd.md > The birthday email`.
+- **The loop** (`scheduler.py`) starts in FastAPI's lifespan and ticks every 30 s. Each tick:
+  1. Claim due rows with `SELECT … FOR UPDATE SKIP LOCKED`.
+  2. Generate the link secret (`secrets.token_urlsafe(32)`) and store its SHA-256 hash.
+  3. Set `status = delivered` and `delivered_at` in the same transaction.
+  4. After commit, send the email.
+- **If sending fails,** the capsule stays delivered but records `send_error` and retries with backoff (at most 5 attempts). The sender sees "Delivery trouble" in their history.
+- `mailer.py` defines one interface with two versions: `SmtpMailer` (real Gmail) and `ConsoleMailer` (prints, for development and tests).
+- `email_templates.py` builds the email as HTML plus plain text:
+  - From: `"<Sender name> via <Name>" <app gmail>`; Reply-To: the sender's email; the subject from the PRD
+  - one "Open your capsule" button
+  - no URL shorteners, no tracking pixels, no attachments
+
+### Recipient API (`routes/recipient.py`)
+Implements `prd.md > The opening moment` and `prd.md > Thank-you reply`.
+- `GET /v1/c/{secret}`: looks up by hash.
+  - unknown → 404
+  - cancelled → 410
+  - otherwise → the capsule (sender name, recipient name, message, media kind, gift, reply)
+  - The first call sets `opened_at` and status `opened`.
+- `GET /v1/c/{secret}/media`: streams the media and supports seeking.
+- `POST /v1/c/{secret}/reply {preset|text}`: one reply per capsule; text up to 500 characters.
+- The page sends `noindex`, and API responses aren't cached.
+
+### Demo controls (`routes/demo.py`)
+Implements `prd.md > Delivery at the recipient's midnight` (demo).
+- Only when `DEMO_MODE=true`.
+- `POST /v1/demo/capsules/{id}/simulate-midnight`: owner only. Sets `deliver_at = now` and runs one tick immediately.
+- The UI labels it "Demo".
+
+### Web app: sender screens (`frontend/src/pages/`)
+Implements `prd.md > Screens and Layout` (sender side).
+- `Welcome`: the pitch plus the Google button.
+- `History`:
+  - empty state: "Make your first capsule"
+  - each row: recipient name and city, delivery in their time and the sender's (via `Intl`), status badge, and reply
+- `CapsuleEditor`:
+  - Steps: Who (with `CityPicker` and the Feb 29 choice) → Message (text plus `Recorder` or upload) → Gift (link or code plus note) → When → Preview.
+  - It also handles editing.
+- `CapsuleDetail`: the preview, status and reply, plus Edit, Cancel and the Demo button.
+
+### Web app: `Recorder` and `CityPicker` (`frontend/src/components/`)
+- `Recorder`:
+  - records audio or video with `MediaRecorder` (webm on Chrome, mp4 on Safari)
+  - caps length (video 60 s, audio 120 s) and offers play-back and redo
+  - if the camera or microphone is blocked, shows a note and offers upload
+- `CityPicker`: type-ahead over bundled `cities.json` ({name, country, tz}); it shows "Tokyo, Japan · Asia/Tokyo".
+
+### Web app: the opening (`frontend/src/reveal/`)
+Implements `prd.md > The opening moment`.
+- A stage machine: `arrive → ready → charge → burst → reveal → message → gift`, kept separate from the renderer that draws it.
+- Stage timings:
+  - drop: about 0.7 s
+  - charge: about 1.4 s
+  - burst: about 0.4 s
+  - card spin-in: about 1.1 s
+- Controls: Skip (jumps to reveal), mute (remembered in `localStorage`) and synthesized sound effects (`sfx.ts`).
+- `prefers-reduced-motion` gives a 400 ms fade with no shake, flash or confetti.
+- The gift code stays hidden until tapped, with a copy button. The thank-you panel comes last.
+- Replaying the link plays the opening again.
+
+### City data (`scripts/build_cities.py` → `frontend/public/cities.json`)
+- Built once from GeoNames `cities15000`, filtered to larger cities (about 1–2k entries), keeping name, country and IANA zone.
+- The source is under CC BY 4.0, so the README credits GeoNames.
+- Downloading it needs Dinesh's OK at build time. The fallback is a smaller hand-made list.
+
+## Build Tracks (parallel)
+Dinesh's call: the opening animation is UI/UX work that can be separated from the core idea, so it's built **in parallel** as its own track (a separate session). Target: **3–7 days** for everything.
+
+### Track A: Core
+- Midnight engine and tests
+- Database and migrations
+- Capsules API and recipient API
+- Delivery loop and mailer
+- Google sign-in
+- Sender screens
+- Recorder and city picker
+- Demo controls
+
+Implements every `prd.md > Features and Behavior` heading except the visuals of `The opening moment`. Until Track B lands, `RecipientCapsule` shows a plain placeholder reveal (a card with the message, media, gift and thank-you).
+
+### Track B: Opening animation
+- Everything under `frontend/src/reveal/` plus `styles/tokens.css`.
+- Built and tuned on a dev-only route, `/dev/reveal`, with **labeled sample data**. It needs no API, database or sign-in.
+- This track also produces the two look-and-feel options for Dinesh to pick.
+
+### The contract between the tracks
+The only shared surface is one component:
+
+```ts
+<Reveal
+  capsule={{ senderName, recipientName, messageText?, media?: { kind: 'audio'|'video', url }, gift?: { kind: 'link'|'code', value, note? } }}
+  replyPanel={ReactNode}   // Track A supplies the thank-you form
+  onFirstReveal={() => void}
+/>
+```
+
+- Mute state, sound effects, skip, reduced motion and replay live inside `Reveal`.
+- Merge: `RecipientCapsule` swaps its placeholder for `<Reveal …/>`.
+- Both tracks share only `package.json`, so a new front-end dependency must be named in the track's notes to avoid clashes.
+
+## Data Model
+PostgreSQL, created by Alembic migrations.
+
+**`senders`**
+- `id` (uuid, primary key)
+- `google_sub` (unique), `email`, `name`, `created_at`
+- Created on first sign-in; they persist.
+
+**`capsules`**
+- `id` (uuid, primary key), `sender_id` (foreign key → senders)
+- Recipient:
+  - `recipient_name`, `recipient_email`
+  - `birth_month`, `birth_day`, `feb29_pref` (`FEB_28`|`MAR_1`, null unless Feb 29)
+  - `city_label` (e.g. "Tokyo, Japan"), `tz` (IANA)
+- Message and gift:
+  - `message_text` (nullable)
+  - `media_kind` (`audio`|`video`|null), `media_path`, `media_mime`
+  - `gift_kind` (`link`|`code`|null), `gift_value`, `gift_note`
+- Delivery:
+  - `send_mode` (`birthday`|`now`), `deliver_at` (UTC)
+  - `status` (`scheduled`|`delivered`|`opened`|`cancelled`)
+  - `delivered_at`, `opened_at`
+  - `link_token_hash` (unique, null until delivered)
+  - `send_attempts`, `send_error`
+  - `created_at`, `updated_at`
+- Index on `(status, deliver_at)` for the loop.
+- Rule: at least one of text or media, checked by the API and by a check constraint (`message_text IS NOT NULL OR media_kind IS NOT NULL`). This works because media is attached at creation.
+
+**`replies`**
+- `id`, `capsule_id` (unique, so one reply per capsule), `preset_key` (nullable), `text` (nullable), `created_at`
+
+**Where things live:**
+- Media files go in `uploads/` on disk; the database holds only their paths.
+- The session is a signed cookie. Sound mute is in `localStorage`.
+- Leaving and coming back: everything is in the database, so signing back in shows the same history, and the recipient's link keeps working (replay).
+
+## File Structure
+```
+capsule-hackathon/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI app, lifespan starts the delivery loop, serves frontend/dist
+│   │   ├── config.py            # settings from .env (pydantic-settings)
+│   │   ├── db.py                # async engine + session
+│   │   ├── models.py            # senders, capsules, replies
+│   │   ├── schemas.py           # request/response models
+│   │   ├── auth.py              # Google ID-token check, session cookie, current_sender dependency
+│   │   ├── media.py             # upload validation + streaming
+│   │   ├── engine/
+│   │   │   └── schedule.py      # pure midnight math (no framework imports)
+│   │   ├── delivery/
+│   │   │   ├── scheduler.py     # 30 s loop: claim due → deliver → email
+│   │   │   ├── mailer.py        # SmtpMailer / ConsoleMailer
+│   │   │   └── email_templates.py
+│   │   └── routes/
+│   │       ├── auth.py  capsules.py  recipient.py  demo.py
+│   ├── alembic/                 # migrations
+│   ├── tests/
+│   │   ├── test_engine.py       # time-zone matrix (pure, fast)
+│   │   ├── test_capsules_api.py # edit/cancel/final-once-opened
+│   │   ├── test_delivery.py     # exactly once, concurrent ticks, retries
+│   │   └── test_recipient.py    # link lookup, open, reply, cancelled/unknown
+│   └── requirements.txt
+├── frontend/
+│   ├── index.html
+│   ├── vite.config.ts           # /v1 proxy → :8000
+│   ├── public/cities.json       # generated city → time zone list
+│   └── src/
+│       ├── main.tsx  App.tsx    # routes
+│       ├── api.ts               # fetch wrapper + types
+│       ├── pages/               # Welcome, History, CapsuleEditor, CapsuleDetail, RecipientCapsule, NotFound, DevReveal (Track B, dev-only)
+│       ├── components/          # Recorder, CityPicker, StatusBadge, StepNav, GoogleButton
+│       ├── reveal/              # stages.ts, Reveal.tsx, confetti.ts, sfx.ts
+│       └── styles/              # tokens.css, global.css
+├── scripts/build_cities.py
+├── uploads/                     # media (gitignored)
+├── devpost/                     # Devpost learning workspace
+├── .env.example
+├── README.md
+└── LICENSE                      # OSI license: Dinesh's pick, before publishing
+```
+
+## External Services and Dependencies
+All $0.
+
+**Google Identity Services** ([overview](https://developers.google.com/identity/gsi/web/guides/overview))
+- The front end loads `https://accounts.google.com/gsi/client` and renders the button with `client_id`. On success it gets a `credential` (a JWT ID token) and posts it to `/v1/auth/google`.
+- The back end calls `google.oauth2.id_token.verify_oauth2_token(credential, Request(), GOOGLE_CLIENT_ID)`, which returns `sub`, `email`, `name` and `email_verified` (required to be true).
+- Scopes: basic profile/email only, so no verification review is needed. The consent screen stays in "Testing" or is published as basic scopes only.
+- Key: the client ID, which isn't secret. No rate limits of concern.
+
+**Gmail SMTP** ([app passwords](https://support.google.com/accounts/answer/185833))
+- `smtp.gmail.com:587`, STARTTLS, logging in with the app's Gmail address and an app password (this needs 2-Step Verification on that account).
+- Limit: roughly 500 recipients a day for a personal account (to verify). Plenty for a demo.
+- The From address must be the app's Gmail address. The sender's name is in the display name, and Reply-To is the sender.
+
+**GeoNames** ([cities15000](https://download.geonames.org/export/dump/))
+- A one-time download at build time, CC BY 4.0.
+
+## Important Failure Modes
+- **The email doesn't send** (wrong app password, network) → the capsule shows "Delivery trouble" in history with a retry. The ConsoleMailer lets the demo keep going.
+- **Camera or microphone blocked, or an unsupported format** → a clear note and a switch to upload or text. The server rejects files that are too big or of the wrong type, with a readable message.
+- **The link is unknown, cancelled or mistyped** → a friendly "We couldn't find this capsule" or "This capsule is no longer available" page.
+- **The laptop is asleep at a recipient's midnight** → the next tick after waking sends it. It's late but still once. This is acceptable for a local proof of concept; hosting fixes it later.
+
+## What Was Simplified and Why
+- **Local laptop instead of a hosted server:** $0 budget, and the rules only require a video and a repo. A hosted version would add a free host, a hosted database, a wake-up pinger and object storage.
+- **The delivery loop inside the API instead of a separate scheduler process:** there's one process locally. The database-level "exactly once" transition still makes two loops safe.
+- **Gmail SMTP from an app-owned Gmail account instead of our own domain:** $0 and good deliverability. A custom domain (with DKIM etc.) would add a yearly cost and needs the name first.
+- **Local `uploads/` folder instead of cloud storage:** $0. Cloud storage returns with hosting.
+- **One thank-you reply per capsule, text only:** agreed in the PRD. Audio and video replies are deferred.
+- **Handwritten TypeScript types instead of generated OpenAPI types:** fewer moving parts for a proof of concept.
+
+## Decisions and Open Issues
+**Decisions (Dinesh's):**
+- Budget $0. The hackathon runs locally, with no hosting and no domain.
+- The $0 local plan: a delivery loop inside the API, a local uploads folder, and real email through an app-owned Gmail account ("<Sender> via <Name>", replies to the sender).
+- The stack: React + Vite, FastAPI all-async, SQLAlchemy async + Alembic, PostgreSQL.
+
+**Derived implementation details (agent):**
+- TypeScript
+- the Google Identity Services button plus ID-token verification
+- the 30 s tick with `SKIP LOCKED`
+- hashed link secrets
+- media limits: video 60 s, audio 120 s, 50 MB
+- synthesized sound effects
+- GeoNames city data
+
+**The learner's own open question: how is the link secured, and how does it stay out of spam?**
+- Clarified: the link carries a 256-bit random secret, stored only as a hash. It isn't guessable, and a database leak doesn't expose working links. The recipient page is `noindex`.
+- Spam: sending through Gmail's own servers, a plain HTML-plus-text email with one link, no shorteners, no tracking and no attachments, and a sender name the recipient recognizes.
+- To check during the build: send test emails to a Gmail and an Outlook inbox and confirm both land in the inbox.
+
+**Open:**
+- **Product name:** needed before the public video.
+- **Look and feel:** two token sets proposed in the first UI step; Dinesh picks.
+- **OSI license:** Dinesh's call before publishing.
+- **The app's Gmail account and the Google OAuth client:** Dinesh creates both and puts the values in `.env`.
+- **GeoNames download:** needs his OK at build time.

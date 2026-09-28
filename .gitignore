@@ -1,0 +1,25 @@
+# Personal learning context (Devpost skill pack): kept out of commits by default
+/devpost/learner-profile.md
+
+# Local credentials: never commit; .env.example stays tracked
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Node / build output
+node_modules/
+dist/
+
+# Uploaded media
+/uploads/
+
+#agents
+.agents/
+.claude/
+skills-lock.json
