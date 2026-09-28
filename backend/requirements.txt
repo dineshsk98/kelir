@@ -1,0 +1,4 @@
+tzdata>=2025.2
+
+# tests
+pytest>=8.3
