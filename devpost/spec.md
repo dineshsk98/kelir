@@ -50,7 +50,7 @@ PRD ref: `prd.md > The Core Journey`.
 | Web app | React 18 + Vite + TypeScript, React Router | Dinesh's choice (right tool; the API owns request-time concerns). TypeScript is a derived detail: it catches mistakes early. |
 | API | Python 3.11, FastAPI, Uvicorn; all async | Dinesh's choice (API-only; one consistent async style). |
 | Database access | SQLAlchemy 2.0 (async) + asyncpg; Alembic migrations | Dinesh's choice. |
-| Database | PostgreSQL 14 (already installed locally) | Dinesh's choice; $0. |
+| Database | PostgreSQL 18 (already installed locally) | Dinesh's choice; $0. |
 | Midnight math | Python `zoneinfo` + `tzdata` (Windows needs the `tzdata` package) | The IANA time-zone database; no fixed offsets. |
 | Sign-in | Google Identity Services button + `google-auth` for ID-token verification | Only basic email/profile access, so no Google review. $0. |
 | Email | `aiosmtplib` → Gmail SMTP (`smtp.gmail.com:587`, STARTTLS) with an app password | $0. Real inboxes, and genuine Gmail sending keeps spam filters friendly. |
@@ -73,7 +73,7 @@ Unverified, to check early in the build:
 **Runtime:** local only, $0. Hosting is optional and can be revisited in `6-ship` (a free-tier plan is possible without a domain).
 
 **Requires:**
-- Node 22, Python 3.11 and PostgreSQL 14 (all present).
+- Node 22, Python 3.11 and PostgreSQL 18 (all present).
 - A `.env` created from `.env.example`. Dinesh fills in the secrets himself:
   - `GOOGLE_CLIENT_ID`: a free OAuth client from Google Cloud Console, with `http://localhost:8000` and `http://localhost:5173` as authorized origins
   - `SESSION_SECRET`

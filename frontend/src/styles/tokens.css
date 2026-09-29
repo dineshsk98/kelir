@@ -1,0 +1,22 @@
+/* Design tokens. A neutral warm placeholder: slice 6 proposes two sets and the
+   chosen one replaces these values. Screens use only these variables. */
+:root {
+  --color-bg: #fff7ef;
+  --color-surface: #ffffff;
+  --color-text: #2b2230;
+  --color-text-muted: #6f6475;
+  --color-accent: #e8604c;
+  --color-accent-text: #ffffff;
+  --color-accent-soft: #fde3dc;
+  --color-border: #efe2d6;
+  --color-danger: #b3261e;
+
+  --font-ui: 'Nunito', system-ui, sans-serif;
+  --font-hand: 'Caveat', cursive;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 24px;
+  --shadow-card: 0 2px 4px rgb(43 34 48 / 0.04), 0 8px 24px rgb(43 34 48 / 0.08);
+  --glow-accent: 0 0 0 4px rgb(232 96 76 / 0.18);
+}

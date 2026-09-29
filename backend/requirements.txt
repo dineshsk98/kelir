@@ -1,4 +1,15 @@
+fastapi>=0.115
+uvicorn[standard]>=0.32
+pydantic-settings>=2.6
+sqlalchemy[asyncio]>=2.0.36
+asyncpg>=0.30
+alembic>=1.14
+google-auth>=2.36
+requests>=2.32          # transport google-auth uses to fetch Google's signing keys
+itsdangerous>=2.2       # signed session cookie
 tzdata>=2025.2
 
 # tests
 pytest>=8.3
+pytest-asyncio>=0.24
+httpx>=0.28
