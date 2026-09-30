@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { api, ApiError, type Me } from './api'
+import { CapsuleEditor } from './pages/CapsuleEditor'
 import { History } from './pages/History'
 import { NotFound } from './pages/NotFound'
 import { Welcome } from './pages/Welcome'
@@ -35,6 +36,7 @@ export function App() {
         path="/history"
         element={me ? <History me={me} onSignOut={signOut} /> : <Navigate to="/" replace />}
       />
+      <Route path="/capsules/new" element={me ? <CapsuleEditor me={me} /> : <Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

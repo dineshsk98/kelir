@@ -6,6 +6,7 @@ The database login comes from DATABASE_URL in .env; TEST_DATABASE_URL overrides.
 import asyncio
 import os
 from argparse import Namespace
+from datetime import datetime
 from pathlib import Path
 
 # Must be set before the app (and its cached settings) are imported.
@@ -21,10 +22,13 @@ from sqlalchemy import make_url, text  # noqa: E402
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine  # noqa: E402
 from sqlalchemy.pool import NullPool  # noqa: E402
 
+from app import email_check  # noqa: E402
+from app.auth import SESSION_COOKIE, _serializer  # noqa: E402
+from app.clock import utcnow  # noqa: E402
 from app.config import Settings, get_settings  # noqa: E402
 from app.db import get_session  # noqa: E402
 from app.main import app  # noqa: E402
-from app.models import Base  # noqa: E402
+from app.models import Base, Sender  # noqa: E402
 
 BACKEND = Path(__file__).resolve().parents[1]
 
@@ -89,3 +93,43 @@ async def client(sessionmaker, settings):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def fake_dns(monkeypatch):
+    """No real DNS in tests: every domain accepts mail unless a test sets `fake_dns[domain]`."""
+    answers: dict[str, bool | None] = {}
+
+    async def lookup(domain: str) -> bool | None:
+        return answers.get(domain, True)
+
+    monkeypatch.setattr(email_check, "_lookup", lookup)
+    email_check._cache.clear()
+    yield answers
+    email_check._cache.clear()
+
+
+@pytest.fixture
+def sign_in(client, sessionmaker, settings):
+    """Create a sender and make `client` send requests as them. Returns the sender."""
+
+    async def _sign_in(email: str = "sam@example.com", name: str = "Sam Sender") -> Sender:
+        async with sessionmaker() as s:
+            sender = Sender(google_sub=f"sub-{email}", email=email, name=name)
+            s.add(sender)
+            await s.commit()
+        client.cookies.set(SESSION_COOKIE, _serializer(settings).dumps({"sid": str(sender.id)}))
+        return sender
+
+    return _sign_in
+
+
+@pytest.fixture
+def freeze_now():
+    """Pin the API's clock: `freeze_now(datetime)`."""
+
+    def _freeze(at: datetime) -> datetime:
+        app.dependency_overrides[utcnow] = lambda: at
+        return at
+
+    return _freeze

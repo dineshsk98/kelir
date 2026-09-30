@@ -1,8 +1,16 @@
 """Request and response bodies."""
 
 import uuid
+from datetime import datetime
+from functools import lru_cache
+from typing import Annotated, Literal
+from urllib.parse import urlsplit
+from zoneinfo import available_timezones
 
-from pydantic import BaseModel
+from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, model_validator
+
+from app.email_check import is_valid_format
+from app.engine.schedule import validate_birthday
 
 
 class GoogleSignIn(BaseModel):
@@ -17,3 +25,126 @@ class Me(BaseModel):
 
 class PublicConfig(BaseModel):
     google_client_id: str
+
+
+# --- Capsules -----------------------------------------------------------------
+
+
+@lru_cache
+def _known_zones() -> frozenset[str]:
+    return frozenset(available_timezones())
+
+
+def _email(v: str) -> str:
+    if not is_valid_format(v):
+        raise ValueError("not a valid email address")
+    return v.lower()
+
+
+def _zone(v: str) -> str:
+    if v not in _known_zones():
+        raise ValueError("unknown time zone")
+    return v
+
+
+def _blank_to_none(v: str | None) -> str | None:
+    return v or None
+
+
+Text = Annotated[str, StringConstraints(strip_whitespace=True)]
+Name = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+Email = Annotated[
+    str, StringConstraints(strip_whitespace=True, max_length=320), AfterValidator(_email)
+]
+Zone = Annotated[str, AfterValidator(_zone)]
+Feb29Pref = Literal["FEB_28", "MAR_1"]
+SendMode = Literal["birthday", "now"]
+GiftKind = Literal["link", "code"]
+
+
+class Birthday(BaseModel):
+    birth_month: int = Field(ge=1, le=12)
+    birth_day: int = Field(ge=1, le=31)
+    feb29_pref: Feb29Pref | None = None
+
+    @model_validator(mode="after")
+    def _real_date(self):
+        validate_birthday(self.birth_month, self.birth_day, self.feb29_pref)
+        if (self.birth_month, self.birth_day) != (2, 29):
+            self.feb29_pref = None
+        return self
+
+
+class EmailCheckIn(BaseModel):
+    email: Annotated[str, StringConstraints(strip_whitespace=True, max_length=320)]
+
+
+class EmailCheckOut(BaseModel):
+    valid_format: bool
+    # True: the domain accepts mail; False: it can't; None: couldn't check right now
+    accepts_mail: bool | None
+
+
+class DeliveryPreviewIn(Birthday):
+    tz: Zone
+    send_mode: SendMode = "birthday"
+
+
+class DeliveryPreviewOut(BaseModel):
+    deliver_at: datetime
+
+
+class CapsuleCreate(Birthday):
+    model_config = ConfigDict(extra="forbid")
+
+    recipient_name: Name
+    recipient_email: Email
+    city_label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    tz: Zone
+
+    message_text: Annotated[Text | None, Field(max_length=5000), AfterValidator(_blank_to_none)] = None
+
+    gift_kind: GiftKind | None = None
+    gift_value: Annotated[Text | None, Field(max_length=2000), AfterValidator(_blank_to_none)] = None
+    gift_note: Annotated[Text | None, Field(max_length=300), AfterValidator(_blank_to_none)] = None
+
+    send_mode: SendMode = "birthday"
+
+    @model_validator(mode="after")
+    def _message_and_gift(self):
+        if self.message_text is None:
+            raise ValueError("write a message")  # audio/video arrives in a later slice
+        if self.gift_kind is None:
+            self.gift_value = self.gift_note = None
+        elif self.gift_value is None:
+            raise ValueError("a gift needs a link or a code")
+        elif self.gift_kind == "link":
+            # Only real web links: never javascript:, data: or other schemes on the recipient page
+            parts = urlsplit(self.gift_value)
+            if parts.scheme not in ("http", "https") or not parts.netloc:
+                raise ValueError("a gift link must start with http:// or https://")
+        elif len(self.gift_value) > 200:
+            raise ValueError("a gift code can be at most 200 characters")
+        return self
+
+
+class CapsuleOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    recipient_name: str
+    recipient_email: str
+    birth_month: int
+    birth_day: int
+    feb29_pref: Feb29Pref | None
+    city_label: str
+    tz: str
+    message_text: str | None
+    media_kind: Literal["audio", "video"] | None
+    gift_kind: GiftKind | None
+    gift_value: str | None
+    gift_note: str | None
+    send_mode: SendMode
+    deliver_at: datetime
+    status: Literal["scheduled", "delivered", "opened", "cancelled"]
+    created_at: datetime

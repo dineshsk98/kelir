@@ -18,6 +18,10 @@ SESSION_COOKIE = "capsule_session"
 
 _google_request = google_requests.Request()
 
+# google-auth allows no clock difference by default, so a laptop clock a second or
+# two behind Google's rejects fresh tokens as "used too early". Allow a little slack.
+GOOGLE_CLOCK_SKEW_SECONDS = 10
+
 
 def verify_google_credential(credential: str, client_id: str) -> dict:
     """Check a Google Identity Services ID token and return its claims.
@@ -26,7 +30,9 @@ def verify_google_credential(credential: str, client_id: str) -> dict:
     the email isn't verified. Blocking (it may fetch Google's public keys), so
     call it from a thread.
     """
-    claims = id_token.verify_oauth2_token(credential, _google_request, client_id)
+    claims = id_token.verify_oauth2_token(
+        credential, _google_request, client_id, clock_skew_in_seconds=GOOGLE_CLOCK_SKEW_SECONDS
+    )
     if not claims.get("email_verified"):
         raise ValueError("Google account email is not verified")
     return claims

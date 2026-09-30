@@ -41,7 +41,9 @@ async def sign_in_with_google(
     except TransportError:
         log.exception("Could not reach Google to verify sign-in")
         raise HTTPException(503, detail={"code": "GOOGLE_UNREACHABLE"})
-    except ValueError:
+    except ValueError as e:
+        # The reason (expired, wrong audience, clock skew...) stays in the server log only
+        log.warning("Rejected Google sign-in: %s", e)
         raise HTTPException(401, detail={"code": "INVALID_GOOGLE_CREDENTIAL"})
 
     sender = await session.scalar(select(Sender).where(Sender.google_sub == claims["sub"]))

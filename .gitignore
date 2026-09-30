@@ -17,6 +17,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# Downloaded source data for scripts/build_cities.py
+/scripts/.cache/
+
 # Uploaded media
 /uploads/
 

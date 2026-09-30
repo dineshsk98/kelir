@@ -1,0 +1,52 @@
+// Delivery times in the recipient's zone and the sender's own, e.g.
+// "00:00, 14 Mar in Tokyo (20:30, 13 Mar your time)".
+
+import type { Capsule } from './api'
+
+function moment(date: Date, timeZone?: string): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).formatToParts(date)
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? ''
+  const thisYear = String(new Date().getFullYear())
+  const year = get('year') === thisYear ? '' : ` ${get('year')}`
+  return `${get('hour')}:${get('minute')}, ${get('day')} ${get('month')}${year}`
+}
+
+export const cityName = (cityLabel: string) => cityLabel.split(',')[0]
+
+/** "00:00, 14 Mar in Tokyo (20:30, 13 Mar your time)" */
+export function deliveryMoment(deliverAt: string, tz: string, cityLabel: string): string {
+  const at = new Date(deliverAt)
+  const theirs = moment(at, tz)
+  const mine = moment(at)
+  const yours = theirs === mine ? 'the same for you' : `${mine} your time`
+  return `${theirs} in ${cityName(cityLabel)} (${yours})`
+}
+
+/** One line for the history row, depending on status */
+export function deliveryLine(c: Capsule): string {
+  switch (c.status) {
+    case 'scheduled':
+      return c.send_mode === 'now' ? 'Sending now' : `Delivers ${deliveryMoment(c.deliver_at, c.tz, c.city_label)}`
+    case 'delivered':
+      return `Delivered ${deliveryMoment(c.deliver_at, c.tz, c.city_label)}`
+    case 'opened':
+      return 'Opened'
+    case 'cancelled':
+      return 'Cancelled'
+  }
+}
+
+export const monthNames = Array.from({ length: 12 }, (_, i) =>
+  new Intl.DateTimeFormat('en-GB', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, i, 1))),
+)
+
+/** Days in a month allowing Feb 29 (a birthday, not a date in a particular year) */
+export const daysInMonth = (month: number) => new Date(Date.UTC(2000, month, 0)).getUTCDate()

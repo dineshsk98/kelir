@@ -1,0 +1,38 @@
+.city-picker {
+  position: relative;
+}
+
+.city-list {
+  position: absolute;
+  z-index: 10;
+  left: 0;
+  right: 0;
+  top: 52px;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.city-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.city-list li.active {
+  background: var(--color-accent-soft);
+}
+
+.city-tz {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}

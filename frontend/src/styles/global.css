@@ -93,4 +93,123 @@ h2 {
 
 .error {
   color: var(--color-danger);
+  margin: 6px 0 0;
+}
+
+.small {
+  font-size: 0.85rem;
+}
+
+/* Forms */
+.field {
+  margin: 0 0 18px;
+  border: 0;
+  padding: 0;
+}
+
+.field-label,
+.field legend {
+  display: block;
+  font-weight: 700;
+  margin-bottom: 6px;
+  padding: 0;
+}
+
+.field-hint {
+  font-weight: 400;
+}
+
+.hint {
+  margin: 6px 0 0;
+  font-size: 0.9rem;
+}
+
+.input {
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--glow-accent);
+}
+
+.input[aria-invalid='true'] {
+  border-color: var(--color-danger);
+}
+
+textarea.input {
+  resize: vertical;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.row > .input {
+  flex: 1 1 140px;
+  width: auto;
+}
+
+.choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  cursor: pointer;
+}
+
+.choice:has(input:checked) {
+  border-color: var(--color-accent);
+  box-shadow: var(--glow-accent);
+}
+
+.choice input {
+  accent-color: var(--color-accent);
+}
+
+.choice.block {
+  display: flex;
+  margin-bottom: 10px;
+}
+
+/* Status badges */
+.badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.badge-scheduled {
+  background: #e7eefc;
+  color: #2c4f9e;
+}
+
+.badge-delivered {
+  background: #fff1d6;
+  color: #8a5a00;
+}
+
+.badge-opened {
+  background: #dff3e4;
+  color: #1f6b35;
+}
+
+.badge-cancelled {
+  background: #eee;
+  color: #666;
 }

@@ -20,7 +20,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Run the CLI for someone you know (their city and birthday) and confirm the local time printed is 00:00 on their day.
   Commit: `Add midnight engine with time-zone test matrix`
 
-- [ ] **2. You can sign in with Google and land on your (empty) history**
+- [x] **2. You can sign in with Google and land on your (empty) history**
   Becomes usable: Open `http://localhost:5173`, see the welcome page, sign in with Google, and land on History showing "Make your first capsule". Signing out and back in works.
   Why now: Every sender screen sits behind sign-in, and it depends on outside setup (your OAuth client ID). Doing it now surfaces setup problems early. Frontend and database bootstrapping live here.
   PRD ref: `prd.md > The Core Journey` (steps 1–2), `prd.md > Sign-in and history`, `prd.md > States and Boundaries` (first use)
@@ -45,7 +45,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Why now: This completes the kernel end to end, at the demo's "oh, that's cool" beat. Email deliverability and exactly-once delivery are the remaining big risks.
   PRD ref: `prd.md > Delivery at the recipient's midnight`, `prd.md > The birthday email`, `prd.md > The Core Journey` (steps 9–10, 12)
   Spec ref: `spec.md > Components > Delivery loop and mailer`, `spec.md > Components > Recipient API`, `spec.md > Components > Demo controls`, `spec.md > External Services and Dependencies` (Gmail SMTP), `spec.md > Important Failure Modes`
-  Build: `delivery/scheduler.py` (30 s lifespan loop, `FOR UPDATE SKIP LOCKED`, hashed `token_urlsafe(32)` secret, send after commit, backoff retries up to 5, `send_error`), `mailer.py` (`SmtpMailer`, `ConsoleMailer`), `email_templates.py`, `routes/recipient.py` (`GET /v1/c/{secret}` with first-open marking, `noindex`, no-cache), `routes/demo.py`. Frontend: Demo button on the capsule, `RecipientCapsule` placeholder reveal, `NotFound`. `tests/test_delivery.py` (exactly once, two concurrent ticks, retry) and `tests/test_recipient.py` (unknown 404, open marks opened once).
+  Build: `delivery/scheduler.py` (30 s lifespan loop, `FOR UPDATE SKIP LOCKED`, hashed `token_urlsafe(32)` secret, send after commit, backoff retries up to 5, `send_error`), `mailer.py` (`SmtpMailer`, `ConsoleMailer`), `email_templates.py`, `routes/recipient.py` (`GET /v1/c/{secret}` with first-open marking, `noindex`, no-cache), `routes/demo.py`. Frontend: Demo button on the capsule, `RecipientCapsule` placeholder reveal, `NotFound`. `tests/test_delivery.py` (exactly once, two concurrent ticks, retry) and `tests/test_recipient.py` (unknown 404, open marks opened once). SMTP isn't set up yet (as of 2026-09-30): build and verify with `MAILER=console` first; the real-inbox check waits until Dinesh has the app's Gmail account and app password.
   Verify (mechanical): `pytest` passes; with `MAILER=console`, simulate-midnight prints one email whose link returns the capsule and flips status to opened only once. With `MAILER=smtp`, send one real test email each to a Gmail and an Outlook inbox and confirm (with you) they land in the inbox.
   Learner check: Schedule a capsule to an inbox you can open on your phone, press "Simulate their midnight", open the email and tap the link. Then check the sender's history says Opened.
   Commit: `Deliver capsules by email at the recipient's midnight via private link`
@@ -98,6 +98,13 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
 
 ## Final Review
 
+Refinements Dinesh asked for during slice 3's learner check (2026-09-30), to do in the revision round:
+
+- [ ] Birthday day/month picker: refine the UI/UX (currently two plain dropdowns).
+- [ ] Message: accept the placeholder text with Tab (like inline text prediction). Keep the handwritten font and the placeholder wording.
+- [ ] Recipient email: tighten validation; showing the error when Next is pressed stays as is. Built early, in slice 3: stricter format (browser and API), "Did you mean …?" typo hint, and a server-side MX lookup on Next and on save. Awaiting Dinesh's retry.
+- [ ] City search shortcuts: common aliases such as "nyc" → New York City, "la" → Los Angeles.
+
 - [ ] Final review complete — feedback resolved and learner confirms ready to ship
 
 ## Code Tour and App Map
@@ -115,6 +122,10 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 ## Revisions
 
 - Added `GET /v1/config` (returns the non-secret Google client ID) — the web app needs the client ID to render the Google button, and serving it from the API keeps `.env` the single place it's set instead of duplicating it as a Vite variable.
+- Added `POST /v1/delivery-preview` — the When step must show the exact delivery moment before saving, and only the server's midnight engine can compute it correctly (DST gaps, Feb 29); duplicating that in the browser would risk the two disagreeing.
+- City list is ~4,200 cities (not 1–2k) — pop. ≥150k plus capitals left gaps: whole time zones such as America/St_Johns (UTC−3:30) had no city. It now also keeps the largest city of every zone; 227 KB (≈70 KB gzipped). Zones with no town of 15k+ people (e.g. Australia/Eucla) remain absent; the picker suggests choosing a nearby city in the same zone. GeoNames credit is in `ATTRIBUTION.md` until the README exists.
+- Added `POST /v1/email-check` and an MX lookup on capsule create (`dnspython`) — Dinesh asked for real "can this domain receive mail" validation, not just format. It doesn't block when DNS can't be reached (offline demo), only when a domain definitely can't receive mail.
+- `index.html` served with `Cache-Control: no-cache`, hashed `assets/` as immutable — during slice 3 checks the browser kept a cached `index.html` pointing at the previous build.
 - React Router 6 → 7 (`react-router-dom@^7.18.4`) — `npm audit` flagged two moderate advisories affecting every 6.x release (open redirect via backslash in `<Link>`/`useNavigate`; SSR hydration). Neither was reachable in this app, but v7 is a drop-in for our usage and clears the audit.
 - PostgreSQL 14 → 18 in `spec.md` — both were installed; Dinesh chose to keep 18 and remove 14. Nothing in the app depends on the version.
 - Added a root `pytest.ini` — pytest run from the repo root didn't see `backend/pyproject.toml`, so imports and async test settings were missing there.

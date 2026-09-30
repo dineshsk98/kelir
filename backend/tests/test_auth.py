@@ -19,8 +19,9 @@ CLAIMS = {
 def fake_google(monkeypatch, claims=CLAIMS):
     seen = {}
 
-    def verify(credential, request, audience):
+    def verify(credential, request, audience, clock_skew_in_seconds=0):
         seen["audience"] = audience
+        seen["clock_skew"] = clock_skew_in_seconds
         if credential != "good-token":
             raise ValueError("Wrong number of segments in token")
         return dict(claims)
@@ -67,6 +68,7 @@ async def test_sign_in_creates_sender_and_session(client, monkeypatch, settings)
     assert r.status_code == 200
     assert r.json()["email"] == "sender@example.com"
     assert seen["audience"] == settings.google_client_id  # token must be for our app
+    assert seen["clock_skew"] >= 5  # a laptop clock slightly behind Google's must not fail sign-in
     cookie = r.headers["set-cookie"]
     assert "HttpOnly" in cookie and "SameSite=lax" in cookie and "Max-Age=2592000" in cookie
 
@@ -95,6 +97,23 @@ async def test_sign_out_ends_the_session(client, monkeypatch):
     r = await client.post("/v1/auth/logout")
     assert r.status_code == 204
     assert (await client.get("/v1/me")).status_code == 401
+
+
+async def test_web_app_is_served_with_cache_rules(client, settings, tmp_path):
+    dist = tmp_path / "dist"
+    (dist / "assets").mkdir(parents=True)
+    (dist / "index.html").write_text("<!doctype html>app")
+    (dist / "assets" / "index-abc123.js").write_text("js")
+    (tmp_path / "secret.txt").write_text("outside the web app")
+    settings.frontend_dist = dist
+
+    for path in ("/", "/history", "/capsules/new"):
+        r = await client.get(path)
+        assert r.text == "<!doctype html>app" and r.headers["cache-control"] == "no-cache"
+    r = await client.get("/assets/index-abc123.js")
+    assert r.headers["cache-control"] == "public, max-age=31536000, immutable"
+    r = await client.get("/assets/..%2F..%2Fsecret.txt")  # resolves to tmp_path/secret.txt
+    assert r.text == "<!doctype html>app"  # traversal falls back to the app, never the file
 
 
 async def test_unknown_api_path_is_json_404_not_the_web_app(client):
