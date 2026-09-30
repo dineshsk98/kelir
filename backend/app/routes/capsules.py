@@ -88,6 +88,7 @@ async def create_capsule(
         deliver_at=deliver_at,
         status="scheduled",
         created_at=now,
+        reply=None,  # a new capsule has no thank-you; setting it avoids a lazy load later
     )
     session.add(capsule)
     await session.commit()

@@ -93,6 +93,12 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
                   <strong>{c.recipient_name}</strong> <span className="muted">· {c.city_label}</span>
                 </p>
                 <p className={c.delivery_trouble ? 'capsule-when error' : 'capsule-when'}>{deliveryLine(c)}</p>
+                {c.reply && (
+                  <blockquote className="capsule-reply">
+                    <span className="capsule-reply-text">“{c.reply.text}”</span>
+                    <span className="muted small"> — {c.recipient_name.split(' ')[0]}</span>
+                  </blockquote>
+                )}
                 {demoMode && c.status === 'scheduled' && (
                   <button
                     type="button"

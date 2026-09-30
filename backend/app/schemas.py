@@ -7,10 +7,19 @@ from typing import Annotated, Literal
 from urllib.parse import urlsplit
 from zoneinfo import available_timezones
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    model_validator,
+)
 
 from app.email_check import is_valid_format
 from app.engine.schedule import validate_birthday
+from app.replies import REPLY_MAX_LENGTH, REPLY_PRESETS, reply_text
 
 
 class GoogleSignIn(BaseModel):
@@ -131,6 +140,46 @@ class CapsuleCreate(Birthday):
         return self
 
 
+class ReplyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    preset_key: str | None = None
+    text: Annotated[Text | None, AfterValidator(_blank_to_none)] = None
+
+    @model_validator(mode="after")
+    def _one_of(self):
+        if (self.preset_key is None) == (self.text is None):
+            raise ValueError("choose a thank-you or write your own")
+        if self.preset_key is not None and self.preset_key not in REPLY_PRESETS:
+            raise ValueError("unknown thank-you")
+        if self.text is not None and len(self.text) > REPLY_MAX_LENGTH:
+            raise ValueError(f"a thank-you can be at most {REPLY_MAX_LENGTH} characters")
+        return self
+
+
+class ReplyOut(BaseModel):
+    text: str
+    created_at: datetime
+
+    @classmethod
+    def from_model(cls, reply) -> "ReplyOut | None":
+        if reply is None:
+            return None
+        return cls(text=reply_text(reply.preset_key, reply.text), created_at=reply.created_at)
+
+
+class ReplyPreset(BaseModel):
+    key: str
+    text: str
+
+
+def _reply(value):
+    """Accept a Reply row (from the ORM) or an already-built ReplyOut/dict."""
+    if value is None or isinstance(value, (ReplyOut, dict)):
+        return value
+    return ReplyOut.from_model(value)
+
+
 class CapsuleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -152,6 +201,7 @@ class CapsuleOut(BaseModel):
     status: Literal["scheduled", "delivered", "opened", "cancelled"]
     delivery_trouble: bool
     opened_at: datetime | None
+    reply: Annotated[ReplyOut | None, BeforeValidator(_reply)] = None
     created_at: datetime
 
 
@@ -167,3 +217,5 @@ class RecipientCapsuleOut(BaseModel):
     gift_kind: GiftKind | None
     gift_value: str | None
     gift_note: str | None
+    reply: ReplyOut | None
+    reply_presets: list[ReplyPreset]

@@ -6,13 +6,15 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import Now
 from app.db import get_session
 from app.links import hash_link_secret
-from app.models import Capsule, Sender
-from app.schemas import RecipientCapsuleOut
+from app.models import Capsule, Reply, Sender
+from app.replies import REPLY_PRESETS
+from app.schemas import RecipientCapsuleOut, ReplyIn, ReplyOut, ReplyPreset
 
 router = APIRouter(prefix="/v1/c")
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -46,15 +48,19 @@ async def _find(session: AsyncSession, secret: str) -> tuple[Capsule, Sender]:
     return capsule, sender
 
 
-@router.get("/{secret}")
-async def open_capsule(secret: str, session: Session, now: Now, response: Response) -> RecipientCapsuleOut:
-    capsule, sender = await _find(session, secret)
-    # First open marks it Opened; the condition makes this happen exactly once
+async def _mark_opened(session: AsyncSession, capsule: Capsule, now) -> None:
+    """The first open (or a reply) marks it Opened; the condition makes this happen once."""
     await session.execute(
         update(Capsule)
         .where(Capsule.id == capsule.id, Capsule.status == "delivered")
         .values(status="opened", opened_at=now)
     )
+
+
+@router.get("/{secret}")
+async def open_capsule(secret: str, session: Session, now: Now, response: Response) -> RecipientCapsuleOut:
+    capsule, sender = await _find(session, secret)
+    await _mark_opened(session, capsule, now)
     await session.commit()
     response.headers.update(PRIVATE_HEADERS)
     return RecipientCapsuleOut(
@@ -65,4 +71,28 @@ async def open_capsule(secret: str, session: Session, now: Now, response: Respon
         gift_kind=capsule.gift_kind,
         gift_value=capsule.gift_value,
         gift_note=capsule.gift_note,
+        reply=ReplyOut.from_model(capsule.reply),
+        reply_presets=[ReplyPreset(key=k, text=t) for k, t in REPLY_PRESETS.items()],
     )
+
+
+@router.post("/{secret}/reply", status_code=201)
+async def send_reply(
+    secret: str, body: ReplyIn, session: Session, now: Now, response: Response
+) -> ReplyOut:
+    """The recipient's thank-you: one per capsule, no account needed."""
+    capsule, _ = await _find(session, secret)
+    already_replied = HTTPException(409, detail={"code": "REPLY_EXISTS"}, headers=PRIVATE_HEADERS)
+    if capsule.reply is not None:
+        raise already_replied
+    reply = Reply(capsule_id=capsule.id, preset_key=body.preset_key, text=body.text, created_at=now)
+    try:
+        session.add(reply)
+        # The INSERT is flushed by this next statement (autoflush), so it belongs inside the try
+        await _mark_opened(session, capsule, now)
+        await session.commit()
+    except IntegrityError:  # a double-tap raced us: the unique capsule_id kept it to one
+        await session.rollback()
+        raise already_replied
+    response.headers.update(PRIVATE_HEADERS)
+    return ReplyOut.from_model(reply)

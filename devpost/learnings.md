@@ -6,6 +6,18 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-09-30 · A double-tapped thank-you crashed with a 500 instead of "already sent"
+- **Symptom:** the new double-tap test (three simultaneous replies) got an unhandled `IntegrityError` (duplicate `capsule_id`) instead of one 201 and two 409s.
+- **Cause:** the `try/except IntegrityError` only wrapped `commit()`, but SQLAlchemy *autoflushes* pending inserts before running the next statement. The reply's INSERT was sent while marking the capsule opened, one line before the `try`.
+- **Fix:** the insert, the opened update and the commit all sit inside the `try` (`backend/app/routes/recipient.py`); the race test passes repeatedly.
+- **Lesson:** with an ORM, the database error can surface at any later statement, not just at `commit()`. Guard the whole unit of work, and test races with truly concurrent requests; the unique constraint is what actually guarantees "one".
+
+## 2026-09-30 · `MissingGreenlet` when returning a capsule after adding its reply relationship
+- **Symptom:** after adding `Capsule.reply`, creating a capsule and "Simulate their midnight" failed with `MissingGreenlet: greenlet_spawn has not been called`.
+- **Cause:** a freshly created (or refreshed) capsule hadn't loaded `reply`, so building the response tried a *lazy* database load from plain sync attribute access, which async SQLAlchemy can't do.
+- **Fix:** a new capsule is created with `reply=None`; after the demo tick the capsule is refreshed with `["reply"]` explicitly (`routes/capsules.py`, `routes/demo.py`); lists load replies eagerly (`lazy="selectin"`).
+- **Lesson:** in async SQLAlchemy, every relationship a response touches must already be loaded. Adding a relationship means checking every place its objects are returned, not only reads.
+
 ## 2026-09-30 · A failed birthday email can't be resent with the same link
 - **Symptom:** designing email retries, the obvious plan ("resend the same email") was impossible.
 - **Cause:** by design only the SHA-256 hash of each link's secret is stored, so after the first attempt nobody (including the server) knows the secret any more. Also, email must go out *after* the delivery transaction commits, so a crash between the two could leave a delivered capsule that never got emailed.

@@ -41,5 +41,8 @@ async def simulate_midnight(
 
     await run_tick(sessionmaker, mailer, settings, now)
 
+    # The tick changed it in other sessions: reload its columns and its (empty) reply here,
+    # inside async code, so building the response never triggers a lazy load
     await session.refresh(capsule)
+    await session.refresh(capsule, ["reply"])
     return CapsuleOut.model_validate(capsule)

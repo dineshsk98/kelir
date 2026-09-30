@@ -40,7 +40,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Make a capsule for someone in Tokyo (or wherever your people are) and check that the history row's two times match what you'd expect.
   Commit: `Add capsule creation flow with city picker and scheduled history`
 
-- [ ] **4. Their midnight arrives: a real email lands and the private link opens the capsule**
+- [x] **4. Their midnight arrives: a real email lands and the private link opens the capsule**
   Becomes usable: On a scheduled capsule, press "Simulate their midnight" (Demo). A real email "<Sender> has sent you a surprise for your special day" from "<Sender> via <Name>" lands in the inbox; tapping "Open your capsule" opens a plain placeholder capsule page (message, gift). The sender's status goes Delivered → Opened on first open. Unknown links show "We couldn't find this capsule".
   Why now: This completes the kernel end to end, at the demo's "oh, that's cool" beat. Email deliverability and exactly-once delivery are the remaining big risks.
   PRD ref: `prd.md > Delivery at the recipient's midnight`, `prd.md > The birthday email`, `prd.md > The Core Journey` (steps 9–10, 12)
@@ -125,6 +125,7 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Added `GET /v1/config` (returns the non-secret Google client ID) — the web app needs the client ID to render the Google button, and serving it from the API keeps `.env` the single place it's set instead of duplicating it as a Vite variable.
 - Added `POST /v1/delivery-preview` — the When step must show the exact delivery moment before saving, and only the server's midnight engine can compute it correctly (DST gaps, Feb 29); duplicating that in the browser would risk the two disagreeing.
 - City list is ~4,200 cities (not 1–2k) — pop. ≥150k plus capitals left gaps: whole time zones such as America/St_Johns (UTC−3:30) had no city. It now also keeps the largest city of every zone; 227 KB (≈70 KB gzipped). Zones with no town of 15k+ people (e.g. Australia/Eucla) remain absent; the picker suggests choosing a nearby city in the same zone. GeoNames credit is in `ATTRIBUTION.md` until the README exists.
+- Thank-you presets live on the server (`backend/app/replies.py`) and come with the capsule; a reply stores the preset's key, so the wording can change later without touching the database. Replying also counts as opening (exactly once), for the case where the reply arrives without the capsule ever being loaded.
 - Email sending is a separate at-least-once queue after the exactly-once delivery transition (new `next_send_at`, `emailed_at` columns, migration `0003`) — the spec's "retry with backoff" can't resend the same link because only its hash is stored, so each attempt issues a fresh link under a short lease.
 - "Send now" (and a birthday that has already begun) runs a delivery tick right after saving, instead of waiting up to 30 s for the loop — the PRD says Send now delivers immediately.
 - Capsule pages (`/c/…`) also send `Referrer-Policy: no-referrer` — otherwise opening a gift link would hand the private capsule URL to the gift site in the `Referer` header.

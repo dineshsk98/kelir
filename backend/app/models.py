@@ -15,7 +15,7 @@ from sqlalchemy import (
     func,
     text,
 )
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
 class Base(DeclarativeBase):
@@ -92,6 +92,9 @@ class Capsule(Base):
     next_send_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     emailed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # Loaded together with the capsule so lists don't need a query per row
+    reply: Mapped["Reply | None"] = relationship(lazy="selectin", uselist=False)
+
     @property
     def delivery_trouble(self) -> bool:
         """Delivered, but the email hasn't gone out and the last attempt failed."""
@@ -102,4 +105,23 @@ class Capsule(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
+class Reply(Base):
+    """The recipient's thank-you: one per capsule, a preset or their own text."""
+
+    __tablename__ = "replies"
+    __table_args__ = (
+        CheckConstraint("(preset_key IS NULL) <> (text IS NULL)", name="preset_or_text"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    capsule_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("capsules.id", ondelete="CASCADE"), unique=True
+    )
+    preset_key: Mapped[str | None] = mapped_column(String(40))
+    text: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
     )

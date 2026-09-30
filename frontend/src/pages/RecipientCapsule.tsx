@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, ApiError, type RecipientCapsule as Capsule } from '../api'
+import { ReplyPanel } from '../components/ReplyPanel'
 import './RecipientCapsule.css'
 
 type State =
@@ -62,6 +63,7 @@ export function RecipientCapsule() {
         {c.message_text && <p className="recipient-message">{c.message_text}</p>}
         {c.gift_kind && <Gift capsule={c} />}
         <p className="muted small signature">With love, {c.sender_name}</p>
+        <ReplyPanel secret={secret} senderName={c.sender_name} presets={c.reply_presets} initialReply={c.reply} />
       </article>
     </main>
   )

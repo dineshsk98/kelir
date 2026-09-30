@@ -1,0 +1,65 @@
+.reply-panel {
+  border-top: 1px solid var(--color-border);
+  margin-top: 28px;
+  padding-top: 24px;
+  text-align: left;
+}
+
+.reply-panel h2 {
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.reply-presets {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 16px;
+}
+
+.reply-preset {
+  font: inherit;
+  text-align: left;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.reply-preset.chosen {
+  border-color: var(--color-accent);
+  box-shadow: var(--glow-accent);
+  font-weight: 700;
+}
+
+.reply-own {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.reply-count {
+  justify-self: end;
+}
+
+.reply-panel .btn {
+  width: 100%;
+}
+
+.reply-sent {
+  text-align: center;
+}
+
+.reply-sent-title {
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
+.reply-quote {
+  margin: 0;
+  font-family: var(--font-hand);
+  font-size: 1.4rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

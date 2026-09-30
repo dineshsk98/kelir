@@ -26,7 +26,9 @@ async def test_link_opens_the_capsule_without_an_account(client, sign_in, freeze
     )
     r = await client.get(f"/v1{path}")
     assert r.status_code == 200
-    assert r.json() == {
+    body = r.json()
+    assert body.pop("reply") is None and len(body.pop("reply_presets")) > 0  # see test_replies.py
+    assert body == {
         "sender_name": "Sam Sender",
         "recipient_name": "Aiko Tanaka",
         "message_text": "Happy birthday!",

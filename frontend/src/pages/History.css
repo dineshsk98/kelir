@@ -36,6 +36,20 @@
   overflow-wrap: anywhere;
 }
 
+.capsule-reply {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--color-accent);
+  background: var(--color-accent-soft);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  overflow-wrap: anywhere;
+}
+
+.capsule-reply-text {
+  font-family: var(--font-hand);
+  font-size: 1.25rem;
+}
+
 .demo-button {
   display: inline-flex;
   align-items: center;

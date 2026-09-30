@@ -33,8 +33,12 @@ export type Capsule = CapsuleCreate & {
   status: CapsuleStatus
   delivery_trouble: boolean
   opened_at: string | null
+  reply: Reply | null
   created_at: string
 }
+
+export type Reply = { text: string; created_at: string }
+export type ReplyPreset = { key: string; text: string }
 
 /** What the recipient's private link returns */
 export type RecipientCapsule = {
@@ -45,6 +49,8 @@ export type RecipientCapsule = {
   gift_kind: GiftKind | null
   gift_value: string | null
   gift_note: string | null
+  reply: Reply | null
+  reply_presets: ReplyPreset[]
 }
 
 export class ApiError extends Error {
@@ -93,4 +99,6 @@ export const api = {
     request<Capsule>(`/v1/demo/capsules/${encodeURIComponent(id)}/simulate-midnight`, { method: 'POST' }),
 
   openCapsule: (secret: string) => request<RecipientCapsule>(`/v1/c/${encodeURIComponent(secret)}`),
+  sendReply: (secret: string, body: { preset_key: string } | { text: string }) =>
+    request<Reply>(`/v1/c/${encodeURIComponent(secret)}/reply`, post(body)),
 }

@@ -162,6 +162,16 @@ def sign_in(client, sessionmaker, settings):
 
 
 @pytest.fixture
+def act_as(client, settings):
+    """Make `client` send requests as an existing sender (by id)."""
+
+    def _act_as(sender_id) -> None:
+        client.cookies.set(SESSION_COOKIE, _serializer(settings).dumps({"sid": str(sender_id)}))
+
+    return _act_as
+
+
+@pytest.fixture
 def freeze_now():
     """Pin the API's clock: `freeze_now(datetime)`."""
 
