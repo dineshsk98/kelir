@@ -24,11 +24,16 @@ export type CapsuleCreate = Birthday & {
   gift_value: string | null
   gift_note: string | null
   send_mode: SendMode
+  /** Uploaded photos/audio/video, in order */
+  upload_ids: string[]
 }
 
-export type Capsule = CapsuleCreate & {
+export type MediaKind = 'image' | 'audio' | 'video'
+export type MediaItem = { id: string; kind: MediaKind; mime: string; size_bytes: number }
+
+export type Capsule = Omit<CapsuleCreate, 'upload_ids'> & {
   id: string
-  media_kind: 'audio' | 'video' | null
+  media: MediaItem[]
   deliver_at: string
   status: CapsuleStatus
   delivery_trouble: boolean
@@ -45,7 +50,7 @@ export type RecipientCapsule = {
   sender_name: string
   recipient_name: string
   message_text: string | null
-  media_kind: 'audio' | 'video' | null
+  media: MediaItem[]
   gift_kind: GiftKind | null
   gift_value: string | null
   gift_note: string | null
@@ -64,21 +69,52 @@ export class ApiError extends Error {
   }
 }
 
+function errorFrom(status: number, body: unknown): ApiError {
+  const detail = (body as { detail?: unknown } | null)?.detail
+  const code =
+    detail && typeof detail === 'object' && 'code' in detail && typeof detail.code === 'string'
+      ? detail.code
+      : 'UNKNOWN'
+  const messages = Array.isArray(detail)
+    ? detail.map((d: { msg?: string }) => String(d.msg ?? '').replace(/^Value error, /, ''))
+    : []
+  return new ApiError(status, code, messages)
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(path, {
     ...init,
     credentials: 'same-origin',
     headers: { 'Content-Type': 'application/json', ...init.headers },
   })
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    const code = typeof body?.detail?.code === 'string' ? body.detail.code : 'UNKNOWN'
-    const messages = Array.isArray(body?.detail)
-      ? body.detail.map((d: { msg?: string }) => String(d.msg ?? '').replace(/^Value error, /, ''))
-      : []
-    throw new ApiError(res.status, code, messages)
-  }
+  if (!res.ok) throw errorFrom(res.status, await res.json().catch(() => ({})))
   return res.status === 204 ? (undefined as T) : res.json()
+}
+
+/** Upload one file with progress (fetch can't report upload progress; XHR can). */
+function uploadFile(file: File, onProgress: (fraction: number) => void, signal?: AbortSignal): Promise<MediaItem> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', '/v1/uploads')
+    xhr.withCredentials = true
+    xhr.responseType = 'json'
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total)
+    xhr.onload = () =>
+      xhr.status === 201 ? resolve(xhr.response as MediaItem) : reject(errorFrom(xhr.status, xhr.response))
+    xhr.onerror = () => reject(new ApiError(0, 'NETWORK'))
+    xhr.onabort = () => reject(new ApiError(0, 'ABORTED'))
+    signal?.addEventListener('abort', () => xhr.abort())
+    const form = new FormData()
+    form.append('file', file)
+    xhr.send(form)
+  })
+}
+
+/** Where a media item can be fetched: the sender's own preview, or through a capsule link */
+export const mediaUrl = {
+  own: (id: string) => `/v1/uploads/${encodeURIComponent(id)}`,
+  viaLink: (secret: string, id: string) =>
+    `/v1/c/${encodeURIComponent(secret)}/media/${encodeURIComponent(id)}`,
 }
 
 const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
@@ -95,6 +131,8 @@ export const api = {
   createCapsule: (body: CapsuleCreate) => request<Capsule>('/v1/capsules', post(body)),
   deliveryPreview: (body: Birthday & { tz: string; send_mode: SendMode }) =>
     request<{ deliver_at: string }>('/v1/delivery-preview', post(body)),
+  uploadFile,
+  discardUpload: (id: string) => request<void>(`/v1/uploads/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   simulateMidnight: (id: string) =>
     request<Capsule>(`/v1/demo/capsules/${encodeURIComponent(id)}/simulate-midnight`, { method: 'POST' }),
 

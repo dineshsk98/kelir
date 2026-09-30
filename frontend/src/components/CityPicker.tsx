@@ -46,6 +46,8 @@ export function CityPicker({
   }
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Enter here means "pick a city", never "submit the form" (e.g. before the list has loaded)
+    if (e.key === 'Enter' && !value) e.preventDefault()
     if (!open || results.length === 0) return
     if (e.key === 'ArrowDown') {
       e.preventDefault()

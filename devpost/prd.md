@@ -14,7 +14,7 @@ Source: `scope.md > The Unique Kernel`, `scope.md > The Core Loop`, `scope.md > 
 2. **Sign in.** The visitor signs in with Google. Returning senders sign in again and find their history.
 3. **Start a capsule.** From their history, the sender starts a new capsule.
 4. **Who.** The sender enters the recipient's name, email, birthday (month and day) and city. The city sets the recipient's time zone.
-5. **Message.** Text, plus one photo, audio or video. Audio and video can be recorded live in the browser or uploaded from a file; a photo is uploaded or taken with the phone's camera.
+5. **Message.** Text, plus up to 6 photos, audio or video clips in any mix. Audio and video can be recorded live in the browser or uploaded from a file; a photo is uploaded or taken with the phone's camera.
 6. **Gift (optional).** An online gift: a link (for example an Amazon link) or a code (for example a Steam code), with an optional note.
 7. **When.** "On their birthday" (at the recipient's next local 00:00 on that date) or "Send now".
 8. **Preview and confirm.** The sender sees exactly what the recipient will see, then confirms. The capsule appears in their history as **Scheduled** (or **Delivered**, if sent now).
@@ -57,7 +57,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
   - [ ] **Who:** name, email, birthday (month/day) and city are all required.
     - Choosing a city shows its time zone (e.g. "Tokyo · Asia/Tokyo").
     - A Feb 29 birthday asks which date to use in non-leap years: Feb 28 or Mar 1.
-  - [ ] **Message:** at least one of text, a photo, audio or video.
+  - [ ] **Message:** text and/or up to 6 media items (photos, audio, video) in any mix, shown in the order added; at least one of text or media.
     - Audio and video can be recorded in the browser or uploaded.
     - A photo is uploaded (on a phone, the picker can also open the camera).
     - A recording can be played back and redone before saving.
@@ -97,7 +97,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
     3. Build-up.
     4. Burst with confetti.
     5. The card is revealed with the sender's name.
-    6. The message plays (text shown, the photo shown, or audio/video plays).
+    6. The message plays: text shown, then the photos (a swipeable gallery) and audio/video players.
     7. The gift is revealed: the link as a button; the code hidden until tapped, with a copy button.
   - [ ] Sound effects are on by default, with a visible mute.
   - [ ] A "Skip" control jumps straight to the reveal.

@@ -44,5 +44,5 @@ async def simulate_midnight(
     # The tick changed it in other sessions: reload its columns and its (empty) reply here,
     # inside async code, so building the response never triggers a lazy load
     await session.refresh(capsule)
-    await session.refresh(capsule, ["reply"])
+    await session.refresh(capsule, ["reply", "media"])
     return CapsuleOut.model_validate(capsule)

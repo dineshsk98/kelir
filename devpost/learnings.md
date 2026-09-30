@@ -6,6 +6,30 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-09-30 · Pressing Enter in the city box submitted the form
+- **Symptom:** on a fresh page, typing "tokyo" and pressing Enter straight away showed "Choose the city they live in" instead of picking Tokyo.
+- **Cause:** the 227 KB city list was still loading, so there were no results to pick; the key handler returned early and the browser's default Enter action submitted the surrounding form.
+- **Fix:** Enter in the city box never submits the form while no city is chosen (`frontend/src/components/CityPicker.tsx`); reproduced before and after on a fresh page.
+- **Lesson:** inputs inside a `<form>` inherit "Enter submits". Any input with its own Enter meaning must opt out explicitly, especially while its data is still loading.
+
+## 2026-09-30 · Browser-recorded WebM videos have no length
+- **Symptom:** in the opening, a recorded WebM clip played, but its length read `Infinity`, so the player can't show a proper timeline.
+- **Cause:** MediaRecorder writes WebM as a live stream and never goes back to fill in the duration in the file header.
+- **Fix:** planned for slice 8 (recording): write the real duration into the recording before upload. Uploaded files from phones and cameras normally include it.
+- **Lesson:** "it plays" isn't enough for media: check the metadata players rely on (duration, dimensions) with real recordings.
+
+## 2026-09-30 · HEIC photos would break for most recipients
+- **Symptom:** caught while designing photo support: iPhone photos can be HEIC.
+- **Cause:** only Safari can display HEIC; a recipient opening the capsule in Chrome, Edge or Firefox would see a broken image.
+- **Fix:** HEIC uploads are refused with a clear message (and how to switch the iPhone camera to "Most Compatible"); iPhones usually convert to JPEG when uploading to a website anyway (`backend/app/media.py`).
+- **Lesson:** a file that works for the sender must also work wherever the *recipient* opens it. Check format support on the viewing side.
+
+## 2026-09-30 · Moving to the next step would have cancelled uploads
+- **Symptom:** caught in review before running: a large video still uploading would have been cancelled when the sender clicked Next.
+- **Cause:** the media picker aborted its uploads when it unmounted, and it unmounts on every step change; the uploads belong to the editor, not to the step.
+- **Fix:** in-flight uploads live outside the component and only stop when the sender removes that file; leftovers that never join a capsule are deleted after a day (`MediaPicker.tsx`, `media.py`).
+- **Lesson:** tie a background task's lifetime to what owns it, not to whatever component started it.
+
 ## 2026-09-30 · Sound engine lost on React's development double-mount
 - **Symptom:** caught in review before running: the opening's sound effects would have been silent in development.
 - **Cause:** the `Sfx` object was created during render (`sfx.current ??= new Sfx()`) and closed in an unmount cleanup. React's StrictMode mounts, unmounts and re-mounts components in development; the cleanup set it to `null`, and since render doesn't run again, it was never recreated.

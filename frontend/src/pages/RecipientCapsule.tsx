@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { api, ApiError, type RecipientCapsule as Capsule } from '../api'
+import { api, ApiError, mediaUrl, type RecipientCapsule as Capsule } from '../api'
 import { ReplyPanel } from '../components/ReplyPanel'
 import { Reveal, type RevealCapsule } from '../reveal/Reveal'
 import './RecipientCapsule.css'
@@ -50,12 +50,13 @@ export function RecipientCapsule() {
       senderName: c.sender_name,
       recipientName: c.recipient_name,
       messageText: c.message_text ?? undefined,
+      media: c.media.map((m) => ({ key: m.id, kind: m.kind, url: mediaUrl.viaLink(secret, m.id) })),
       gift:
         c.gift_kind && c.gift_value
           ? { kind: c.gift_kind, value: c.gift_value, note: c.gift_note ?? undefined }
           : undefined,
     }
-  }, [state])
+  }, [state, secret])
 
   if (state.kind === 'loading') return <main className="recipient-empty" aria-busy="true" />
   if (state.kind !== 'ready' || !reveal) {

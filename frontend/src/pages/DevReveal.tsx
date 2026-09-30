@@ -5,7 +5,27 @@ import './DevReveal.css'
 
 // Development only (not in production builds): tune the opening and compare looks
 // with labeled sample data. No API, database or sign-in involved.
+/** A generated placeholder "photo" (inline SVG), clearly labelled as a sample */
+const samplePhoto = (label: string, from: string, to: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"><defs><linearGradient id="g" x2="1" y2="1">` +
+      `<stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs>` +
+      `<rect width="800" height="600" fill="url(#g)"/><text x="400" y="320" font-size="56" text-anchor="middle" ` +
+      `fill="#fff" font-family="sans-serif">${label}</text></svg>`,
+  )}`
+
 const SAMPLES: Record<string, RevealCapsule> = {
+  'Text + photos + gift code': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: 'Remember these?',
+    media: [
+      { key: 'p1', kind: 'image', url: samplePhoto('Sample photo 1', '#ff8a6b', '#ffcf5c') },
+      { key: 'p2', kind: 'image', url: samplePhoto('Sample photo 2', '#6aa8ff', '#b8a4ff') },
+      { key: 'p3', kind: 'image', url: samplePhoto('Sample photo 3', '#7cc6a4', '#2c7a5b') },
+    ],
+    gift: { kind: 'code', value: 'SAMPLE-1234-ABCD', note: 'For the new game!' },
+  },
   'Text + gift code': {
     senderName: 'Sam (sample)',
     recipientName: 'Aiko (sample)',

@@ -46,7 +46,7 @@ A sender schedules a birthday capsule for anyone, or instantly creates and sends
   - How the link is secured and how the email stays out of spam: see `spec.md > Decisions and Open Issues`.
 - **The sender verifies their own email:** the capsule is tied to the sender's authenticated email, so the recipient already knows who sent it.
 - **Recipient details:** the sender adds one recipient with name, email, birthday and the recipient's location, chosen with a **city picker**. The city sets their time zone; the recipient has no device in the app.
-- **The message:** text, plus one photo, audio or video. Audio and video can be recorded in the browser or uploaded; a photo is uploaded (or taken with the phone's camera).
+- **The message:** text, plus several photos, audio or video clips (up to 6). Audio and video can be recorded in the browser or uploaded; a photo is uploaded (or taken with the phone's camera).
 - **Optional gift:** a link (for example an Amazon link) or a code (for example a Steam code), with an optional note.
 - **Delivery:** by email at the recipient's local 00:00, correct across time zones, DST (including days when midnight is skipped) and Feb 29 in non-leap years.
 - **Send now:** instant create-and-send as an alternative to scheduling.

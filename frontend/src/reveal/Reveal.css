@@ -376,6 +376,10 @@
   animation: rise-in 0.7s ease-out both;
 }
 
+.reveal-media {
+  animation: rise-in 0.7s ease-out 0.25s both;
+}
+
 .reveal-gift {
   margin-top: 26px;
   padding-top: 20px;

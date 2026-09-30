@@ -139,8 +139,8 @@ Implements `prd.md > Creating a capsule` and `prd.md > Editing and cancelling (u
 | `POST /v1/capsules` | Validates the fields, computes `deliver_at`, and creates the capsule with status `scheduled`. |
 | `GET /v1/capsules/{id}` | Detail and preview data (owner only). |
 | `PATCH /v1/capsules/{id}` | Only while `scheduled` or `delivered`: recomputes `deliver_at` if still `scheduled`; returns `409 CAPSULE_FINAL` once opened. |
-| `POST /v1/uploads` | Multipart upload. Checks type and size, saves to `uploads/<sender_id>/<upload_id>…` and returns `{upload_id, media_kind}`. Create and PATCH take an `upload_id` to attach or replace media; a file never attached is removed on the next start. |
-| `GET /v1/capsules/{id}/media` | Streams the media to the owner (for preview). |
+| `POST /v1/uploads` | Multipart upload of one photo, audio or video file. Checks the real file type (not just the name) and size, saves to `uploads/<sender_id>/<upload_id>` and returns `{upload_id, kind, mime}`. Create and PATCH take an ordered list of `upload_ids` (up to 6) to attach; a file never attached is removed on the next start. |
+| `GET /v1/uploads/{upload_id}` | Streams one of the sender's own uploads (for Preview), with range requests for seeking. |
 | `POST /v1/capsules/{id}/cancel` | Status → `cancelled`; not allowed once opened. |
 
 ### Delivery loop and mailer (`backend/app/delivery/`)
@@ -164,7 +164,7 @@ Implements `prd.md > The opening moment` and `prd.md > Thank-you reply`.
   - cancelled → 410
   - otherwise → the capsule (sender name, recipient name, message, media kind, gift, reply)
   - The first call sets `opened_at` and status `opened`.
-- `GET /v1/c/{secret}/media`: streams the media and supports seeking.
+- `GET /v1/c/{secret}/media/{item_id}`: streams one of that capsule's media items and supports seeking (range requests).
 - `POST /v1/c/{secret}/reply {preset|text}`: one reply per capsule; text up to 500 characters.
 - The page sends `noindex`, and API responses aren't cached.
 
@@ -190,7 +190,7 @@ Implements `prd.md > Screens and Layout` (sender side).
   - records audio or video with `MediaRecorder` (webm on Chrome, mp4 on Safari)
   - caps length (video 60 s, audio 120 s) and offers play-back and redo
   - if the camera or microphone is blocked, shows a note and offers upload
-- Photo: upload only (`<input type="file" accept="image/*">`, which offers the camera on phones); JPEG, PNG, WebP or HEIC up to 15 MB, shown on the card during the `message` stage.
+- Photos: upload only (`<input type="file" accept="image/*" multiple>`, which offers the camera on phones). A capsule holds up to 6 media items in any mix; the opening shows them after the message (photos as a swipeable gallery, audio and video as players).
 - `CityPicker`: type-ahead over bundled `cities.json` ({name, country, tz}); it shows "Tokyo, Japan · Asia/Tokyo".
 
 ### Web app: the opening (`frontend/src/reveal/`)
@@ -236,7 +236,7 @@ The only shared surface is one component:
 
 ```ts
 <Reveal
-  capsule={{ senderName, recipientName, messageText?, media?: { kind: 'audio'|'video', url }, gift?: { kind: 'link'|'code', value, note? } }}
+  capsule={{ senderName, recipientName, messageText?, media?: { key, kind: 'image'|'audio'|'video', url }[], gift?: { kind: 'link'|'code', value, note? } }}
   replyPanel={ReactNode}   // Track A supplies the thank-you form
   onFirstReveal={() => void}
 />
@@ -262,8 +262,8 @@ PostgreSQL, created by Alembic migrations.
   - `city_label` (e.g. "Tokyo, Japan"), `tz` (IANA)
 - Message and gift:
   - `message_text` (nullable)
-  - `media_kind` (`image`|`audio`|`video`|null), `media_path`, `media_mime`
   - `gift_kind` (`link`|`code`|null), `gift_value`, `gift_note`
+  - media: see `capsule_media`
 - Delivery:
   - `send_mode` (`birthday`|`now`), `deliver_at` (UTC)
   - `status` (`scheduled`|`delivered`|`opened`|`cancelled`)
@@ -272,7 +272,13 @@ PostgreSQL, created by Alembic migrations.
   - `send_attempts`, `send_error`
   - `created_at`, `updated_at`
 - Index on `(status, deliver_at)` for the loop.
-- Rule: at least one of text or media, checked by the API and by a check constraint (`message_text IS NOT NULL OR media_kind IS NOT NULL`). This works because media is attached at creation.
+- Rule: at least one of text or media, checked by the API when a capsule is created or edited (media lives in its own table, so a single-row check constraint can't see it).
+
+**`capsule_media`** (one row per uploaded file; replaces the earlier single `media_*` columns)
+- `id` (uuid: the `upload_id`), `sender_id` (owner), `capsule_id` (null until attached; cascade delete), `position` (0–5, order in the capsule)
+- `kind` (`image`|`audio`|`video`), `mime`, `size_bytes`, `path`, `created_at`
+- Unique `(capsule_id, position)`; at most 6 per capsule; 150 MB total per capsule.
+- Limits: photos (JPEG, PNG, WebP, GIF; HEIC refused because only Safari can display it) ≤15 MB; audio (webm, ogg, mp3, m4a, wav) and video (webm, mp4, mov) ≤50 MB.
 
 **`replies`**
 - `id`, `capsule_id` (unique, so one reply per capsule), `preset_key` (nullable), `text` (nullable), `created_at`

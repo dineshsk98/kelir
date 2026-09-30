@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { api, ApiError, type CapsuleCreate, type Feb29Pref, type GiftKind, type Me, type SendMode } from '../api'
 import type { City } from '../cities'
 import { CityPicker } from '../components/CityPicker'
+import { MediaGallery } from '../components/MediaGallery'
+import { MediaPicker, type PickedMedia } from '../components/MediaPicker'
 import { StepNav } from '../components/StepNav'
 import { isValidEmail, suggestEmail } from '../email'
 import { daysInMonth, deliveryMoment, monthNames } from '../format'
@@ -45,11 +47,11 @@ const EMPTY: Draft = {
   send_mode: 'birthday',
 }
 
-type Errors = Partial<Record<keyof Draft, string>>
+type Errors = Partial<Record<keyof Draft | 'media', string>>
 
 const isFeb29 = (d: Draft) => d.birth_month === 2 && d.birth_day === 29
 
-function validate(step: StepId, d: Draft): Errors {
+function validate(step: StepId, d: Draft, media: PickedMedia[]): Errors {
   const e: Errors = {}
   if (step === 'who') {
     if (!d.recipient_name.trim()) e.recipient_name = 'Who is it for?'
@@ -58,7 +60,11 @@ function validate(step: StepId, d: Draft): Errors {
     if (isFeb29(d) && !d.feb29_pref) e.feb29_pref = 'Choose a date for non-leap years'
     if (!d.city) e.city = 'Choose the city they live in'
   }
-  if (step === 'message' && !d.message_text.trim()) e.message_text = 'Write them a message'
+  if (step === 'message' || step === 'preview') {
+    if (media.some((m) => m.status === 'error')) e.media = "Remove the files that couldn't be added"
+    else if (media.some((m) => m.status === 'uploading')) e.media = 'Wait a moment for your files to finish uploading'
+    if (!d.message_text.trim() && media.length === 0) e.message_text = 'Write them a message, or add a photo or video'
+  }
   if (step === 'gift' && d.gift_kind) {
     const v = d.gift_value.trim()
     if (!v) e.gift_value = d.gift_kind === 'link' ? 'Paste the gift link' : 'Enter the gift code'
@@ -68,8 +74,9 @@ function validate(step: StepId, d: Draft): Errors {
   return e
 }
 
-function toRequest(d: Draft): CapsuleCreate {
+function toRequest(d: Draft, media: PickedMedia[]): CapsuleCreate {
   return {
+    upload_ids: media.flatMap((m) => (m.uploaded ? [m.uploaded.id] : [])),
     recipient_name: d.recipient_name.trim(),
     recipient_email: d.recipient_email.trim(),
     birth_month: d.birth_month!,
@@ -88,6 +95,7 @@ function toRequest(d: Draft): CapsuleCreate {
 export function CapsuleEditor({ me }: { me: Me }) {
   const navigate = useNavigate()
   const [draft, setDraft] = useState<Draft>(EMPTY)
+  const [media, setMedia] = useState<PickedMedia[]>([])
   const [step, setStep] = useState<StepId>('who')
   const [reached, setReached] = useState(0)
   const [errors, setErrors] = useState<Errors>({})
@@ -107,7 +115,7 @@ export function CapsuleEditor({ me }: { me: Me }) {
   const emailSuggestion = suggestEmail(draft.recipient_email.trim())
 
   const next = async () => {
-    const e = validate(step, draft)
+    const e = validate(step, draft, media)
     setErrors(e)
     if (step === 'who') setEmailTouched(true)
     if (Object.values(e).some(Boolean)) return
@@ -143,10 +151,15 @@ export function CapsuleEditor({ me }: { me: Me }) {
   }, [step, birth_month, birth_day, feb29_pref, city, send_mode])
 
   const save = async () => {
+    const problems = validate('preview', draft, media)
+    if (problems.media || problems.message_text) {
+      setSaveError(problems.media ?? problems.message_text ?? null)
+      return
+    }
     setSaving(true)
     setSaveError(null)
     try {
-      await api.createCapsule(toRequest(draft))
+      await api.createCapsule(toRequest(draft, media))
       navigate('/history')
     } catch (e) {
       setSaveError(
@@ -294,6 +307,14 @@ export function CapsuleEditor({ me }: { me: Me }) {
                 onChange={(e) => set('message_text', e.target.value)}
               />
             </Field>
+            <MediaPicker
+              items={media}
+              onChange={(update) => {
+                setMedia(update)
+                setErrors((e) => ({ ...e, media: undefined, message_text: undefined }))
+              }}
+            />
+            {errors.media && <p className="error">{errors.media}</p>}
           </>
         )}
 
@@ -383,7 +404,10 @@ export function CapsuleEditor({ me }: { me: Me }) {
             </div>
             <div className="preview-card">
               <p className="muted small">From {me.name}</p>
-              <p className="preview-message">{draft.message_text.trim()}</p>
+              {draft.message_text.trim() && <p className="preview-message">{draft.message_text.trim()}</p>}
+              {media.length > 0 && (
+                <MediaGallery items={media.map((m) => ({ key: m.key, kind: m.kind, url: m.localUrl }))} />
+              )}
               {draft.gift_kind && (
                 <div className="preview-gift">
                   <p className="small muted">{draft.gift_kind === 'link' ? 'Your gift' : 'Your gift code'}</p>

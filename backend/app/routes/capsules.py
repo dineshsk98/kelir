@@ -15,7 +15,8 @@ from app.delivery.mailer import Mailer, get_mailer
 from app.delivery.scheduler import run_tick
 from app.email_check import domain_accepts_mail, is_valid_format
 from app.engine.schedule import due_now
-from app.models import Capsule
+from app.media import MAX_CAPSULE_BYTES, MB
+from app.models import Capsule, CapsuleMedia
 from app.schemas import (
     CapsuleCreate,
     CapsuleOut,
@@ -82,20 +83,56 @@ async def create_capsule(
     deliver_at = due_now(
         body.send_mode, body.birth_month, body.birth_day, body.feb29_pref, body.tz, now
     )
+    media = await _claim_uploads(session, sender.id, body.upload_ids)
     capsule = Capsule(
         sender_id=sender.id,
-        **body.model_dump(),
+        **body.model_dump(exclude={"upload_ids"}),
         deliver_at=deliver_at,
         status="scheduled",
         created_at=now,
         reply=None,  # a new capsule has no thank-you; setting it avoids a lazy load later
+        media=[],
     )
+    for position, item in enumerate(media):
+        item.position = position
+        capsule.media.append(item)
     session.add(capsule)
     await session.commit()
     if deliver_at <= now:
         # "Send now", or their birthday has already begun: don't wait for the next loop tick
         background.add_task(run_tick, sessionmaker, mailer, settings, now)
     return CapsuleOut.model_validate(capsule)
+
+
+def _media_rejected(message: str) -> HTTPException:
+    return HTTPException(
+        422, detail=[{"loc": ["body", "upload_ids"], "msg": message, "type": "media_rejected"}]
+    )
+
+
+async def _claim_uploads(
+    session: AsyncSession, sender_id: uuid.UUID, upload_ids: list[uuid.UUID]
+) -> list[CapsuleMedia]:
+    """The sender's own, not-yet-used uploads, locked and in the requested order."""
+    if not upload_ids:
+        return []
+    rows = (
+        await session.scalars(
+            select(CapsuleMedia)
+            .where(
+                CapsuleMedia.id.in_(upload_ids),
+                CapsuleMedia.sender_id == sender_id,
+                CapsuleMedia.capsule_id.is_(None),
+            )
+            .with_for_update()  # two saves racing for the same upload: only one gets it
+        )
+    ).all()
+    by_id = {item.id: item for item in rows}
+    if len(by_id) != len(upload_ids):
+        raise _media_rejected("One of the files is missing or already used. Please add it again")
+    if sum(item.size_bytes for item in rows) > MAX_CAPSULE_BYTES:
+        raise _media_rejected(f"Together the files are over {MAX_CAPSULE_BYTES // MB} MB. Remove one")
+    return [by_id[i] for i in upload_ids]
 
 
 @router.get("/capsules/{capsule_id}")

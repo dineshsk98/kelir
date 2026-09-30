@@ -2,19 +2,23 @@
 secret is the only key, looked up by its hash."""
 
 import re
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi.responses import FileResponse
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.clock import Now
+from app.config import Settings, get_settings
 from app.db import get_session
 from app.links import hash_link_secret
+from app.media import SERVE_HEADERS, media_file
 from app.models import Capsule, Reply, Sender
 from app.replies import REPLY_PRESETS
-from app.schemas import RecipientCapsuleOut, ReplyIn, ReplyOut, ReplyPreset
+from app.schemas import MediaOut, RecipientCapsuleOut, ReplyIn, ReplyOut, ReplyPreset
 
 router = APIRouter(prefix="/v1/c")
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -67,12 +71,28 @@ async def open_capsule(secret: str, session: Session, now: Now, response: Respon
         sender_name=sender.name,
         recipient_name=capsule.recipient_name,
         message_text=capsule.message_text,
-        media_kind=capsule.media_kind,
+        media=[MediaOut.model_validate(m) for m in capsule.media],
         gift_kind=capsule.gift_kind,
         gift_value=capsule.gift_value,
         gift_note=capsule.gift_note,
         reply=ReplyOut.from_model(capsule.reply),
         reply_presets=[ReplyPreset(key=k, text=t) for k, t in REPLY_PRESETS.items()],
+    )
+
+
+@router.get("/{secret}/media/{media_id}")
+async def stream_media(
+    secret: str, media_id: uuid.UUID, session: Session, settings: Annotated[Settings, Depends(get_settings)]
+) -> FileResponse:
+    """One of this capsule's photos/audio/video, for the recipient (range requests for seeking)."""
+    capsule, _ = await _find(session, secret)
+    item = next((m for m in capsule.media if m.id == media_id), None)
+    if item is None:
+        raise HTTPException(404, detail={"code": "MEDIA_NOT_FOUND"}, headers=PRIVATE_HEADERS)
+    return FileResponse(
+        media_file(item, settings.uploads_dir),
+        media_type=item.mime,
+        headers=SERVE_HEADERS | PRIVATE_HEADERS | {"Cache-Control": "private, max-age=3600"},
     )
 
 

@@ -60,7 +60,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: From the capsule you opened in slice 4, send a thank-you, then check your history shows it.
   Commit: `Add thank-you replies shown in sender history`
 
-- [ ] **6. The capsule opens like a gift (the opening moment)**
+- [x] **6. The capsule opens like a gift (the opening moment)**
   Becomes usable: The recipient page plays the staged opening (arrive → tap to open → build-up → burst with confetti → card with the sender's name → message → gift, with the code hidden until tapped and a copy button). It has Skip, mute (remembered) and synthesized sound, reduced motion gives a short fade, and replay works. You pick one of two look-and-feel token sets on `/dev/reveal`.
   Why now: "Opens as a moment" is part of the kernel, so it lands before the secondary features. The spec's Track B contract keeps it independent: it can also be built in a parallel session, which ticks only this slice.
   PRD ref: `prd.md > The opening moment`, `prd.md > Look and Feel`
@@ -70,22 +70,32 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Open `/dev/reveal`, try both looks and pick one, then open a real capsule link on your phone with sound on and say how the moment feels.
   Commit: `Add staged gift-opening reveal`
 
-- [ ] **7. You can send a photo, your voice or your face, recorded or uploaded**
-  Becomes usable: In the Message step, add one photo (upload, or the phone's camera; ≤15 MB), or record audio (≤120 s) or video (≤60 s) in the browser with play-back and redo, or upload an audio/video file (≤50 MB). Preview shows or plays it, and the recipient's opening shows or plays it. A blocked camera or microphone shows a note and offers upload or text; a bad file shows a readable message.
-  Why now: This is a large but well-understood browser and API feature. The kernel works with text already, so this enriches it rather than gating it.
-  PRD ref: `prd.md > Creating a capsule` (Message), `prd.md > States and Boundaries` (recording not allowed, file can't be used)
-  Spec ref: `spec.md > Components > Capsules API` (uploads, media), `spec.md > Components > Web app: Recorder and CityPicker` (Recorder), `spec.md > Components > Recipient API` (media), `spec.md > Data Model`
-  Build: `media.py` (type/size checks, range-supporting streaming), `POST /v1/uploads`, `GET /v1/capsules/{id}/media`, `GET /v1/c/{secret}/media`, orphan-upload cleanup on start, `upload_id` on create; `media_kind` gains `image` (migration). `Recorder` component, Message-step photo and file upload, media in Preview and `Reveal`.
-  Verify (mechanical): `pytest` passes, including a photo accepted and shown, an oversized or wrong type rejected, owner-only media, recipient media with a `Range` request returning 206, and a text-less capsule with media accepted. `npm run build` passes.
-  Learner check: Record a short video message, play it back, redo it once, save, simulate midnight and watch it play inside the opening on your phone; then make one with a photo.
-  Commit: `Add photo and recorded or uploaded audio/video messages`
+- [ ] **7. You can add several photos, audio and video files to a capsule**
+  Becomes usable: In the Message step, add up to 6 items in any mix: photos (≤15 MB each; on a phone the picker also offers the camera), audio (≤50 MB) and video (≤50 MB) files; remove any before saving. Preview shows them, and the recipient's opening shows them after the message: photos as a swipeable gallery, audio and video as players. A wrong type or oversized file shows a readable message.
+  Why now: Multiple media changes the data model (a `capsule_media` table replaces the single media columns), so it lands before recording and editing build on it. Upload first: it proves storage, streaming and display without the browser-recording risk.
+  PRD ref: `prd.md > Creating a capsule` (Message), `prd.md > The opening moment` (stage 6), `prd.md > States and Boundaries` (file can't be used)
+  Spec ref: `spec.md > Components > Capsules API` (uploads, media), `spec.md > Components > Recipient API` (media), `spec.md > Data Model` (`capsule_media`), `spec.md > Components > Web app: the opening`
+  Build: `capsule_media` migration (and the single-media columns dropped), `media.py` (type sniffing, size limits, range-supporting streaming), `POST /v1/uploads`, `upload_ids` on create, owner and recipient media streaming by item id, orphan-upload cleanup on start. Message-step media picker, Preview, and a media section in `Reveal`.
+  Verify (mechanical): `pytest` passes, including several items accepted in order, a text-less capsule with media accepted, a 7th item, oversized or wrong-type file rejected, another sender's upload refused, owner-only preview media, recipient media with a `Range` request returning 206, and cancelled/unknown links refused. `npm run build` passes; in the browser pane, a capsule with two photos, an audio file and a video plays through the opening.
+  Learner check: Make a capsule with two photos and a short video, preview it, simulate midnight and watch the opening on your phone.
+  Commit: `Add multiple photos, audio and video to a capsule`
 
-- [ ] **8. You can edit or cancel a capsule until it's opened**
+- [ ] **8. You can record your voice or face in the browser**
+  Becomes usable: In the Message step, record audio (≤120 s) or video (≤60 s) with play-back and redo; the recording joins the capsule's media like an upload. A blocked camera or microphone shows a clear note and offers upload or text.
+  Why now: Recording reuses slice 7's upload and display path, so it's isolated browser work (MediaRecorder formats differ between Chrome and Safari).
+  PRD ref: `prd.md > Creating a capsule` (Message: recorded, played back, redone), `prd.md > States and Boundaries` (recording not allowed)
+  Spec ref: `spec.md > Components > Web app: Recorder and CityPicker` (Recorder)
+  Build: `Recorder` component (MediaRecorder, webm on Chrome / mp4 on Safari, length caps, play-back, redo, permission-denied state); write the real duration into recorded WebM before upload (browsers leave it out, so players show an unknown length); recordings uploaded through `POST /v1/uploads`.
+  Verify (mechanical): `npm run build` passes; `pytest` passes, including a webm and an mp4 recording accepted by upload type checks; in the browser pane, a fake-device recording is captured, played back, redone, attached, and plays in the opening; a denied permission shows the note.
+  Learner check: Record a short video, play it back, redo it once, save, simulate midnight and watch it inside the opening on your phone.
+  Commit: `Add in-browser audio and video recording`
+
+- [ ] **9. You can edit or cancel a capsule until it's opened**
   Becomes usable: `CapsuleDetail` shows the preview, status, local delivery time and reply, with Edit and Cancel while Scheduled or Delivered. Edits to a delivered but unopened capsule are what the recipient sees. Once Opened, both disappear and the API refuses (409). A cancelled link shows "This capsule is no longer available." A failed send shows "Delivery trouble".
   Why now: This depends on every earlier piece (media replacement, delivery, opening). It's the last behavior in the PRD.
   PRD ref: `prd.md > Editing and cancelling (until opened)`, `prd.md > States and Boundaries` (cancelled capsule)
   Spec ref: `spec.md > Components > Capsules API` (PATCH, cancel), `spec.md > Components > Recipient API` (cancelled → 410), `spec.md > Important Failure Modes`
-  Build: `PATCH /v1/capsules/{id}` (recompute `deliver_at` while scheduled; media replace via `upload_id`; `409 CAPSULE_FINAL` once opened), `POST /v1/capsules/{id}/cancel`, 410 handling on the recipient page. `CapsuleDetail` page; editor reused for editing; "Delivery trouble" badge.
+  Build: `PATCH /v1/capsules/{id}` (recompute `deliver_at` while scheduled; add/remove media items; `409 CAPSULE_FINAL` once opened), `POST /v1/capsules/{id}/cancel`, 410 handling on the recipient page. `CapsuleDetail` page; editor reused for editing; "Delivery trouble" badge.
   Verify (mechanical): `pytest` passes, including edit while scheduled recomputes, edit after delivery changes what the link returns, edit or cancel after open gives 409, and a cancelled link gives 410. `npm run build` passes.
   Learner check: Edit the message on a delivered-but-unopened capsule and open its link to see the new text; cancel another and open its link; confirm an opened capsule has no Edit or Cancel.
   Commit: `Add edit and cancel until opened`
@@ -136,6 +146,7 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Added `GET /v1/config` (returns the non-secret Google client ID) — the web app needs the client ID to render the Google button, and serving it from the API keeps `.env` the single place it's set instead of duplicating it as a Vite variable.
 - Added `POST /v1/delivery-preview` — the When step must show the exact delivery moment before saving, and only the server's midnight engine can compute it correctly (DST gaps, Feb 29); duplicating that in the browser would risk the two disagreeing.
 - City list is ~4,200 cities (not 1–2k) — pop. ≥150k plus capitals left gaps: whole time zones such as America/St_Johns (UTC−3:30) had no city. It now also keeps the largest city of every zone; 227 KB (≈70 KB gzipped). Zones with no town of 15k+ people (e.g. Australia/Eucla) remain absent; the picker suggests choosing a nearby city in the same zone. GeoNames credit is in `ATTRIBUTION.md` until the README exists.
+- Multiple media per capsule (up to 6 photos/audio/video items, ordered) with a `capsule_media` table instead of single `media_*` columns; old slice 7 split into 7 (upload + display) and 8 (browser recording); edit/cancel became slice 9 — Dinesh chose multiple pieces of media per capsule after the slice 6 check.
 - Look-and-feel pick moved out of slice 6 to the separate design session (with photocard-style options) — Dinesh's call after trying the opening; both token sets stay in `tokens.css`, `APP_THEME` stays `sunrise` until then.
 - Build-up lengthened from 1.4 s to 2.4 s and intensified (dimming, energy rings, swelling rattle, accelerating heartbeat sound) — Dinesh: "build up is not enough".
 - Photo added back as a message media kind (slice 7, PRD, spec, scope) — Dinesh asked for image as well as audio and video after the slice 6 check; the original scope had it, the PRD had dropped it.

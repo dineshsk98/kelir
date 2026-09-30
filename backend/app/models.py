@@ -12,6 +12,7 @@ from sqlalchemy import (
     SmallInteger,
     String,
     Text,
+    UniqueConstraint,
     func,
     text,
 )
@@ -37,13 +38,10 @@ class Sender(Base):
 class Capsule(Base):
     __tablename__ = "capsules"
     __table_args__ = (
-        CheckConstraint(
-            "message_text IS NOT NULL OR media_kind IS NOT NULL", name="message_present"
-        ),
+        # "Text or media" is checked by the API: media lives in capsule_media
         CheckConstraint("birth_month BETWEEN 1 AND 12", name="birth_month_range"),
         CheckConstraint("birth_day BETWEEN 1 AND 31", name="birth_day_range"),
         CheckConstraint("feb29_pref IN ('FEB_28', 'MAR_1')", name="feb29_pref_valid"),
-        CheckConstraint("media_kind IN ('audio', 'video')", name="media_kind_valid"),
         CheckConstraint("gift_kind IN ('link', 'code')", name="gift_kind_valid"),
         CheckConstraint("send_mode IN ('birthday', 'now')", name="send_mode_valid"),
         CheckConstraint(
@@ -72,9 +70,6 @@ class Capsule(Base):
 
     # Message and gift
     message_text: Mapped[str | None] = mapped_column(Text)
-    media_kind: Mapped[str | None] = mapped_column(String(5))
-    media_path: Mapped[str | None] = mapped_column(String(500))
-    media_mime: Mapped[str | None] = mapped_column(String(100))
     gift_kind: Mapped[str | None] = mapped_column(String(4))
     gift_value: Mapped[str | None] = mapped_column(String(2000))
     gift_note: Mapped[str | None] = mapped_column(String(300))
@@ -94,6 +89,9 @@ class Capsule(Base):
 
     # Loaded together with the capsule so lists don't need a query per row
     reply: Mapped["Reply | None"] = relationship(lazy="selectin", uselist=False)
+    media: Mapped[list["CapsuleMedia"]] = relationship(
+        lazy="selectin", order_by="CapsuleMedia.position", passive_deletes=True
+    )
 
     @property
     def delivery_trouble(self) -> bool:
@@ -122,6 +120,34 @@ class Reply(Base):
     )
     preset_key: Mapped[str | None] = mapped_column(String(40))
     text: Mapped[str | None] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class CapsuleMedia(Base):
+    """One uploaded photo, audio or video file. Its id is the upload_id; it belongs to the
+    sender from upload and joins a capsule (at a position) when the capsule is saved."""
+
+    __tablename__ = "capsule_media"
+    __table_args__ = (
+        CheckConstraint("kind IN ('image', 'audio', 'video')", name="media_kind_valid"),
+        CheckConstraint("position BETWEEN 0 AND 5", name="media_position_range"),
+        CheckConstraint("(capsule_id IS NULL) = (position IS NULL)", name="media_attached_has_position"),
+        UniqueConstraint("capsule_id", "position", name="uq_capsule_media_position"),
+        Index("ix_capsule_media_unattached", "created_at", postgresql_where=text("capsule_id IS NULL")),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    sender_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("senders.id", ondelete="CASCADE"))
+    capsule_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("capsules.id", ondelete="CASCADE"), index=True
+    )
+    position: Mapped[int | None] = mapped_column(SmallInteger)
+    kind: Mapped[str] = mapped_column(String(5))
+    mime: Mapped[str] = mapped_column(String(100))
+    size_bytes: Mapped[int] = mapped_column(Integer)
+    path: Mapped[str] = mapped_column(String(500))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

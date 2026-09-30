@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     session_days: int = 30
     frontend_dist: Path = REPO_ROOT / "frontend" / "dist"
+    uploads_dir: Path = REPO_ROOT / "uploads"
 
     # Shown in emails as "<Sender> via <app_name>" (working title until the product is named)
     app_name: str = "Birthday Capsule"

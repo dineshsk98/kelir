@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { MediaGallery, type GalleryItem } from '../components/MediaGallery'
 import { CapsuleArt } from './CapsuleArt'
 import { burstConfetti, themeConfettiColors } from './confetti'
 import { Gift, type RevealGift } from './Gift'
@@ -10,7 +11,8 @@ export type RevealCapsule = {
   senderName: string
   recipientName: string
   messageText?: string
-  media?: { kind: 'audio' | 'video'; url: string }
+  /** Photos, audio and video in the order the sender added them */
+  media?: GalleryItem[]
   gift?: RevealGift
 }
 
@@ -173,6 +175,11 @@ export function Reveal({
             <h1 className="reveal-card-title">Happy birthday, {firstName}</h1>
             {reached(stage, 'message') && capsule.messageText && (
               <p className="reveal-message">{capsule.messageText}</p>
+            )}
+            {reached(stage, 'message') && capsule.media && capsule.media.length > 0 && (
+              <div className="reveal-media">
+                <MediaGallery items={capsule.media} />
+              </div>
             )}
             {reached(stage, 'gift') && capsule.gift && <Gift gift={capsule.gift} />}
           </article>

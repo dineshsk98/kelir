@@ -122,10 +122,15 @@ class CapsuleCreate(Birthday):
 
     send_mode: SendMode = "birthday"
 
+    # Uploaded photos/audio/video, in the order they appear in the capsule
+    upload_ids: Annotated[list[uuid.UUID], Field(max_length=6)] = []
+
     @model_validator(mode="after")
     def _message_and_gift(self):
-        if self.message_text is None:
-            raise ValueError("write a message")  # audio/video arrives in a later slice
+        if self.message_text is None and not self.upload_ids:
+            raise ValueError("write a message or add a photo, audio or video")
+        if len(set(self.upload_ids)) != len(self.upload_ids):
+            raise ValueError("the same file was added twice")
         if self.gift_kind is None:
             self.gift_value = self.gift_note = None
         elif self.gift_value is None:
@@ -180,6 +185,20 @@ def _reply(value):
     return ReplyOut.from_model(value)
 
 
+MediaKind = Literal["image", "audio", "video"]
+
+
+class MediaOut(BaseModel):
+    """One media item. The URL depends on who's asking (sender preview or recipient link)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    kind: MediaKind
+    mime: str
+    size_bytes: int
+
+
 class CapsuleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -192,7 +211,7 @@ class CapsuleOut(BaseModel):
     city_label: str
     tz: str
     message_text: str | None
-    media_kind: Literal["audio", "video"] | None
+    media: list[MediaOut]
     gift_kind: GiftKind | None
     gift_value: str | None
     gift_note: str | None
@@ -213,7 +232,7 @@ class RecipientCapsuleOut(BaseModel):
     sender_name: str
     recipient_name: str
     message_text: str | None
-    media_kind: Literal["audio", "video"] | None
+    media: list[MediaOut]
     gift_kind: GiftKind | None
     gift_value: str | None
     gift_note: str | None

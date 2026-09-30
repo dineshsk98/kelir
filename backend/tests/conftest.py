@@ -82,12 +82,13 @@ async def sessionmaker(migrated_db):
 
 
 @pytest.fixture
-def settings() -> Settings:
+def settings(tmp_path) -> Settings:
     return Settings(
         google_client_id="test-client-id.apps.googleusercontent.com",
         demo_mode=True,
         app_base_url="http://testserver",
         smtp_user="capsule.app@gmail.com",
+        uploads_dir=tmp_path / "uploads",
     )
 
 
