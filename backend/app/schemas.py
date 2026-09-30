@@ -24,7 +24,10 @@ class Me(BaseModel):
 
 
 class PublicConfig(BaseModel):
+    """Everything here is visible to any browser: never add secrets."""
+
     google_client_id: str
+    demo_mode: bool
 
 
 # --- Capsules -----------------------------------------------------------------
@@ -147,4 +150,20 @@ class CapsuleOut(BaseModel):
     send_mode: SendMode
     deliver_at: datetime
     status: Literal["scheduled", "delivered", "opened", "cancelled"]
+    delivery_trouble: bool
+    opened_at: datetime | None
     created_at: datetime
+
+
+class RecipientCapsuleOut(BaseModel):
+    """What the private link shows: only what the recipient needs, nothing about delivery."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    sender_name: str
+    recipient_name: str
+    message_text: str | None
+    media_kind: Literal["audio", "video"] | None
+    gift_kind: GiftKind | None
+    gift_value: str | None
+    gift_note: str | None

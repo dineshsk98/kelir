@@ -4,12 +4,23 @@ import { api, ApiError, type Me } from './api'
 import { CapsuleEditor } from './pages/CapsuleEditor'
 import { History } from './pages/History'
 import { NotFound } from './pages/NotFound'
+import { RecipientCapsule } from './pages/RecipientCapsule'
 import { Welcome } from './pages/Welcome'
+
+export function App() {
+  return (
+    <Routes>
+      {/* The recipient has no account: their page never checks for a session */}
+      <Route path="/c/:secret" element={<RecipientCapsule />} />
+      <Route path="*" element={<SenderApp />} />
+    </Routes>
+  )
+}
 
 // undefined = still checking the session; null = signed out
 type Session = Me | null | undefined
 
-export function App() {
+function SenderApp() {
   const [me, setMe] = useState<Session>(undefined)
 
   useEffect(() => {

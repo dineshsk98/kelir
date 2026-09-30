@@ -30,7 +30,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Sign in with your Google account, see your name and the empty history, sign out, sign back in.
   Commit: `Add Google sign-in, welcome page and empty history`
 
-- [ ] **3. You can make a text capsule for someone in another city and see it scheduled**
+- [x] **3. You can make a text capsule for someone in another city and see it scheduled**
   Becomes usable: From History, New capsule → Who (city picker, Feb 29 choice) → Message (text) → Gift (link or code) → When (birthday or now) → Preview → confirm. History shows the row: "Delivers 00:00, 14 Mar in Tokyo (20:30, 13 Mar your time)", status Scheduled.
   Why now: This joins the engine to a real saved capsule and shows the kernel's promise (their midnight, your time) on screen. Text only, so recording doesn't hold back the delivery slice.
   PRD ref: `prd.md > Creating a capsule`, `prd.md > The Core Journey` (steps 3–8)
@@ -92,7 +92,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
 
 ## Hands-on Checkpoints
 
-- [ ] Early usable behavior explored — after slice 4 (the full kernel: schedule → simulate midnight → real email → opens)
+- [x] Early usable behavior explored — after slice 4 (the full kernel: schedule → simulate midnight → real email → opens). Dinesh tried it on 2026-09-30: opening the capsule and seeing the message "gave me a rush"; no changes requested. The real-inbox email check still waits on SMTP setup.
 - [ ] Look-and-feel pick — during slice 6, on `/dev/reveal`
 - [ ] Final kick-the-tires exploration and feedback completed
 
@@ -103,7 +103,8 @@ Refinements Dinesh asked for during slice 3's learner check (2026-09-30), to do 
 - [ ] Birthday day/month picker: refine the UI/UX (currently two plain dropdowns).
 - [ ] Message: accept the placeholder text with Tab (like inline text prediction). Keep the handwritten font and the placeholder wording.
 - [ ] Recipient email: tighten validation; showing the error when Next is pressed stays as is. Built early, in slice 3: stricter format (browser and API), "Did you mean …?" typo hint, and a server-side MX lookup on Next and on save. Awaiting Dinesh's retry.
-- [ ] City search shortcuts: common aliases such as "nyc" → New York City, "la" → Los Angeles.
+- [ ] City search shortcuts and aliases: abbreviations such as "nyc" → New York City and "la" → Los Angeles, and alternate/former names such as "bangalore" ↔ Bengaluru (GeoNames has alternate names that can feed this).
+- [ ] City picker inline completion: as each character is typed, the top prefix match fills in ahead of the cursor as ghost text with a short animation (trie-style prefix search), accepted with Tab.
 
 - [ ] Final review complete — feedback resolved and learner confirms ready to ship
 
@@ -124,6 +125,10 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Added `GET /v1/config` (returns the non-secret Google client ID) — the web app needs the client ID to render the Google button, and serving it from the API keeps `.env` the single place it's set instead of duplicating it as a Vite variable.
 - Added `POST /v1/delivery-preview` — the When step must show the exact delivery moment before saving, and only the server's midnight engine can compute it correctly (DST gaps, Feb 29); duplicating that in the browser would risk the two disagreeing.
 - City list is ~4,200 cities (not 1–2k) — pop. ≥150k plus capitals left gaps: whole time zones such as America/St_Johns (UTC−3:30) had no city. It now also keeps the largest city of every zone; 227 KB (≈70 KB gzipped). Zones with no town of 15k+ people (e.g. Australia/Eucla) remain absent; the picker suggests choosing a nearby city in the same zone. GeoNames credit is in `ATTRIBUTION.md` until the README exists.
+- Email sending is a separate at-least-once queue after the exactly-once delivery transition (new `next_send_at`, `emailed_at` columns, migration `0003`) — the spec's "retry with backoff" can't resend the same link because only its hash is stored, so each attempt issues a fresh link under a short lease.
+- "Send now" (and a birthday that has already begun) runs a delivery tick right after saving, instead of waiting up to 30 s for the loop — the PRD says Send now delivers immediately.
+- Capsule pages (`/c/…`) also send `Referrer-Policy: no-referrer` — otherwise opening a gift link would hand the private capsule URL to the gift site in the `Referer` header.
+- `PublicConfig` gained `demo_mode` (non-secret) so the history page knows whether to show the Demo button.
 - Added `POST /v1/email-check` and an MX lookup on capsule create (`dnspython`) — Dinesh asked for real "can this domain receive mail" validation, not just format. It doesn't block when DNS can't be reached (offline demo), only when a domain definitely can't receive mail.
 - `index.html` served with `Cache-Control: no-cache`, hashed `assets/` as immutable — during slice 3 checks the browser kept a cached `index.html` pointing at the previous build.
 - React Router 6 → 7 (`react-router-dom@^7.18.4`) — `npm audit` flagged two moderate advisories affecting every 6.x release (open redirect via backslash in `<Link>`/`useNavigate`; SSR hydration). Neither was reachable in this app, but v7 is a drop-in for our usage and clears the audit.

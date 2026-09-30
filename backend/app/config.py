@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     session_days: int = 30
     frontend_dist: Path = REPO_ROOT / "frontend" / "dist"
 
+    # Shown in emails as "<Sender> via <app_name>" (working title until the product is named)
+    app_name: str = "Birthday Capsule"
+    # The delivery loop inside the API process; tests turn it off and run ticks directly
+    run_scheduler: bool = True
+    scheduler_interval_seconds: float = 30
+
 
 @lru_cache
 def get_settings() -> Settings:

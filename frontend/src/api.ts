@@ -1,7 +1,7 @@
 // Thin fetch wrapper for the /v1 API plus hand-written response types.
 
 export type Me = { id: string; email: string; name: string }
-export type PublicConfig = { google_client_id: string }
+export type PublicConfig = { google_client_id: string; demo_mode: boolean }
 
 export type Feb29Pref = 'FEB_28' | 'MAR_1'
 export type SendMode = 'birthday' | 'now'
@@ -31,7 +31,20 @@ export type Capsule = CapsuleCreate & {
   media_kind: 'audio' | 'video' | null
   deliver_at: string
   status: CapsuleStatus
+  delivery_trouble: boolean
+  opened_at: string | null
   created_at: string
+}
+
+/** What the recipient's private link returns */
+export type RecipientCapsule = {
+  sender_name: string
+  recipient_name: string
+  message_text: string | null
+  media_kind: 'audio' | 'video' | null
+  gift_kind: GiftKind | null
+  gift_value: string | null
+  gift_note: string | null
 }
 
 export class ApiError extends Error {
@@ -76,4 +89,8 @@ export const api = {
   createCapsule: (body: CapsuleCreate) => request<Capsule>('/v1/capsules', post(body)),
   deliveryPreview: (body: Birthday & { tz: string; send_mode: SendMode }) =>
     request<{ deliver_at: string }>('/v1/delivery-preview', post(body)),
+  simulateMidnight: (id: string) =>
+    request<Capsule>(`/v1/demo/capsules/${encodeURIComponent(id)}/simulate-midnight`, { method: 'POST' }),
+
+  openCapsule: (secret: string) => request<RecipientCapsule>(`/v1/c/${encodeURIComponent(secret)}`),
 }

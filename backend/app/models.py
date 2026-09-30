@@ -13,6 +13,7 @@ from sqlalchemy import (
     String,
     Text,
     func,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -50,6 +51,11 @@ class Capsule(Base):
         ),
         Index("ix_capsules_status_deliver_at", "status", "deliver_at"),
         Index("ix_capsules_sender_created", "sender_id", "created_at"),
+        Index(
+            "ix_capsules_email_queue",
+            "next_send_at",
+            postgresql_where=text("status = 'delivered' AND emailed_at IS NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -80,8 +86,16 @@ class Capsule(Base):
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     link_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
+    # Email sending (at least once, after the exactly-once delivery transition)
     send_attempts: Mapped[int] = mapped_column(Integer, default=0)
     send_error: Mapped[str | None] = mapped_column(Text)
+    next_send_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    emailed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def delivery_trouble(self) -> bool:
+        """Delivered, but the email hasn't gone out and the last attempt failed."""
+        return self.status == "delivered" and self.emailed_at is None and self.send_error is not None
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

@@ -6,6 +6,18 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-09-30 · A failed birthday email can't be resent with the same link
+- **Symptom:** designing email retries, the obvious plan ("resend the same email") was impossible.
+- **Cause:** by design only the SHA-256 hash of each link's secret is stored, so after the first attempt nobody (including the server) knows the secret any more. Also, email must go out *after* the delivery transaction commits, so a crash between the two could leave a delivered capsule that never got emailed.
+- **Fix:** delivery (scheduled → delivered) stays exactly-once; email is a separate at-least-once queue. Each attempt issues a fresh secret and takes a 2-minute lease; success sets `emailed_at`, failure records `send_error` and backs off 1/2/4/8 min, up to 5 attempts; an expired lease is retried after a crash (`backend/app/delivery/scheduler.py`, migration `0003`). The sender sees "Delivery trouble" meanwhile.
+- **Lesson:** "exactly once" and "send an email" can't share one transaction. Separate the state change (exactly once, in the database) from the side effect (at least once, with a lease), and design retries around what you chose *not* to store.
+
+## 2026-09-30 · Test fetched the web page instead of the API
+- **Symptom:** a delivery test failed with `JSONDecodeError`; the response was `index.html`.
+- **Cause:** the test followed the email's link (`/c/<secret>`, the web page) and expected JSON. The page loads the capsule from `/v1/c/<secret>`.
+- **Fix:** the test calls `/v1` + the link path, with a comment explaining the two URLs (`backend/tests/test_delivery.py`).
+- **Lesson:** a user-facing link and the API call behind it are different URLs; name which one a test means.
+
 ## 2026-09-30 · City picker chose the wrong city when the list opened under the mouse
 - **Symptom:** typing "tokyo" and pressing Enter selected "Ōta, Tokyo" (3rd in the list) instead of Tokyo (1st, highlighted a moment earlier).
 - **Cause:** each row used `onMouseEnter` to take the highlight. When the list appeared under a mouse pointer that wasn't moving, the browser still fired `mouseenter` on the row beneath it, silently moving the highlight; Enter then picked that row.

@@ -36,9 +36,11 @@ export function deliveryLine(c: Capsule): string {
     case 'scheduled':
       return c.send_mode === 'now' ? 'Sending now' : `Delivers ${deliveryMoment(c.deliver_at, c.tz, c.city_label)}`
     case 'delivered':
-      return `Delivered ${deliveryMoment(c.deliver_at, c.tz, c.city_label)}`
+      return c.delivery_trouble
+        ? "Delivery trouble: the email hasn't gone out yet. We'll keep retrying."
+        : `Delivered ${deliveryMoment(c.deliver_at, c.tz, c.city_label)}`
     case 'opened':
-      return 'Opened'
+      return c.opened_at ? `Opened ${deliveryMoment(c.opened_at, c.tz, c.city_label)}` : 'Opened'
     case 'cancelled':
       return 'Cancelled'
   }

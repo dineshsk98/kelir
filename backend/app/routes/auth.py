@@ -22,7 +22,7 @@ router = APIRouter(prefix="/v1")
 @router.get("/config")
 async def public_config(settings: Annotated[Settings, Depends(get_settings)]) -> PublicConfig:
     """What the web app needs to render the Google button (the client ID isn't secret)."""
-    return PublicConfig(google_client_id=settings.google_client_id)
+    return PublicConfig(google_client_id=settings.google_client_id, demo_mode=settings.demo_mode)
 
 
 @router.post("/auth/google")

@@ -5,14 +5,17 @@ The database login comes from DATABASE_URL in .env; TEST_DATABASE_URL overrides.
 
 import asyncio
 import os
+import re
 from argparse import Namespace
 from datetime import datetime
+from email.message import EmailMessage
 from pathlib import Path
 
 # Must be set before the app (and its cached settings) are imported.
 os.environ["SESSION_SECRET"] = "test-session-secret"
 os.environ["GOOGLE_CLIENT_ID"] = ""
 os.environ["MAILER"] = "console"
+os.environ["RUN_SCHEDULER"] = "false"
 
 import pytest  # noqa: E402
 from alembic import command  # noqa: E402
@@ -26,7 +29,8 @@ from app import email_check  # noqa: E402
 from app.auth import SESSION_COOKIE, _serializer  # noqa: E402
 from app.clock import utcnow  # noqa: E402
 from app.config import Settings, get_settings  # noqa: E402
-from app.db import get_session  # noqa: E402
+from app.db import get_session, get_sessionmaker  # noqa: E402
+from app.delivery.mailer import get_mailer  # noqa: E402
 from app.main import app  # noqa: E402
 from app.models import Base, Sender  # noqa: E402
 
@@ -79,17 +83,50 @@ async def sessionmaker(migrated_db):
 
 @pytest.fixture
 def settings() -> Settings:
-    return Settings(google_client_id="test-client-id.apps.googleusercontent.com")
+    return Settings(
+        google_client_id="test-client-id.apps.googleusercontent.com",
+        demo_mode=True,
+        app_base_url="http://testserver",
+        smtp_user="capsule.app@gmail.com",
+    )
+
+
+class FakeMailer:
+    """Records emails; `fail_next = n` makes the next n sends raise."""
+
+    def __init__(self) -> None:
+        self.sent: list[EmailMessage] = []
+        self.fail_next = 0
+
+    async def send(self, message: EmailMessage) -> None:
+        if self.fail_next:
+            self.fail_next -= 1
+            raise ConnectionError("SMTP unreachable")
+        self.sent.append(message)
+
+    def links(self) -> list[str]:
+        """The capsule links in every email sent so far."""
+        return [
+            re.search(r"http://testserver/c/[A-Za-z0-9_-]+", m.get_body(("plain",)).get_content())[0]
+            for m in self.sent
+        ]
 
 
 @pytest.fixture
-async def client(sessionmaker, settings):
+def mailer() -> FakeMailer:
+    return FakeMailer()
+
+
+@pytest.fixture
+async def client(sessionmaker, settings, mailer):
     async def override_session():
         async with sessionmaker() as session:
             yield session
 
     app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_sessionmaker] = lambda: sessionmaker
     app.dependency_overrides[get_settings] = lambda: settings
+    app.dependency_overrides[get_mailer] = lambda: mailer
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver") as c:
         yield c
     app.dependency_overrides.clear()

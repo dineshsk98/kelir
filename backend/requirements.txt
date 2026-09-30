@@ -8,6 +8,7 @@ google-auth>=2.36
 requests>=2.32          # transport google-auth uses to fetch Google's signing keys
 itsdangerous>=2.2       # signed session cookie
 dnspython>=2.7          # MX lookup: does the recipient's email domain accept mail?
+aiosmtplib>=3.0         # birthday emails through Gmail SMTP
 tzdata>=2025.2
 
 # tests
