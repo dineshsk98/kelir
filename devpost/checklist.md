@@ -50,7 +50,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Schedule a capsule to an inbox you can open on your phone, press "Simulate their midnight", open the email and tap the link. Then check the sender's history says Opened.
   Commit: `Deliver capsules by email at the recipient's midnight via private link`
 
-- [ ] **5. The recipient can say thank you, and the sender sees it**
+- [x] **5. The recipient can say thank you, and the sender sees it**
   Becomes usable: At the bottom of the capsule page, the recipient picks a preset or writes text and sends. They see "Your thank-you was sent", and the sender's history row and detail show the reply.
   Why now: This closes the core loop ("the sender saw that they did"). It's small and depends only on slice 4.
   PRD ref: `prd.md > Thank-you reply`, `prd.md > The Core Journey` (steps 11–12)
@@ -68,17 +68,17 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Build: `reveal/stages.ts` (stage machine and timings), `Reveal.tsx`, `confetti.ts` (canvas + rAF + refs), `sfx.ts` (Web Audio), two `tokens.css` options, and the dev-only `DevReveal` page with labeled sample data. After you pick, apply the chosen tokens app-wide and swap `RecipientCapsule`'s placeholder for `<Reveal …/>`, calling `onFirstReveal`.
   Verify (mechanical): `npm run build` passes; in the browser pane, `/dev/reveal` walks through every stage in order, Skip jumps to the reveal, mute persists across reloads, and emulated `prefers-reduced-motion` shows the fade only; the real capsule link plays the opening.
   Learner check: Open `/dev/reveal`, try both looks and pick one, then open a real capsule link on your phone with sound on and say how the moment feels.
-  Commit: `Add staged gift-opening reveal with chosen look and feel`
+  Commit: `Add staged gift-opening reveal`
 
-- [ ] **7. You can send your voice or face, recorded or uploaded**
-  Becomes usable: In the Message step, record audio (≤120 s) or video (≤60 s) in the browser with play-back and redo, or upload a file (≤50 MB). Preview plays it, and the recipient's opening plays it. A blocked camera or microphone shows a note and offers upload or text; a bad file shows a readable message.
+- [ ] **7. You can send a photo, your voice or your face, recorded or uploaded**
+  Becomes usable: In the Message step, add one photo (upload, or the phone's camera; ≤15 MB), or record audio (≤120 s) or video (≤60 s) in the browser with play-back and redo, or upload an audio/video file (≤50 MB). Preview shows or plays it, and the recipient's opening shows or plays it. A blocked camera or microphone shows a note and offers upload or text; a bad file shows a readable message.
   Why now: This is a large but well-understood browser and API feature. The kernel works with text already, so this enriches it rather than gating it.
   PRD ref: `prd.md > Creating a capsule` (Message), `prd.md > States and Boundaries` (recording not allowed, file can't be used)
   Spec ref: `spec.md > Components > Capsules API` (uploads, media), `spec.md > Components > Web app: Recorder and CityPicker` (Recorder), `spec.md > Components > Recipient API` (media), `spec.md > Data Model`
-  Build: `media.py` (type/size checks, range-supporting streaming), `POST /v1/uploads`, `GET /v1/capsules/{id}/media`, `GET /v1/c/{secret}/media`, orphan-upload cleanup on start, `upload_id` on create. `Recorder` component, Message-step upload, media in Preview and `Reveal`.
-  Verify (mechanical): `pytest` passes, including an oversized or wrong type rejected, owner-only media, recipient media with a `Range` request returning 206, and a text-less capsule with media accepted. `npm run build` passes.
-  Learner check: Record a short video message, play it back, redo it once, save, simulate midnight and watch it play inside the opening on your phone.
-  Commit: `Add recorded and uploaded audio/video messages`
+  Build: `media.py` (type/size checks, range-supporting streaming), `POST /v1/uploads`, `GET /v1/capsules/{id}/media`, `GET /v1/c/{secret}/media`, orphan-upload cleanup on start, `upload_id` on create; `media_kind` gains `image` (migration). `Recorder` component, Message-step photo and file upload, media in Preview and `Reveal`.
+  Verify (mechanical): `pytest` passes, including a photo accepted and shown, an oversized or wrong type rejected, owner-only media, recipient media with a `Range` request returning 206, and a text-less capsule with media accepted. `npm run build` passes.
+  Learner check: Record a short video message, play it back, redo it once, save, simulate midnight and watch it play inside the opening on your phone; then make one with a photo.
+  Commit: `Add photo and recorded or uploaded audio/video messages`
 
 - [ ] **8. You can edit or cancel a capsule until it's opened**
   Becomes usable: `CapsuleDetail` shows the preview, status, local delivery time and reply, with Edit and Cancel while Scheduled or Delivered. Edits to a delivered but unopened capsule are what the recipient sees. Once Opened, both disappear and the API refuses (409). A cancelled link shows "This capsule is no longer available." A failed send shows "Delivery trouble".
@@ -93,10 +93,18 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
 ## Hands-on Checkpoints
 
 - [x] Early usable behavior explored — after slice 4 (the full kernel: schedule → simulate midnight → real email → opens). Dinesh tried it on 2026-09-30: opening the capsule and seeing the message "gave me a rush"; no changes requested. The real-inbox email check still waits on SMTP setup.
-- [ ] Look-and-feel pick — during slice 6, on `/dev/reveal`
+- [x] Slice 6 opening tried — 2026-09-30, Dinesh: "decent v1"; build-up not enough (lengthened and intensified); the separate thank-you card is important. The look-and-feel pick (Sunrise vs Midnight, photocard style) moved to the separate design session; Sunrise stays the default until then.
 - [ ] Final kick-the-tires exploration and feedback completed
 
 ## Final Review
+
+Scope changes Dinesh raised after slice 5 (2026-09-30), awaiting his decision; not in the plan until agreed:
+- Session length / sign out on browser close (currently a 30-day cookie).
+- "Capsules received": a signed-in sender also sees capsules sent to their own email.
+- "Regular recipients": saved people to reuse (the PRD deferred reuse).
+- Language options for the text (and the email).
+
+Folded into slice 6 (receiver side): less text on screen, a designed recipient experience, the thank-you as its own container.
 
 Refinements Dinesh asked for during slice 3's learner check (2026-09-30), to do in the revision round:
 
@@ -104,6 +112,9 @@ Refinements Dinesh asked for during slice 3's learner check (2026-09-30), to do 
 - [ ] Message: accept the placeholder text with Tab (like inline text prediction). Keep the handwritten font and the placeholder wording.
 - [ ] Recipient email: tighten validation; showing the error when Next is pressed stays as is. Built early, in slice 3: stricter format (browser and API), "Did you mean …?" typo hint, and a server-side MX lookup on Next and on save. Awaiting Dinesh's retry.
 - [ ] City search shortcuts and aliases: abbreviations such as "nyc" → New York City and "la" → Los Angeles, and alternate/former names such as "bangalore" ↔ Bengaluru (GeoNames has alternate names that can feed this).
+- [ ] Better thank-you preset wording (still birthday-focused).
+- [ ] UI/UX polish across every screen with the look chosen in slice 6; less text on screen.
+- [ ] History list redesign: scrollable container and filters (e.g. by status).
 - [ ] City picker inline completion: as each character is typed, the top prefix match fills in ahead of the cursor as ghost text with a short animation (trie-style prefix search), accepted with Tab.
 
 - [ ] Final review complete — feedback resolved and learner confirms ready to ship
@@ -125,6 +136,9 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Added `GET /v1/config` (returns the non-secret Google client ID) — the web app needs the client ID to render the Google button, and serving it from the API keeps `.env` the single place it's set instead of duplicating it as a Vite variable.
 - Added `POST /v1/delivery-preview` — the When step must show the exact delivery moment before saving, and only the server's midnight engine can compute it correctly (DST gaps, Feb 29); duplicating that in the browser would risk the two disagreeing.
 - City list is ~4,200 cities (not 1–2k) — pop. ≥150k plus capitals left gaps: whole time zones such as America/St_Johns (UTC−3:30) had no city. It now also keeps the largest city of every zone; 227 KB (≈70 KB gzipped). Zones with no town of 15k+ people (e.g. Australia/Eucla) remain absent; the picker suggests choosing a nearby city in the same zone. GeoNames credit is in `ATTRIBUTION.md` until the README exists.
+- Look-and-feel pick moved out of slice 6 to the separate design session (with photocard-style options) — Dinesh's call after trying the opening; both token sets stay in `tokens.css`, `APP_THEME` stays `sunrise` until then.
+- Build-up lengthened from 1.4 s to 2.4 s and intensified (dimming, energy rings, swelling rattle, accelerating heartbeat sound) — Dinesh: "build up is not enough".
+- Photo added back as a message media kind (slice 7, PRD, spec, scope) — Dinesh asked for image as well as audio and video after the slice 6 check; the original scope had it, the PRD had dropped it.
 - Thank-you presets live on the server (`backend/app/replies.py`) and come with the capsule; a reply stores the preset's key, so the wording can change later without touching the database. Replying also counts as opening (exactly once), for the case where the reply arrives without the capsule ever being loaded.
 - Email sending is a separate at-least-once queue after the exactly-once delivery transition (new `next_send_at`, `emailed_at` columns, migration `0003`) — the spec's "retry with backoff" can't resend the same link because only its hash is stored, so each attempt issues a fresh link under a short lease.
 - "Send now" (and a birthday that has already begun) runs a delivery tick right after saving, instead of waiting up to 30 s for the loop — the PRD says Send now delivers immediately.

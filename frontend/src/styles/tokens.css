@@ -1,6 +1,10 @@
-/* Design tokens. A neutral warm placeholder: slice 6 proposes two sets and the
-   chosen one replaces these values. Screens use only these variables. */
-:root {
+/* Design tokens. Screens use only these variables. Two looks are proposed in slice 6;
+   the chosen one becomes APP_THEME in src/theme.ts. */
+
+/* Sunrise: warm cream and coral */
+:root,
+[data-theme='sunrise'] {
+  color-scheme: light;
   --color-bg: #fff7ef;
   --color-surface: #ffffff;
   --color-text: #2b2230;
@@ -11,6 +15,15 @@
   --color-border: #efe2d6;
   --color-danger: #b3261e;
 
+  --reveal-bg: radial-gradient(circle at 50% 40%, #fff1e2 0%, #ffe0cc 45%, #f9c7b3 100%);
+  --capsule-a: #ff8a6b;
+  --capsule-b: #e8604c;
+  --capsule-c: #ffd1a1;
+  --capsule-band: #ffcf5c;
+  --capsule-glow: rgb(255 170 90 / 0.85);
+  --flash: #fffaf0;
+  --confetti: #e8604c, #ffcf5c, #7cc6a4, #6aa8ff, #f59fc2;
+
   --font-ui: 'Nunito', system-ui, sans-serif;
   --font-hand: 'Caveat', cursive;
 
@@ -19,4 +32,30 @@
   --radius-lg: 24px;
   --shadow-card: 0 2px 4px rgb(43 34 48 / 0.04), 0 8px 24px rgb(43 34 48 / 0.08);
   --glow-accent: 0 0 0 4px rgb(232 96 76 / 0.18);
+}
+
+/* Midnight: night blue with gold, for "the first minute of their day" */
+[data-theme='midnight'] {
+  color-scheme: dark;
+  --color-bg: #121028;
+  --color-surface: #1d1a3a;
+  --color-text: #f4f0ff;
+  --color-text-muted: #aba3c9;
+  --color-accent: #ffc857;
+  --color-accent-text: #1a1530;
+  --color-accent-soft: #3a3160;
+  --color-border: #2f2a55;
+  --color-danger: #ff8a80;
+
+  --reveal-bg: radial-gradient(circle at 50% 35%, #2c2462 0%, #17143a 50%, #0b0a1c 100%);
+  --capsule-a: #8b6cff;
+  --capsule-b: #d05bd8;
+  --capsule-c: #b8a4ff;
+  --capsule-band: #ffc857;
+  --capsule-glow: rgb(255 200 87 / 0.8);
+  --flash: #fff6d6;
+  --confetti: #ffc857, #ff7ab6, #8be9fd, #b8a4ff, #ffffff;
+
+  --shadow-card: 0 2px 4px rgb(0 0 0 / 0.2), 0 12px 32px rgb(0 0 0 / 0.35);
+  --glow-accent: 0 0 0 4px rgb(255 200 87 / 0.25);
 }

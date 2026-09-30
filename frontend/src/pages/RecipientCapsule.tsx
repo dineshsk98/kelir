@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, ApiError, type RecipientCapsule as Capsule } from '../api'
 import { ReplyPanel } from '../components/ReplyPanel'
+import { Reveal, type RevealCapsule } from '../reveal/Reveal'
 import './RecipientCapsule.css'
 
 type State =
@@ -11,7 +12,13 @@ type State =
   | { kind: 'cancelled' }
   | { kind: 'error' }
 
-/** The recipient's private page. A plain card for now; slice 6 swaps in the staged <Reveal>. */
+const MESSAGES = {
+  'not-found': ["We couldn't find this capsule", 'Check that you opened the whole link from your email.'],
+  cancelled: ['This capsule is no longer available', 'The person who made it has taken it back.'],
+  error: ['Something went wrong', 'Please try opening the link again in a moment.'],
+} as const
+
+/** The recipient's private page: the staged opening, then their thank-you. */
 export function RecipientCapsule() {
   const { secret = '' } = useParams()
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -36,74 +43,42 @@ export function RecipientCapsule() {
       })
   }, [secret])
 
-  if (state.kind === 'loading') return <main className="page recipient" aria-busy="true" />
-  if (state.kind !== 'ready') {
-    const text = {
-      'not-found': ["We couldn't find this capsule", 'Check that you opened the whole link from your email.'],
-      cancelled: ['This capsule is no longer available', 'The person who made it has taken it back.'],
-      error: ["Something went wrong", 'Please try opening the link again in a moment.'],
-    }[state.kind]
+  const reveal = useMemo<RevealCapsule | null>(() => {
+    if (state.kind !== 'ready') return null
+    const c = state.capsule
+    return {
+      senderName: c.sender_name,
+      recipientName: c.recipient_name,
+      messageText: c.message_text ?? undefined,
+      gift:
+        c.gift_kind && c.gift_value
+          ? { kind: c.gift_kind, value: c.gift_value, note: c.gift_note ?? undefined }
+          : undefined,
+    }
+  }, [state])
+
+  if (state.kind === 'loading') return <main className="recipient-empty" aria-busy="true" />
+  if (state.kind !== 'ready' || !reveal) {
+    const [title, detail] = MESSAGES[state.kind === 'ready' ? 'error' : state.kind]
     return (
-      <main className="page recipient">
+      <main className="recipient-empty">
         <div className="card recipient-card">
-          <h1>{text[0]}</h1>
-          <p className="muted">{text[1]}</p>
+          <h1>{title}</h1>
+          <p className="muted">{detail}</p>
         </div>
       </main>
     )
   }
 
   const c = state.capsule
-  const firstName = c.recipient_name.split(' ')[0]
   return (
-    <main className="page recipient">
-      <article className="card recipient-card">
-        <p className="muted small">A capsule from {c.sender_name}</p>
-        <h1>Happy birthday, {firstName}!</h1>
-        {c.message_text && <p className="recipient-message">{c.message_text}</p>}
-        {c.gift_kind && <Gift capsule={c} />}
-        <p className="muted small signature">With love, {c.sender_name}</p>
-        <ReplyPanel secret={secret} senderName={c.sender_name} presets={c.reply_presets} initialReply={c.reply} />
-      </article>
+    <main>
+      <Reveal
+        capsule={reveal}
+        replyPanel={
+          <ReplyPanel secret={secret} senderName={c.sender_name} presets={c.reply_presets} initialReply={c.reply} />
+        }
+      />
     </main>
-  )
-}
-
-function Gift({ capsule: c }: { capsule: Capsule }) {
-  const [revealed, setRevealed] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(c.gift_value ?? '')
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      setRevealed(true) // no clipboard access: at least the code is visible to copy by hand
-    }
-  }
-
-  return (
-    <section className="recipient-gift" aria-label="Your gift">
-      <p className="small muted">A gift for you</p>
-      {c.gift_note && <p className="gift-note">{c.gift_note}</p>}
-      {c.gift_kind === 'link' ? (
-        // noreferrer: the gift site never sees this page's private URL
-        <a className="btn" href={c.gift_value ?? '#'} target="_blank" rel="noopener noreferrer">
-          Open your gift
-        </a>
-      ) : revealed ? (
-        <div className="gift-code-row">
-          <code className="gift-code-value">{c.gift_value}</code>
-          <button type="button" className="btn" onClick={copy}>
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-        </div>
-      ) : (
-        <button type="button" className="gift-code-hidden" onClick={() => setRevealed(true)}>
-          Tap to reveal your code
-        </button>
-      )}
-    </section>
   )
 }

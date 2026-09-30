@@ -190,6 +190,7 @@ Implements `prd.md > Screens and Layout` (sender side).
   - records audio or video with `MediaRecorder` (webm on Chrome, mp4 on Safari)
   - caps length (video 60 s, audio 120 s) and offers play-back and redo
   - if the camera or microphone is blocked, shows a note and offers upload
+- Photo: upload only (`<input type="file" accept="image/*">`, which offers the camera on phones); JPEG, PNG, WebP or HEIC up to 15 MB, shown on the card during the `message` stage.
 - `CityPicker`: type-ahead over bundled `cities.json` ({name, country, tz}); it shows "Tokyo, Japan · Asia/Tokyo".
 
 ### Web app: the opening (`frontend/src/reveal/`)
@@ -197,12 +198,12 @@ Implements `prd.md > The opening moment`.
 - A stage machine: `arrive → ready → charge → burst → reveal → message → gift`, kept separate from the renderer that draws it.
 - Stage timings:
   - drop: about 0.7 s
-  - charge: about 1.4 s
+  - charge: about 2.4 s (screen dims, energy rings, swelling rattle, accelerating heartbeat)
   - burst: about 0.4 s
   - card spin-in: about 1.1 s
 - Controls: Skip (jumps to reveal), mute (remembered in `localStorage`) and synthesized sound effects (`sfx.ts`).
 - `prefers-reduced-motion` gives a 400 ms fade with no shake, flash or confetti.
-- The gift code stays hidden until tapped, with a copy button. The thank-you panel comes last.
+- The gift code stays hidden until tapped, with a copy button. The thank-you panel comes last, in its own card separate from the capsule.
 - Replaying the link plays the opening again.
 
 ### City data (`scripts/build_cities.py` → `frontend/public/cities.json`)
@@ -261,7 +262,7 @@ PostgreSQL, created by Alembic migrations.
   - `city_label` (e.g. "Tokyo, Japan"), `tz` (IANA)
 - Message and gift:
   - `message_text` (nullable)
-  - `media_kind` (`audio`|`video`|null), `media_path`, `media_mime`
+  - `media_kind` (`image`|`audio`|`video`|null), `media_path`, `media_mime`
   - `gift_kind` (`link`|`code`|null), `gift_value`, `gift_note`
 - Delivery:
   - `send_mode` (`birthday`|`now`), `deliver_at` (UTC)

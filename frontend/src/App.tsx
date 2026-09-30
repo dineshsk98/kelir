@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { api, ApiError, type Me } from './api'
 import { CapsuleEditor } from './pages/CapsuleEditor'
@@ -7,11 +7,26 @@ import { NotFound } from './pages/NotFound'
 import { RecipientCapsule } from './pages/RecipientCapsule'
 import { Welcome } from './pages/Welcome'
 
+// Dev-only preview of the opening: excluded from production builds entirely
+const DevReveal = import.meta.env.DEV
+  ? lazy(() => import('./pages/DevReveal').then((m) => ({ default: m.DevReveal })))
+  : null
+
 export function App() {
   return (
     <Routes>
       {/* The recipient has no account: their page never checks for a session */}
       <Route path="/c/:secret" element={<RecipientCapsule />} />
+      {DevReveal && (
+        <Route
+          path="/dev/reveal"
+          element={
+            <Suspense fallback={null}>
+              <DevReveal />
+            </Suspense>
+          }
+        />
+      )}
       <Route path="*" element={<SenderApp />} />
     </Routes>
   )

@@ -1,7 +1,10 @@
+/* Its own card, separate from the capsule */
 .reply-panel {
-  border-top: 1px solid var(--color-border);
-  margin-top: 28px;
-  padding-top: 24px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 24px;
   text-align: left;
 }
 

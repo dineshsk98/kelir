@@ -6,6 +6,18 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-09-30 · Sound engine lost on React's development double-mount
+- **Symptom:** caught in review before running: the opening's sound effects would have been silent in development.
+- **Cause:** the `Sfx` object was created during render (`sfx.current ??= new Sfx()`) and closed in an unmount cleanup. React's StrictMode mounts, unmounts and re-mounts components in development; the cleanup set it to `null`, and since render doesn't run again, it was never recreated.
+- **Fix:** create it inside the same `useEffect` that cleans it up (`frontend/src/reveal/Reveal.tsx`).
+- **Lesson:** anything with a cleanup (audio contexts, timers, subscriptions) should be created in the effect that owns the cleanup, not during render.
+
+## 2026-09-30 · Sound can't be verified by automated clicks
+- **Symptom:** in automated browser checks, every stage, the timings and the confetti could be measured, but no sound played.
+- **Cause:** browsers only start audio after a real user gesture; script-triggered clicks don't count, so the `AudioContext` stays suspended (by design).
+- **Fix:** none needed; sound is checked by a person tapping the capsule. The code unlocks audio inside the tap handler.
+- **Lesson:** some behavior can only be verified by hand. Say so explicitly instead of claiming it was tested.
+
 ## 2026-09-30 · A double-tapped thank-you crashed with a 500 instead of "already sent"
 - **Symptom:** the new double-tap test (three simultaneous replies) got an unhandled `IntegrityError` (duplicate `capsule_id`) instead of one 201 and two 409s.
 - **Cause:** the `try/except IntegrityError` only wrapped `commit()`, but SQLAlchemy *autoflushes* pending inserts before running the next statement. The reply's INSERT was sent while marking the capsule opened, one line before the `try`.

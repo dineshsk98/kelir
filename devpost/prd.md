@@ -14,7 +14,7 @@ Source: `scope.md > The Unique Kernel`, `scope.md > The Core Loop`, `scope.md > 
 2. **Sign in.** The visitor signs in with Google. Returning senders sign in again and find their history.
 3. **Start a capsule.** From their history, the sender starts a new capsule.
 4. **Who.** The sender enters the recipient's name, email, birthday (month and day) and city. The city sets the recipient's time zone.
-5. **Message.** Text, audio or video. Audio and video can be recorded live in the browser or uploaded from a file.
+5. **Message.** Text, plus one photo, audio or video. Audio and video can be recorded live in the browser or uploaded from a file; a photo is uploaded or taken with the phone's camera.
 6. **Gift (optional).** An online gift: a link (for example an Amazon link) or a code (for example a Steam code), with an optional note.
 7. **When.** "On their birthday" (at the recipient's next local 00:00 on that date) or "Send now".
 8. **Preview and confirm.** The sender sees exactly what the recipient will see, then confirms. The capsule appears in their history as **Scheduled** (or **Delivered**, if sent now).
@@ -57,8 +57,9 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
   - [ ] **Who:** name, email, birthday (month/day) and city are all required.
     - Choosing a city shows its time zone (e.g. "Tokyo · Asia/Tokyo").
     - A Feb 29 birthday asks which date to use in non-leap years: Feb 28 or Mar 1.
-  - [ ] **Message:** at least one of text, audio or video.
+  - [ ] **Message:** at least one of text, a photo, audio or video.
     - Audio and video can be recorded in the browser or uploaded.
+    - A photo is uploaded (on a phone, the picker can also open the camera).
     - A recording can be played back and redone before saving.
   - [ ] **Gift (optional):** a link or a code, plus an optional note.
   - [ ] **When:** "On their birthday" shows the exact local delivery moment, e.g. "Delivers 00:00, 14 Mar in Tokyo (20:30, 13 Mar your time)". "Send now" delivers immediately.
@@ -96,7 +97,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
     3. Build-up.
     4. Burst with confetti.
     5. The card is revealed with the sender's name.
-    6. The message plays (text shown, or audio/video plays).
+    6. The message plays (text shown, the photo shown, or audio/video plays).
     7. The gift is revealed: the link as a button; the code hidden until tapped, with a copy button.
   - [ ] Sound effects are on by default, with a visible mute.
   - [ ] A "Skip" control jumps straight to the reveal.
@@ -128,7 +129,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - **Birthday already started:** deliver immediately; it's still their day.
 - **Belated wishes are fine** via "Send now". The heart is the giving, not the when.
 - **Thank-you now:** preset or custom text, shown to the sender, "making it easy". Audio and video replies come later.
-- **Record or upload** for audio and video; text works too.
+- **Record or upload** for audio and video; upload for a photo; text works too. (Photo added back on 2026-09-30 after the slice 6 check.)
 - **The gift is a link or a code.** Nothing is bought through the product.
 - **Subject line:** "<Sender> has sent you a surprise for your special day."
 - **Feb 29:** the sender picks Feb 28 or Mar 1 for non-leap years.
@@ -138,7 +139,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 ## What We're Building
 - Welcome page and Google sign-in.
 - History with statuses and thank-you replies.
-- The new/edit capsule flow: Who (with city picker and Feb 29 choice), Message (text, or recorded/uploaded audio or video), Gift (link or code), When (birthday or now), Preview.
+- The new/edit capsule flow: Who (with city picker and Feb 29 choice), Message (text, plus a photo or recorded/uploaded audio or video), Gift (link or code), When (birthday or now), Preview.
 - Edit and cancel until opened.
 - Time-zone-correct delivery by email at the recipient's 00:00, exactly once.
 - The private-link capsule page: staged opening, skip, mute, reduced motion, replay.
