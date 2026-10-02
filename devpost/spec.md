@@ -216,8 +216,20 @@ Implements `prd.md > Screens and Layout` (sender side).
 - Photos: upload only (`<input type="file" accept="image/*" multiple>`, which offers the camera on phones). A capsule holds up to 6 media items in any mix; the opening shows them after the message (photos as a swipeable gallery, audio and video as players).
 - `CityPicker`: type-ahead over bundled `cities.json` ({name, country, tz}); it shows "Tokyo, Japan · Asia/Tokyo".
 
-### Web app: the opening (`frontend/src/reveal/`)
+### Web app: the 3D opening (`frontend/src/reveal3d/`), on the recipient page since 2026-10-02
 Implements `prd.md > The opening moment`.
+- React Three Fiber v8 + three.js, in a lazily loaded `GiftScene` chunk (about 960 KB, 257 KB gzipped) that the recipient page starts downloading while the capsule loads. The cake's entrance waits until the 3D view is up (`onCreated`) and the cake photo is prepared, so a slow phone or a background tab doesn't miss it.
+- Stages: `cake_arrive → blow → cake_aside → arrive → pull → untie → charge → burst → rise → explore`; `blow` and `pull` wait for her. About 7.3 s of motion.
+- Cake: a CC0 photo (`public/reveal/cake-candles.jpg`, credited) shown with CSS at the centre (with the title and candle buttons centred) until the candles are out, then gliding to the bottom left (transitions on `left`, `bottom`, `width` and the separate `translate` property). `cakeFlames.ts` finds its flames (bright, warm pixel blobs) and paints them out on a canvas once at load (grow from each core while clearly brighter than the surroundings, then fill from the edge colour); blowing cross-fades to that copy with CSS smoke from each wick. Real flames keep a CSS flicker glow until then. A photo whose flames sit on bright frosting can't be painted out cleanly this way, so only dark-background photos qualify.
+- Sound (`sfx3d.ts`, all synthesized, no audio files): applause when the candles go out (about 90 short filtered-noise claps over 2.6 s), then "Happy Birthday" (public domain) on a synthesized piano (three harmonics, quick strike, long decay, a simple left hand), looping for as long as the capsule is open (one round, about 14 s, is scheduled ahead at a time; a late timer in a background tab restarts cleanly instead of bunching notes). It plays on its own gain bus: mute fades it (`setMuted`), and every other sound ducks it to 20% (fast) and lets it swell back (slow), including her voice notes and videos while they play (`holdDuck`). Skipping still starts the song.
+- Candle: tap to blow; "Blow for real" asks for the microphone only when tapped, listens for a puff in the low frequencies, and stops the microphone when the candle is out or she moves on (including when permission arrives late).
+- Burst: soft glow and lid lift, a gentle confetti shower (70 pieces), no camera shake.
+- Reduced motion: `sceneStage()` maps only the moving stages (untie → rise) to the open box; cake, candle and the closed box stay as they are. No confetti.
+- After opening, `CapsuleContents` shows the sender's note with thumbnails (letter excerpt, photo, video first frame, voice-note and gift icons) and a separate "Say thank you" button. Each opens in a viewer (portal into the opening's root, because the note's `backdrop-filter` would otherwise trap a `position: fixed` overlay); the thank-you viewer stays mounted while hidden so it remembers a sent reply. WebGL failure jumps straight to this note.
+- `/dev/reveal` keeps both openings and the backdrop switch for design work.
+
+### Web app: the first opening (`frontend/src/reveal/`), now on `/dev/reveal` only
+The 2D opening that slices 6–9 used on the recipient page:
 - A stage machine: `arrive → ready → charge → burst → reveal → message → gift`, kept separate from the renderer that draws it.
 - Stage timings:
   - drop: about 0.7 s

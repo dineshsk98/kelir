@@ -91,17 +91,18 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 
 ### The opening moment
 - The recipient taps the link and the capsule opens in stages, built to make them feel seen and happy.
-  - [ ] **Stages:**
-    1. The capsule arrives on screen.
-    2. "Tap to open".
-    3. Build-up.
-    4. Burst with confetti.
-    5. The card is revealed with the sender's name.
-    6. The message plays: text shown, then the photos (a swipeable gallery) and audio/video players.
-    7. The gift is revealed: the link as a button; the code hidden until tapped, with a copy button.
+  - [ ] **Stages** (a 3D scene, updated 2026-10-02):
+    1. A real photo of a birthday cake with lit candles fades in at the centre, under "A gift for <name>"; the flames flicker.
+    2. They blow the candles out: by tapping, or (only if they choose "Blow for real") by blowing at the microphone. The flames go out, smoke rises from the wicks, a small crowd claps, and "Happy Birthday" starts softly on the piano, playing on a loop for as long as the capsule is open (following the mute button). Whenever another sound plays, including their voice note or video, the song drops low and then swells back.
+    3. After a moment, the cake glides slowly to the bottom left and a tied gift box arrives.
+    4. They pull the ribbon (drag in any direction, or tap "Pull the ribbon").
+    5. The ribbon unties, a soft build-up glows under the lid, and the lid lifts with a gentle confetti shower (no shake).
+    6. A photocard rises with their name and the sender's.
+    7. A note appears: "A capsule from <sender>", "<Sender> wrapped up four little surprises for you", with a thumbnail for each thing inside (the letter, photos, videos, voice notes, the gift) and a "Say thank you" button. Nothing opens by itself: each thumbnail opens in a viewer they can close (×, Esc or a tap outside), with Previous/Next.
   - [ ] Sound effects are on by default, with a visible mute.
   - [ ] A "Skip" control jumps straight to the reveal.
-  - [ ] If the device asks for reduced motion, the opening becomes a short fade with no shake, flash or confetti.
+  - [ ] The microphone is never requested unless they tap "Blow for real", and it's released as soon as the candle is out.
+  - [ ] If the device asks for reduced motion, there's no movement, flash or confetti, and nothing is revealed before they blow out the candle and pull the ribbon.
   - [ ] **Replay:** opening the link again shows the opening again. The capsule stays viewable.
   - [ ] The first open changes the sender's status to Opened. Later opens don't change anything.
 

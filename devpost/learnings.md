@@ -6,6 +6,66 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-02 · "Blow for real" missing on the phone
+- **Symptom:** Dinesh, on his phone on `/dev/reveal`: only "Blow out the candles" showed; on the laptop both buttons did.
+- **Cause:** browsers only offer the microphone (`navigator.mediaDevices`) on secure pages. `localhost` counts as secure, but the dev server opened from the phone over Wi-Fi is plain `http://<laptop-ip>`, so the page correctly hid the button. Not a bug, but surprising.
+- **Fix:** none needed in code; noted in `devpost/checklist.md`. It will appear on phones once the app is hosted on https (a local https dev server was tried and dropped as not worth it before hosting).
+- **Lesson:** camera and microphone features can only be checked on a phone over https, so say so when handing over a phone check.
+
+## 2026-10-02 · On phones, the title sat on top of the photocard
+- **Symptom:** after making the contents note compact (it had been covering the scene), the browser pane showed "Happy birthday, Aiko / from Sam" printed across the photocard.
+- **Cause:** in portrait the title sits at the top, and that's exactly where the photocard rises to. The big note used to hide the overlap.
+- **Fix:** in portrait, the title fades out once the box is open, since the photocard already says the same thing (`frontend/src/reveal3d/Reveal3D.css`).
+- **Lesson:** shrinking one element can reveal overlaps it was hiding, so re-check the whole screen, not just the element changed.
+
+## 2026-10-02 · The full-screen viewer was trapped inside the frosted note
+- **Symptom:** in the browser pane, opening a thumbnail drew the "full-screen" viewer only inside the small note card.
+- **Cause:** the note uses `backdrop-filter` for its frosted glass. Like `transform` and `filter`, that makes an element the containing block for its `position: fixed` descendants, so "fixed, inset 0" meant "fill the note".
+- **Fix:** the viewers render through a React portal into the opening's root element (`createPortal` in `frontend/src/reveal3d/CapsuleContents.tsx`).
+- **Lesson:** overlays belong in a portal, never inside a component with `transform`, `filter` or `backdrop-filter`.
+
+## 2026-10-02 · A landscape rule that never applied
+- **Symptom:** in landscape, the contents note stayed centred instead of moving to the left column; its computed `left` was the portrait value.
+- **Cause:** the landscape override sat in a media query *above* the note's base rule in `Reveal3D.css`. Same specificity, so the later base rule won.
+- **Fix:** a separate landscape media query placed after the base rules (`frontend/src/reveal3d/Reveal3D.css`).
+- **Lesson:** a media query doesn't add specificity. Overrides must come after what they override, or check computed styles early.
+
+## 2026-10-02 · Two files whose names differ only by case
+- **Symptom:** `npm run build` failed: "Already included file name … CakePhoto.ts differs from file name … cakePhoto.ts only in casing", and the dev server kept a broken hot-reload state.
+- **Cause:** a helper `cakePhoto.ts` and a component `CakePhoto.tsx` in the same folder. On Windows (case-insensitive) TypeScript treats `./CakePhoto` and `./cakePhoto` as one file.
+- **Fix:** the helper was renamed to `frontend/src/reveal3d/cakeFlames.ts`, and the dev server restarted.
+- **Lesson:** never give two files in a folder names that differ only by case. It breaks on Windows and macOS, and in git across machines.
+
+## 2026-10-02 · A photo's flames can only be painted out on a plain background
+- **Symptom:** of the two CC0 cake photos, the dark one came out clean after painting out its flames, but the roses-on-cream one got flat or blocky patches, first with an oval fill, then with a region that flooded into the bright frosting.
+- **Cause:** filling a hole from its surroundings only works when the surroundings are plain; a flame over textured, equally bright frosting has no clean edge to grow or fill from.
+- **Fix:** kept the dark-background photo (`frontend/public/reveal/cake-candles.jpg`) and dropped the other; the method lives in `frontend/src/reveal3d/cakeFlames.ts`.
+- **Lesson:** decide whether an image will be edited before choosing it. For "blow out the candles", choose photos where the flames sit against dark, plain space.
+
+## 2026-10-02 · The thank-you card's words vanished in the 3D lightbox
+- **Symptom:** in the browser pane, the thank-you card in the new lightbox was a white card with almost invisible text.
+- **Cause:** the card keeps the app's light surface, but its text colour is inherited, and inside the 3D page that's the scene's ivory, so it was ivory on white.
+- **Fix:** `.r3d .reply-panel` sets the app's text colour back (`frontend/src/reveal3d/Reveal3D.css`).
+- **Lesson:** when a light component moves into a dark container, check inherited colours, not just backgrounds.
+
+## 2026-10-02 · The cake's entrance played before the 3D scene had loaded
+- **Symptom:** opening a link, the cake only appeared about 5 s in (on localhost), already in place. Its 1.5 s rise had run unseen, and on a phone it would be worse.
+- **Cause:** the stage timers start when the page mounts, but three.js (about 960 KB) only began downloading at that point and the scene drew later.
+- **Fix:** the recipient page starts the 3D download while the capsule loads (`preloadGiftScene`), and the first stage waits for the 3D view to report it's ready (`onReady` from the canvas's `onCreated`) in `frontend/src/reveal3d/Reveal3D.tsx`, `GiftScene.tsx` and `frontend/src/pages/RecipientCapsule.tsx`. This also means a link opened in a background tab waits until it's looked at.
+- **Lesson:** an animation timeline must start from "can be seen", not from "component mounted", whenever its renderer loads asynchronously.
+
+## 2026-10-02 · Reduced motion showed the open gift before the candle was blown out
+- **Symptom:** found reviewing the parallel reveal work: with reduced motion on, the cake stages drew the opened box and risen photocard behind "Blow out the candle".
+- **Cause:** the scene mapped every stage except `arrive` and `pull` to the final "explore" picture, and the new cake stages weren't added to that list.
+- **Fix:** one shared `sceneStage()` in `frontend/src/reveal3d/stages.ts` lists the still stages (cake, candle, closed box); only the moving ones jump to the open box. Used by the box and the particles in `GiftScene.tsx`, and the cake skips its rise.
+- **Lesson:** "everything except X" lists silently swallow new states. Name the states that are allowed instead, and keep the list in one place.
+
+## 2026-10-02 · The candle's microphone could stay on after the candle was out
+- **Symptom:** found reviewing the parallel reveal work: if she tapped "Blow out the candle" or Skip while the browser was still asking for microphone permission, the microphone was switched on afterwards and never released.
+- **Cause:** the effect's cleanup ran before `getUserMedia` resolved, when there was no stream to stop yet; the stream that arrived later had no owner.
+- **Fix:** a `cancelled` flag: a stream that arrives after cleanup is stopped at once. The microphone is now also opt-in ("Blow for real", Dinesh's call) instead of requested automatically (`frontend/src/reveal3d/Reveal3D.tsx`).
+- **Lesson:** any async resource started in an effect needs a "was I cancelled?" check when it arrives, not just a cleanup for the case where it already has.
+
 ## 2026-10-02 · Recorded WebM: whether it has a length depends on how you record
 - **Symptom:** while building the recorder, a test recording in Chromium reported a proper length (1.95 s), which contradicted the 2026-09-30 entry ("recorded WebM has no length"). Recording the same clip in chunks (`recorder.start(250)`) gave `Infinity`.
 - **Cause:** the earlier entry was only half right. Current Chromium writes the Duration field when the whole recording arrives at the end (`start()` with no timeslice), but not when it's delivered in chunks. Firefox and older Chrome leave it out either way.

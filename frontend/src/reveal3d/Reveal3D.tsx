@@ -9,18 +9,22 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react'
-import { MediaGallery } from '../components/MediaGallery'
 import { burstConfetti, themeConfettiColors } from '../reveal/confetti'
-import { Gift } from '../reveal/Gift'
 import { usePrefersReducedMotion, type RevealCapsule } from '../reveal/Reveal'
 import { loadMuted, saveMuted } from '../reveal/sfx'
 import { Backdrop, type BackdropPhoto } from './Backdrop'
+import { CakePhoto } from './CakePhoto'
+import { CapsuleContents } from './CapsuleContents'
 import type { Pull } from './GiftScene'
 import { GiftSfx } from './sfx3d'
 import { after, DURATION, reached, REDUCED_FADE_MS, type Stage } from './stages'
 import './Reveal3D.css'
 
-const GiftScene = lazy(() => import('./GiftScene'))
+const loadGiftScene = () => import('./GiftScene')
+const GiftScene = lazy(loadGiftScene)
+
+/** Start downloading three.js early (e.g. while the capsule itself is loading). */
+export const preloadGiftScene = () => void loadGiftScene().catch(() => {})
 
 /** If WebGL is missing or the scene crashes, the page carries on without the 3D box. */
 class SceneBoundary extends Component<{ onError: () => void; children: ReactNode }, { failed: boolean }> {
@@ -60,10 +64,15 @@ export function Reveal3D({
 }) {
   const prefersReduced = usePrefersReducedMotion()
   const reduced = reducedMotion ?? prefersReduced
-  const [stage, setStage] = useState<Stage>('arrive')
+  const [stage, setStage] = useState<Stage>('cake_arrive')
   const [muted, setMuted] = useState(loadMuted)
   const [webgl, setWebgl] = useState(true)
-  const stageRef = useRef<Stage>('arrive')
+  const [sceneReady, setSceneReady] = useState(false)
+  const onSceneReady = useCallback(() => setSceneReady(true), [])
+  const [cakeReady, setCakeReady] = useState(false)
+  const onCakeReady = useCallback(() => setCakeReady(true), [])
+  const ready = cakeReady && (sceneReady || !webgl)
+  const stageRef = useRef<Stage>('cake_arrive')
   const rootRef = useRef<HTMLDivElement>(null)
   const confettiRef = useRef<HTMLCanvasElement>(null)
   const sfx = useRef<GiftSfx | null>(null)
@@ -88,14 +97,17 @@ export function Reveal3D({
     }
   }, [])
 
-  // Timed stages advance by themselves; reduced motion skips the arrival drop.
+  // Timed stages advance by themselves; reduced motion skips the cake's and the box's arrival.
   useEffect(() => {
     const next = after(stage)
     if (!next) return
-    const ms = reduced && stage === 'arrive' ? 0 : DURATION[stage] ?? 0
+    // The cake's entrance waits for the cake photo and the 3D view, which can take seconds
+    // to download on a phone
+    if (stage === 'cake_arrive' && !ready) return
+    const ms = reduced && (stage === 'arrive' || stage === 'cake_arrive') ? 0 : DURATION[stage] ?? 0
     const timer = window.setTimeout(() => setStage(next), ms)
     return () => window.clearTimeout(timer)
-  }, [stage, reduced])
+  }, [stage, reduced, ready])
 
   // Sound, confetti and haptics per stage
   useEffect(() => {
@@ -104,11 +116,13 @@ export function Reveal3D({
     if (stage === 'burst') {
       s?.burst()
       navigator.vibrate?.(40) // Android only; iOS ignores it
-      if (confettiRef.current && rootRef.current) {
+      if (!reduced && confettiRef.current && rootRef.current) {
         stopConfetti.current()
-        // From the box: in landscape the scene sits right of centre (see SIDE in GiftScene.tsx)
+        // A gentle shower from the box (fewer pieces than the first opening); in landscape
+        // the scene sits right of centre (see SIDE in GiftScene.tsx)
         const landscape = window.innerWidth / window.innerHeight > 1.1
         stopConfetti.current = burstConfetti(confettiRef.current, themeConfettiColors(rootRef.current), {
+          count: 70,
           originX: landscape ? 0.67 : 0.5,
           originY: 0.5,
         })
@@ -119,9 +133,8 @@ export function Reveal3D({
       revealedOnce.current = true
       onFirstReveal?.()
     }
-  }, [stage, onFirstReveal])
+  }, [stage, onFirstReveal, reduced])
 
-  /** Her first touch: unlock audio (browsers only allow it inside a gesture) and ring the bell */
   const firstTouch = () => {
     if (touched.current) return
     touched.current = true
@@ -134,6 +147,60 @@ export function Reveal3D({
     sfx.current?.zip()
     setStage(reduced ? 'explore' : 'untie')
   }, [reduced])
+
+  const blowCandle = useCallback(() => {
+    if (stageRef.current !== 'blow') return
+    firstTouch()
+    // The candles go out: applause, then Happy Birthday on the piano for the rest of the opening
+    sfx.current?.clap()
+    sfx.current?.birthdayTune(1.2)
+    setStage(reduced ? 'arrive' : 'cake_aside')
+  }, [reduced])
+
+  // Blowing for real is her choice: the microphone is only asked for when she taps
+  // "Blow for real", and it's released as soon as the candle is out (or she moves on).
+  const [listening, setListening] = useState(false)
+  const micAvailable = typeof navigator.mediaDevices?.getUserMedia === 'function'
+
+  useEffect(() => {
+    if (stage !== 'blow' || !listening) return
+    let cancelled = false
+    let stream: MediaStream | null = null
+    let audio: AudioContext | null = null
+    let frame = 0
+
+    navigator.mediaDevices
+      .getUserMedia({ audio: true })
+      .then((s) => {
+        // The answer can arrive after she has already tapped or skipped: let go at once
+        if (cancelled) return s.getTracks().forEach((t) => t.stop())
+        stream = s
+        audio = new AudioContext()
+        const analyser = audio.createAnalyser()
+        analyser.fftSize = 256
+        audio.createMediaStreamSource(s).connect(analyser)
+        const bins = new Uint8Array(analyser.frequencyBinCount)
+        const listen = () => {
+          analyser.getByteFrequencyData(bins)
+          // A puff of air is loud in the lowest frequencies
+          let low = 0
+          for (let i = 0; i < 15; i++) low += bins[i]
+          if (low > 2500) blowCandle()
+          else frame = requestAnimationFrame(listen)
+        }
+        listen()
+      })
+      .catch(() => {
+        if (!cancelled) setListening(false) // denied or no microphone: the tap still works
+      })
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(frame)
+      stream?.getTracks().forEach((t) => t.stop())
+      void audio?.close().catch(() => {})
+    }
+  }, [stage, listening, blowCandle])
 
   const onPointerDown = (e: PointerEvent<HTMLElement>) => {
     if (stage !== 'pull' || (e.target as Element).closest('button, a')) return
@@ -176,6 +243,7 @@ export function Reveal3D({
 
   const skip = () => {
     sfx.current?.unlock()
+    sfx.current?.birthdayTune() // skipping the candles still gets the song
     setStage('explore')
   }
 
@@ -183,9 +251,12 @@ export function Reveal3D({
     const next = !muted
     setMuted(next)
     saveMuted(next)
-    if (sfx.current) sfx.current.muted = next
+    sfx.current?.setMuted(next) // also fades the song
     if (!next) sfx.current?.unlock()
   }
+
+  // Her voice note or video playing: the birthday tune steps back until it stops
+  const onMediaPlaying = useCallback((playing: boolean) => sfx.current?.holdDuck(playing), [])
 
   const onSceneError = useCallback(() => {
     setWebgl(false)
@@ -219,10 +290,12 @@ export function Reveal3D({
                 reduced={reduced}
                 recipientFirstName={firstName}
                 senderName={capsule.senderName}
+                onReady={onSceneReady}
               />
             </Suspense>
           </SceneBoundary>
         )}
+        <CakePhoto shown={ready && !open} blown={reached(stage, 'cake_aside')} reduced={reduced} onReady={onCakeReady} />
         <canvas ref={confettiRef} className="r3d-confetti" aria-hidden="true" />
         <div className="r3d-flash" aria-hidden="true" />
 
@@ -260,27 +333,37 @@ export function Reveal3D({
           )}
         </div>
 
+        {open && rootRef.current && (
+          <CapsuleContents
+            capsule={capsule}
+            replyPanel={replyPanel}
+            overlayRoot={rootRef.current}
+            onMediaPlaying={onMediaPlaying}
+          />
+        )}
+
         <div className="r3d-bottom" aria-live="polite">
           {stage === 'pull' && (
             <button type="button" className="r3d-pull" onClick={pullByTap}>
               Pull the ribbon
             </button>
           )}
-          {open && (capsule.messageText || capsule.media?.length || capsule.gift) && (
-            <p className="r3d-scroll-hint">Scroll for everything {capsule.senderName} sent</p>
+          {stage === 'blow' && (
+            <div className="r3d-blow">
+              <button type="button" className="r3d-pull" onClick={blowCandle}>
+                Blow out the candles
+              </button>
+              {micAvailable && !listening && (
+                <button type="button" className="r3d-pill" onClick={() => setListening(true)}>
+                  🎤 Blow for real
+                </button>
+              )}
+              {listening && <p className="r3d-listening">Listening… blow at your phone</p>}
+            </div>
           )}
         </div>
       </section>
 
-      {open && (
-        <section className="r3d-more">
-          {/* The first opening's content, until the next slices put each item in the box */}
-          {capsule.messageText && <p className="r3d-letter">{capsule.messageText}</p>}
-          {capsule.media && capsule.media.length > 0 && <MediaGallery items={capsule.media} />}
-          {capsule.gift && <Gift gift={capsule.gift} />}
-          {replyPanel}
-        </section>
-      )}
     </div>
   )
 }

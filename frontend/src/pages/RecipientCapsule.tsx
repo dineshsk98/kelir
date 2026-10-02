@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { api, ApiError, mediaUrl, type RecipientCapsule as Capsule } from '../api'
 import { ReplyPanel } from '../components/ReplyPanel'
-import { Reveal, type RevealCapsule } from '../reveal/Reveal'
+import type { RevealCapsule } from '../reveal/Reveal'
+import { preloadGiftScene, Reveal3D } from '../reveal3d/Reveal3D'
 import './RecipientCapsule.css'
 
 type State =
@@ -18,7 +19,7 @@ const MESSAGES = {
   error: ['Something went wrong', 'Please try opening the link again in a moment.'],
 } as const
 
-/** The recipient's private page: the staged opening, then their thank-you. */
+/** The recipient's private page: the 3D opening (cake, then gift box), then their thank-you. */
 export function RecipientCapsule() {
   const { secret = '' } = useParams()
   const [state, setState] = useState<State>({ kind: 'loading' })
@@ -33,6 +34,7 @@ export function RecipientCapsule() {
   }, [])
 
   useEffect(() => {
+    preloadGiftScene() // the 3D opening downloads while the capsule loads
     api
       .openCapsule(secret)
       .then((capsule) => setState({ kind: 'ready', capsule }))
@@ -74,7 +76,7 @@ export function RecipientCapsule() {
   const c = state.capsule
   return (
     <main>
-      <Reveal
+      <Reveal3D
         capsule={reveal}
         replyPanel={
           <ReplyPanel secret={secret} senderName={c.sender_name} presets={c.reply_presets} initialReply={c.reply} />

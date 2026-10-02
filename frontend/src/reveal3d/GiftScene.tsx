@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'rea
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import { drawPhotocard } from './photocard'
-import { DURATION, type Stage } from './stages'
+import { DURATION, sceneStage, type Stage } from './stages'
 
 /** Her pull on the ribbon, written by the page's pointer handlers */
 export type Pull = {
@@ -24,6 +24,8 @@ export type GiftSceneProps = {
   reduced: boolean
   recipientFirstName: string
   senderName: string
+  /** Called once the 3D view is up, so the opening can wait for it */
+  onReady?: () => void
 }
 
 // Sizes in scene units: the box is 1.2 wide and 1 tall, standing on y = 0.
@@ -63,6 +65,10 @@ function useStageClock(stage: Stage) {
 
 /** Where the camera looks and how much must stay on screen, per stage. */
 const FIT: Record<Stage, { cy: number; r: number }> = {
+  // The cake is a photo beside the scene: the camera already frames where the box will land
+  cake_arrive: { cy: 0.7, r: 1.2 },
+  blow: { cy: 0.7, r: 1.2 },
+  cake_aside: { cy: 0.7, r: 1.2 },
   arrive: { cy: 0.7, r: 1.2 },
   pull: { cy: 0.7, r: 1.2 },
   untie: { cy: 0.7, r: 1.2 },
@@ -115,17 +121,71 @@ function CameraRig({ stage, reduced }: { stage: Stage; reduced: boolean }) {
     let dist = fit.r / Math.sin(Math.min(vHalf, hHalf))
     if (stage === 'charge' && !reduced) dist *= 1 - 0.15 * p // push in as it builds
     want.set(0, fit.cy, 0).addScaledVector(dir, dist)
-    if (stage === 'burst' && !reduced) {
-      const k = 0.06 * (1 - p) // a short shake that dies away
-      want.x += k * Math.sin(state.clock.elapsedTime * 71)
-      want.y += k * Math.sin(state.clock.elapsedTime * 59)
-    }
     const ease = reduced ? 1 : 1 - Math.exp(-dt * 3.5)
     camera.position.lerp(want, ease)
     look.current.lerp(new THREE.Vector3(0, fit.cy, 0), ease)
     camera.lookAt(look.current)
   })
   return null
+}
+
+function Particles({ stage, reduced }: { stage: Stage; reduced: boolean }) {
+  const clock = useStageClock(stage)
+  const count = 40
+  const mesh = useRef<THREE.InstancedMesh>(null!)
+  const dummy = useMemo(() => new THREE.Object3D(), [])
+
+  const particles = useMemo(() => {
+    const data = []
+    for (let i = 0; i < count; i++) {
+      data.push({
+        x: (Math.random() - 0.5) * 2.5,
+        y: Math.random() * 2.0,
+        z: (Math.random() - 0.5) * 2.5,
+        speed: 0.2 + Math.random() * 0.5,
+        phase: Math.random() * Math.PI * 2,
+      })
+    }
+    return data
+  }, [])
+
+  const geo = useMemo(() => new THREE.SphereGeometry(0.04, 8, 8), [])
+  const mat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#ffe2a8', transparent: true, opacity: 0 }), [])
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime
+    const s = sceneStage(stage, reduced)
+    if (s === 'cake_arrive' || s === 'blow' || s === 'cake_aside' || s === 'arrive' || s === 'pull' || s === 'untie' || s === 'charge') {
+      mesh.current.visible = false
+      return
+    }
+    mesh.current.visible = true
+    const { p } = clock(t)
+    
+    // Fade in during burst/rise
+    let opacity = 0
+    if (s === 'burst') opacity = p
+    else if (s === 'rise') opacity = 1
+    else if (s === 'explore') opacity = 0.8 + 0.2 * Math.sin(t * 2)
+
+    mat.opacity = opacity
+
+    particles.forEach((particle, i) => {
+      dummy.position.set(
+        particle.x + Math.sin(t * particle.speed + particle.phase) * 0.2,
+        particle.y + t * particle.speed * 0.5,
+        particle.z + Math.cos(t * particle.speed + particle.phase) * 0.2
+      )
+      // Wrap around Y
+      dummy.position.y = (dummy.position.y % 3.0) + 0.5
+      dummy.scale.setScalar(0.5 + 0.5 * Math.sin(t * 3 + particle.phase))
+      dummy.updateMatrix()
+      mesh.current.setMatrixAt(i, dummy.matrix)
+    })
+    mesh.current.instanceMatrix.needsUpdate = true
+  })
+
+  return <instancedMesh ref={mesh} args={[geo, mat, count]} />
 }
 
 function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftSceneProps) {
@@ -216,16 +276,18 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftS
   useFrame((state, dt) => {
     const t = state.clock.elapsedTime
     const { p } = clock(t)
-    const s: Stage = reduced && stage !== 'pull' && stage !== 'arrive' ? 'explore' : stage
+    const s = sceneStage(stage, reduced)
 
     // Defaults: the box at rest, closed and tied
-    let y = 0
+    let y = 10 // hide box up high by default
     let yaw = BASE_YAW
     let shakeX = 0
     let shakeZ = 0
     let roll = 0
+    let boxScale = 1
     let lidY = LID_Y
     let lidX = 0
+    let lidZ = 0
     let lidRotX = 0
     let lidRotZ = 0
     let lidShown = true
@@ -244,18 +306,18 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftS
     now.dx += (pull.current.dx - now.dx) * k
     now.dy += (pull.current.dy - now.dy) * k
 
+    // Before 'arrive' (the cake stages) the box stays out of sight above the scene
     switch (s) {
       case 'arrive':
-        if (!reduced) {
-          y = 3.2 * (1 - outBounce(p))
-          yaw = BASE_YAW - 0.6 * (1 - outCubic(p))
-        }
+        y = reduced ? 0 : 3.2 * (1 - outBounce(p))
+        yaw = BASE_YAW - (reduced ? 0 : 0.6 * (1 - outCubic(p)))
         break
       case 'pull':
         y = reduced ? 0 : 0.03 * Math.sin(t * 2)
         yaw = BASE_YAW + (reduced ? 0 : 0.08 * Math.sin(t * 0.7))
         break
       case 'untie':
+        y = 0
         ribbon = 1 - p
         bowScale = 1 - outCubic(p)
         bowLift = 0.4 * p
@@ -263,39 +325,38 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftS
         tailTwist = 1.2 * p
         break
       case 'charge': {
+        y = 0
         ribbon = 0
-        const a = 0.012 + 0.05 * p * p
-        shakeX = a * Math.sin(t * 53)
-        shakeZ = a * Math.sin(t * 47 + 1)
-        roll = 0.8 * a * Math.sin(t * 61)
-        lidY = LID_Y + 0.08 * p + 0.6 * a * Math.sin(t * 67)
-        lidRotZ = 0.6 * a * Math.sin(t * 43)
-        glow = p
+        const ease = inOutCubic(p)
+        lidY = LID_Y + 0.15 * ease
+        glow = p * 0.8
+        boxScale = 1 + 0.02 * Math.sin(p * Math.PI)
         break
       }
       case 'burst': {
+        y = 0
         ribbon = 0
-        const lt = p * 0.5 // seconds into the burst
-        lidY = LID_Y + 0.08 + 6 * lt - 3 * lt * lt
-        lidX = 1.8 * lt
-        lidRotX = -4 * lt
-        lidRotZ = 3 * lt
-        const a = 0.05 * (1 - p)
-        shakeX = a * Math.sin(t * 53)
-        shakeZ = a * Math.sin(t * 47 + 1)
-        glow = 1
+        const lt = p * (DURATION.burst! / 1000 || 0.5)
+        lidY = LID_Y + 0.15 + 2 * lt
+        lidZ = -0.5 * lt
+        lidRotX = -0.5 * lt
+        lidRotZ = 0.2 * lt
+        glow = 0.8 + 0.2 * p
+        boxScale = 1
         break
       }
       case 'rise':
+        y = 0
         ribbon = 0
         lidShown = false
-        glow = 1 - 0.4 * p
+        glow = 0.7 - 0.2 * p
         cardRise = p
         break
       case 'explore':
+        y = 0
         ribbon = 0
         lidShown = false
-        glow = 0.6
+        glow = 0.5
         cardRise = 1
         yaw = BASE_YAW + (reduced ? 0 : 0.06 * Math.sin(t * 0.5))
         break
@@ -303,11 +364,12 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftS
 
     box.current.position.set(shakeX, y, shakeZ)
     box.current.rotation.set(0, yaw, roll)
+    box.current.scale.setScalar(boxScale)
     shadow.current.scale.setScalar(1 / (1 + y * 0.4))
     ;(shadow.current.material as THREE.MeshBasicMaterial).opacity = 0.4 / (1 + y)
 
     lid.current.visible = lidShown
-    lid.current.position.set(lidX, lidY, 0)
+    lid.current.position.set(lidX, lidY, lidZ)
     lid.current.rotation.set(lidRotX, 0, lidRotZ)
 
     const tied = ribbon > 0.001
@@ -397,12 +459,14 @@ export default function GiftScene(props: GiftSceneProps) {
       dpr={[1, 2]}
       gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}
       camera={{ fov: 35, near: 0.1, far: 60, position: [0, 2.5, 8] }}
+      onCreated={() => props.onReady?.()}
     >
       <ambientLight intensity={0.6} color="#9aa6ff" />
       <directionalLight position={[-3, 5, 4]} intensity={2.4} color="#ffe2b8" />
       <directionalLight position={[3, 2, -4]} intensity={1.3} color="#e88ba0" />
       <GiftBox {...props} />
       <CameraRig stage={props.stage} reduced={props.reduced} />
+      <Particles stage={props.stage} reduced={props.reduced} />
       <EffectComposer multisampling={4}>
         <Bloom mipmapBlur intensity={1.1} luminanceThreshold={0.9} luminanceSmoothing={0.2} />
       </EffectComposer>

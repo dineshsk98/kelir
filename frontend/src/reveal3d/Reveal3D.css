@@ -6,7 +6,9 @@
   --r3d-ivory: #f4efe6;
   --r3d-gold: #f2b45a;
   --confetti: #f2b45a, #e88ba0, #8fb8ff, #f7f1e6, #ffcf7a;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden;
+  position: relative;
   background: var(--r3d-ink);
   color: var(--r3d-ivory);
   font-family: var(--font-ui);
@@ -115,7 +117,7 @@
 
 @keyframes r3d-flash {
   0% { opacity: 0; }
-  20% { opacity: 0.85; }
+  50% { opacity: 0.3; }
   100% { opacity: 0; }
 }
 
@@ -219,11 +221,161 @@
   50% { transform: scale(1.04); }
 }
 
-.r3d-scroll-hint {
+.r3d-blow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.r3d-listening {
+  flex-basis: 100%;
+  text-align: center;
   margin: 0;
   font-size: 14px;
   color: #e2dfea;
   text-shadow: 0 2px 12px rgb(0 0 0 / 0.6);
+}
+
+/* The birthday cake: a real photo at the bottom left, its edges fading into the backdrop */
+.r3d-cake {
+  position: absolute;
+  z-index: 3;
+  margin: 0;
+  left: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + clamp(28px, 7vmin, 72px) + 64px);
+  width: min(64vw, 380px);
+  aspect-ratio: 1.66;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 1.2s ease,
+    transform 1.4s cubic-bezier(0.16, 1, 0.3, 1),
+    left 1s cubic-bezier(0.65, 0, 0.35, 1),
+    bottom 1s cubic-bezier(0.65, 0, 0.35, 1),
+    width 1s cubic-bezier(0.65, 0, 0.35, 1),
+    translate 1s cubic-bezier(0.65, 0, 0.35, 1);
+  -webkit-mask-image: radial-gradient(ellipse 50% 50% at 50% 52%, #000 62%, transparent 100%);
+  mask-image: radial-gradient(ellipse 50% 50% at 50% 52%, #000 62%, transparent 100%);
+}
+
+.r3d-cake.shown {
+  opacity: 1;
+  transform: none;
+}
+
+/* Centre stage until the candles are out (then the rules above take it bottom left).
+   Centred with the separate `translate` property, so the entrance's `transform` and the
+   reduced-motion `transform: none` don't undo it. */
+.r3d-cake.centre {
+  left: 50%;
+  bottom: 50%;
+  width: min(86vw, 460px);
+  translate: -50% 50%;
+}
+
+/* Blown out: it stays put while the flames fade and the smoke rises, then glides slowly
+   aside (the 'cake_aside' stage lasts as long as this: 1 s + 1.6 s) */
+.r3d-cake.blown {
+  transition:
+    opacity 1.2s ease,
+    transform 1.4s cubic-bezier(0.16, 1, 0.3, 1),
+    left 1.6s cubic-bezier(0.45, 0, 0.25, 1) 1s,
+    bottom 1.6s cubic-bezier(0.45, 0, 0.25, 1) 1s,
+    width 1.6s cubic-bezier(0.45, 0, 0.25, 1) 1s,
+    translate 1.6s cubic-bezier(0.45, 0, 0.25, 1) 1s;
+}
+
+.r3d-cake img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: opacity 0.9s ease, filter 0.9s ease;
+}
+
+.r3d-cake-out {
+  opacity: 0;
+}
+
+.r3d-cake.blown .r3d-cake-out {
+  opacity: 1;
+}
+
+/* No painted copy (it failed): blowing out just dims the photo */
+.r3d-cake.plain.blown .r3d-cake-lit {
+  filter: brightness(0.55);
+}
+
+/* A soft glow on each of the photo's own flames, flickering on its own rhythm */
+.r3d-cake-flame {
+  position: absolute;
+  width: 5.5%;
+  aspect-ratio: 1 / 1.7;
+  transform: translate(-50%, -62%);
+}
+
+.r3d-cake-flame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 60%, rgb(255 214 130 / 0.55), rgb(255 150 60 / 0.18) 45%, transparent 70%);
+  mix-blend-mode: screen;
+  animation: r3d-flicker 1.1s ease-in-out infinite alternate;
+  transition: opacity 0.6s ease;
+}
+
+@keyframes r3d-flicker {
+  0% { opacity: 0.55; transform: scale(0.92, 0.95); }
+  35% { opacity: 1; transform: scale(1.06, 1.1); }
+  70% { opacity: 0.7; transform: scale(0.97, 1.02) translateX(3%); }
+  100% { opacity: 0.95; transform: scale(1.03, 1.08) translateX(-3%); }
+}
+
+.r3d-cake.blown .r3d-cake-flame::before {
+  opacity: 0;
+  animation: none;
+}
+
+/* When she blows: a thin wisp of smoke rises from every wick */
+.r3d-cake-smoke {
+  position: absolute;
+  left: 50%;
+  top: 70%;
+  width: 70%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(220 220 230 / 0.55), transparent 70%);
+  filter: blur(2px);
+  opacity: 0;
+  transform: translate(-50%, 0);
+}
+
+.r3d-cake.blown .r3d-cake-smoke {
+  animation: r3d-smoke 3.4s ease-out forwards;
+}
+
+@keyframes r3d-smoke {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+  15% { opacity: 0.75; }
+  100% { opacity: 0; transform: translate(-30%, -340%) scale(2.6, 3.4); }
+}
+
+/* Reduced motion: no flicker or smoke, the change is a plain cross-fade */
+.r3d-cake.still,
+.r3d-cake.still img {
+  transition-duration: 0.3s;
+  transition-delay: 0s;
+  transform: none;
+}
+
+.r3d-cake.still .r3d-cake-flame::before,
+.r3d-cake.still .r3d-cake-smoke {
+  animation: none;
 }
 
 /* Landscape (wider than 1.1 : 1, as LANDSCAPE in GiftScene.tsx): the words move to a left
@@ -234,12 +386,19 @@
   }
 
   .r3d-title {
-    top: 50%;
+    top: 32%;
     right: auto;
     left: 6vw;
     width: 30vw;
     transform: translateY(-50%);
     text-align: left;
+  }
+
+  /* Under the words, above the buttons */
+  .r3d-cake {
+    left: 4vw;
+    width: 34vw;
+    bottom: calc(env(safe-area-inset-bottom) + clamp(28px, 7vmin, 72px) + 60px);
   }
 
   .r3d-bottom {
@@ -250,14 +409,323 @@
   }
 }
 
-/* What she scrolls to after the box opens (until the next slices move it into the box) */
-.r3d-more {
-  max-width: 640px;
+/* Once open: a note from the sender with a thumbnail for everything inside */
+.r3d-contents {
+  position: absolute;
+  z-index: 6;
+  left: 12px;
+  right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 16px);
+  max-width: 560px;
+  max-height: 58dvh;
   margin: 0 auto;
-  padding: 32px 16px 96px;
+  overflow-y: auto;
+  padding: 18px 18px 20px;
+  border-radius: 24px;
+  border: 1px solid rgb(244 239 230 / 0.16);
+  background: rgb(14 15 26 / 0.62);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.45);
+  animation: r3d-contents-in 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes r3d-contents-in {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+
+.r3d-contents-kicker {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--r3d-gold);
+}
+
+.r3d-contents-title {
+  margin: 4px 0 2px;
+  font-family: var(--font-hand);
+  font-weight: 700;
+  font-size: clamp(24px, 4.4vmin, 38px);
+  line-height: 1.1;
+}
+
+.r3d-contents-hint {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #c9c4d6;
+}
+
+.r3d-thumbs {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.r3d-thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid rgb(244 239 230 / 0.2);
+  background: rgb(255 255 255 / 0.06);
+  color: var(--r3d-ivory);
+  font: inherit;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.r3d-thumb:hover,
+.r3d-thumb:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--r3d-gold);
+}
+
+.r3d-thumb img,
+.r3d-thumb video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.r3d-thumb-letter {
+  position: absolute;
+  inset: 8px 8px 24px;
+  padding: 6px;
+  border-radius: 4px;
+  background: #f7f1e6;
+  color: #2b2430;
+  font-family: var(--font-hand);
+  font-size: 14px;
+  line-height: 1.15;
+  text-align: left;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+}
+
+.r3d-thumb-icon {
+  font-size: 2rem;
+  margin-bottom: 14px;
+}
+
+.r3d-thumb-play {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  background: rgb(14 15 26 / 0.6);
+  font-size: 13px;
+}
+
+.r3d-thumb-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 3px 6px 5px;
+  font-size: 11px;
+  font-weight: 700;
+  background: linear-gradient(transparent, rgb(0 0 0 / 0.7));
+}
+
+.r3d-thanks {
+  width: 100%;
+  justify-content: center;
+  margin-top: 14px;
+}
+
+/* The viewer one thing opens in: closes with ×, Esc or a tap outside */
+.r3d-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: rgb(8 8 16 / 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: r3d-fade 0.25s ease-out;
+}
+
+/* display: grid would otherwise override the hidden attribute */
+.r3d-viewer[hidden] {
+  display: none;
+}
+
+.r3d-viewer-box {
+  width: min(680px, 100%);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  padding: 12px 16px 18px;
+  border-radius: 20px;
+  border: 1px solid rgb(244 239 230 / 0.16);
+  background: #15162a;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.55);
+}
+
+.r3d-viewer-head {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-weight: 700;
+}
+
+.r3d-viewer-head .r3d-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.r3d-viewer-photo,
+.r3d-viewer-video {
+  display: block;
+  width: 100%;
+  max-height: 70dvh;
+  object-fit: contain;
+  border-radius: 12px;
+  background: #000;
+}
+
+.r3d-viewer-audio {
+  width: 100%;
+}
+
+.r3d-viewer-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.r3d-pill:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* Portrait (phones): a compact note, so the open box and photocard stay in view: a smaller
+   title and one row of thumbnails she can swipe through */
+@media (max-aspect-ratio: 11/10) {
+  .r3d-contents {
+    max-height: 34dvh;
+    padding: 12px 14px 14px;
+    border-radius: 20px;
+  }
+
+  .r3d-contents-kicker {
+    font-size: 10px;
+  }
+
+  .r3d-contents-title {
+    font-size: clamp(19px, 5.2vw, 24px);
+    margin: 2px 0 8px;
+  }
+
+  .r3d-contents-hint {
+    display: none; /* the thumbnails are obviously tappable here */
+  }
+
+  .r3d-thumbs {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 64px;
+    gap: 8px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding-bottom: 2px;
+  }
+
+  .r3d-thumbs li {
+    scroll-snap-align: start;
+  }
+
+  .r3d-thumb-label {
+    font-size: 9px;
+  }
+
+  .r3d-thumb-letter {
+    inset: 5px 5px 16px;
+    font-size: 11px;
+    -webkit-line-clamp: 3;
+  }
+
+  .r3d-thumb-icon {
+    font-size: 1.5rem;
+  }
+
+  .r3d-thanks {
+    min-height: 40px;
+    margin-top: 10px;
+    font-size: 15px;
+  }
+
+  /* Once open, the photocard says "Happy birthday" and who it's from; on a narrow screen
+     the title would sit on top of it */
+  .r3d-at-explore .r3d-title {
+    opacity: 0;
+  }
+}
+
+/* Landscape: the note takes the left column under the words, where the cake was.
+   (After the rules above on purpose: same specificity, so the later rule wins.) */
+@media (min-aspect-ratio: 11/10) {
+  .r3d-contents {
+    left: 5vw;
+    right: auto;
+    width: 36vw;
+    max-height: 52dvh;
+    bottom: calc(env(safe-area-inset-bottom) + 5vh);
+    margin: 0;
+  }
+
+  .r3d-at-explore .r3d-title {
+    top: 22%;
+  }
+
+  /* The cake moment: cake, words and candle buttons share the centre */
+  .r3d-cake.centre {
+    left: 50%;
+    bottom: 42%;
+    width: min(46vw, 560px);
+  }
+
+  .r3d-at-cake_arrive .r3d-title,
+  .r3d-at-blow .r3d-title {
+    top: 13%;
+    left: 16px;
+    right: 16px;
+    width: auto;
+    text-align: center;
+  }
+
+  .r3d-at-cake_arrive .r3d-bottom,
+  .r3d-at-blow .r3d-bottom {
+    left: 16px;
+    right: 16px;
+    width: auto;
+    justify-content: center;
+  }
+}
+
+/* The thank-you card keeps its own light surface, so it needs the app's dark text back
+   (otherwise it inherits the scene's ivory and the words vanish on white) */
+.r3d .reply-panel {
+  color: var(--color-text);
 }
 
 .r3d-letter {

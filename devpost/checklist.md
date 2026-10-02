@@ -90,7 +90,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Edit the message on a delivered-but-unopened capsule and open its link to see the new text; cancel another and open its link; confirm an opened capsule has no Edit or Cancel.
   Commit: `Add edit and cancel until opened`
 
-- [ ] **9. You can record your voice or face in the browser**
+- [x] **9. You can record your voice or face in the browser**
   Becomes usable: In the Message step, record audio (≤120 s) or video (≤60 s) with play-back and redo; the recording joins the capsule's media like an upload. A blocked camera or microphone shows a clear note and offers upload or text.
   Why now: A personal recording is the heart of the capsule and of the demo; the hackathon submission is the single-sender product, so this comes before anything else. It reuses slice 7's upload and display path, so it's isolated browser work (MediaRecorder formats differ between Chrome and Safari).
   PRD ref: `prd.md > Creating a capsule` (Message: recorded, played back, redone), `prd.md > States and Boundaries` (recording not allowed)
@@ -100,7 +100,27 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: On your laptop (localhost, so the browser allows the camera), record a short video and a voice note, play them back, redo one, save, simulate midnight and watch them inside the opening. Recording from the phone needs https, which comes with hosting.
   Commit: `Add in-browser audio and video recording`
 
-- [ ] **10. You can write in your language, in a handwritten font that fits it**
+- [ ] **10. The recipient's link opens the 3D gift**
+  Becomes usable: Opening a capsule link plays the 3D opening from the parallel design work: a real cake photo at the centre whose candles she blows out (tap, or "Blow for real" with the microphone only if she chooses it; flames go out, smoke rises), then the cake glides to the bottom left as the gift box arrives; she unties the box, a soft burst with gentle confetti, the photocard, and a note "<Sender> wrapped up four little surprises for you" with thumbnails that each open in a closable viewer, plus its own "Say thank you".
+  Why now: Dinesh asked to integrate the reveal work (built in parallel with another tool) before the remaining slices, so languages build on the opening the recipient actually sees.
+  PRD ref: `prd.md > The opening moment`
+  Spec ref: `spec.md > Components > Web app: the 3D opening`
+  Build: `RecipientCapsule` renders `Reveal3D` and preloads its 3D chunk; review fixes in `reveal3d/`: opt-in microphone with a release that survives a late permission answer, reduced motion that doesn't reveal early (`sceneStage`), gentle confetti back at the burst, the cake waiting for the 3D view. Dinesh's revision (2026-10-02): the 3D cake replaced by a CC0 photo (`CakePhoto`, `cakeFlames.ts`), placed bottom left under the words; the auto-opening lightbox replaced by `CapsuleContents` (note, thumbnails, closable viewer, separate thank-you).
+  Verify (mechanical): `npm run build` passes; in the browser pane, the real link walks cake → blow (tap) → pull → explore; the blown-out photo has no flames; the note lists every item with thumbnails (letter, video frame, voice note, gift); a viewer opens and closes by ×, Esc and a tap outside, arrows step through, focus returns to the thumbnail; "Blow for real" asks for the microphone only on tap; a thank-you sent, closed and reopened still shows as sent and appears in the sender's list.
+  Learner check: Open a capsule link on your phone and laptop: blow out the candles (try "Blow for real" once), pull the ribbon, open each thumbnail, send a thank-you, and say how it feels and how it looks.
+  Commit: `Open capsule links with the 3D gift`
+
+- [ ] **11. Voice notes play on a tape recorder, videos on a projector**
+  Becomes usable: In the opened capsule's viewer, a voice note plays inside an animated cassette recorder (reels turning while it plays, play/pause, progress), and a video plays inside a film-projector scene (a beam onto a screen, the projector's reels turning). Photos and the letter keep the plain viewer.
+  Why now: Dinesh asked for it alongside the slice 10 revision ("audio to be played with the recorder, video with the projector animation"); it builds on the viewer from slice 10.
+  PRD ref: `prd.md > The opening moment` (stage 7)
+  Spec ref: `spec.md > Components > Web app: the 3D opening`
+  Build: `TapePlayer` and `ProjectorPlayer` components (CSS/SVG animation driven by the media element's play/pause/timeupdate events; reduced motion keeps them still), used by the viewer for audio and video.
+  Verify (mechanical): `npm run build` passes; in the browser pane, a recorded voice note and video play inside their players, the animation runs only while playing and stops on pause/end, the controls work by keyboard, and reduced motion shows no movement.
+  Learner check: Open a capsule with a voice note and a video on your phone and say whether the recorder and projector feel right.
+  Commit: `Play voice notes on a tape recorder and videos on a projector`
+
+- [ ] **12. You can write in your language, in a handwritten font that fits it**
   Becomes usable: The Message step has a language picker (English, Korean, Chinese, Japanese, Spanish, Tamil, Hindi, French, Italian, German). It sets a stylized handwritten font for that script and the `lang` attribute, in the editor, the preview and the opening. The email's subject line and "Open your capsule" button are in the capsule's language.
   Why now: It shapes what the recipient reads and hears in the opening, so it's part of the single-sender core. Fonts and copy are contained changes.
   PRD ref: `prd.md > Message languages`
@@ -110,7 +130,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Write a short message in two languages you can read, check the fonts in Preview and in the opening, and read the email's subject in the console output.
   Commit: `Add message languages with script-specific handwritten fonts`
 
-- [ ] **11. Your regular people are saved and easy to reuse**
+- [ ] **13. Your regular people are saved and easy to reuse**
   Becomes usable: Every capsule you send saves (or updates) that person: name, email, birthday and city. A People page lists them by next birthday ("Aiko · in 12 days · 00:00 in Tokyo") with Make a capsule, Edit and Remove; the Who step offers "Someone you've sent to before" to fill everything in one tap.
   Why now: A convenience for one sender (not multi-user), so it comes after the capsule's content is complete. It needs capsules and the city/time-zone data from earlier slices.
   PRD ref: `prd.md > Regular recipients`
@@ -128,7 +148,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
 
 ## Final Review
 
-Scope changes Dinesh raised after slice 5 were agreed on 2026-10-02 and are now slices 10–11 (message languages, saved people). Received capsules (multi-user) and UI translation of the app's own text are deferred past the hackathon.
+Scope changes Dinesh raised after slice 5 were agreed on 2026-10-02 and are now slices 12–13 (message languages, saved people). Received capsules (multi-user) and UI translation of the app's own text are deferred past the hackathon.
 
 Folded into slice 6 (receiver side): less text on screen, a designed recipient experience, the thank-you as its own container.
 
@@ -158,6 +178,14 @@ Reflection: [offered/answered/declined/already covered — personal answer belon
 Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
 
 ## Revisions
+
+- Slice 10, third look (2026-10-02): the birthday tune loops while the capsule is open and ducks under every other sound (including her voice notes and videos), then swells back. An https dev server for phone testing was added and then taken out again at Dinesh's request ("that will be handled when link is hosted"): phone camera/microphone checks wait for the hosted https app.
+
+- Slice 10, Dinesh's second look (2026-10-02): smoother blow-out (flames fade and smoke rises in place for 1 s, then a slow 1.6 s glide; `cake_aside` 1 s → 2.6 s); applause when the candles go out and a synthesized "Happy Birthday" piano tune; a compact contents note on phones (a quarter of the screen instead of over 40%, one swipeable row of thumbnails, and the title hidden once open because it sat on the photocard). "Blow for real" was missing on his phone because phones only allow the microphone on https (the dev page over Wi-Fi is http); it appears on localhost and will on the hosted https app.
+
+- Slice 10 revised after Dinesh's look (2026-10-02): a realistic cake photo instead of the 3D cake ("use a good image from the internet"), placed bottom left under the words; the lightbox that opened by itself and couldn't be closed replaced by a "<Sender> wrapped up … for you" note with thumbnails and a closable viewer. He asked for two photos in a dropdown; only the CC0 dark-background one (Annie Spratt) could have its flames painted out cleanly, so the second (roses on cream frosting) was dropped. The tape-recorder and projector players became slice 11; languages 12, people 13.
+
+- Inserted slice 10 (the 3D opening on the recipient page); languages became 11 and people 12 — Dinesh: "do the reveal changes now". His calls on the parallel design work: the candle's microphone is opt-in ("Blow for real") rather than asked for automatically; keep the softer burst (no shake) and add the confetti back. He notes the 3D look is still far from what he has in mind and is for the design session; this slice only makes it the real opening and fixes what review found.
 
 - Recorder: added the `fix-webm-duration` npm package (MIT, no dependencies) instead of hand-writing a WebM header patcher, and record without a timeslice so Chrome writes the length itself. The browser pane blocks real cameras, so its recording checks used a synthetic camera and microphone (canvas + oscillator) in place of `getUserMedia`; the blocked path was checked against the pane's real refusal.
 
