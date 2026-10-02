@@ -111,6 +111,27 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
   - [ ] The sender sees it on that capsule in their history.
   - [ ] After sending, the capsule page shows "Your thank-you was sent."
 
+### Sent and received (multi-user)
+- Every signed-in person can both send and receive. This app is not one-to-one: many people send capsules to many people. (Added 2026-10-02.)
+  - [ ] History has **Sent** and **Received** tabs.
+  - [ ] Received lists capsules sent to my Google-verified email that have been delivered. Scheduled capsules stay a surprise; cancelled ones don't appear.
+  - [ ] Opening a received capsule plays the same staged opening, with the thank-you card; it counts as opening (once).
+  - [ ] The private email link still works for recipients who never sign in.
+
+### Regular recipients (People)
+- As a sender, the people I send to are remembered so the next birthday is quick. (Added 2026-10-02.)
+  - [ ] Each capsule I send saves or updates that person (name, email, birthday, city), matched by email.
+  - [ ] A People page lists them by next birthday with a countdown in their time zone, e.g. "Aiko · in 12 days · 00:00 in Tokyo".
+  - [ ] From a person I can make a new capsule with their details filled in, edit them, or remove them (their past capsules stay).
+  - [ ] The Who step offers "Someone you've sent to before".
+
+### Message languages
+- As a sender, I write in my own language and it looks handwritten in a font made for that script. (Added 2026-10-02.)
+  - [ ] Languages: English, Korean, Chinese, Japanese, Spanish, Tamil, Hindi, French, Italian, German.
+  - [ ] The chosen language sets the message font in the editor, the preview and the opening.
+  - [ ] The email's subject line and "Open your capsule" button are in the capsule's language.
+  - [ ] Typing uses the device's own keyboard; the app's own buttons and labels stay in English for now.
+
 ## States and Boundaries
 - **First use (sender):** the history is empty and shows an inviting "Make your first capsule" prompt.
 - **Recording not allowed:** if the browser blocks the camera or microphone, the sender sees a clear note and can still upload a file or write text.
@@ -122,7 +143,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - **What persists:** senders, capsules, media, statuses and thank-you replies.
 
 ## Product Decisions
-- **Recipients never need an account.** "A person who doesn't know such a thing exists cannot receive anything." They get a private link.
+- **Recipients never need an account.** "A person who doesn't know such a thing exists cannot receive anything." They get a private link. If they do sign in, the capsules sent to them also appear under Received.
 - **Sign in with Google only.** Senders are authenticated by a reliable entity, which makes the sender's identity trustworthy to the recipient.
 - **City picker, not a time-zone list.** It's friendlier for the sender.
 - **Final once opened, not once sent.** The sender can edit or cancel until the recipient opens it.
@@ -149,10 +170,11 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 ## Deferred From the POC
 - **Audio and video thank-you replies:** a second recorder on the recipient's side; text proves the loop.
 - **Other sign-in providers:** Google alone proves trusted identity.
-- **Multiple recipients per capsule, or reusing a capsule:** one person at a time proves the kernel.
+- **Multiple recipients per capsule, or reusing a capsule:** one person at a time proves the kernel. (Reusing a *person* is now in scope, see People.)
+- **Translating the app's own buttons and labels:** the message, email subject and button follow the capsule's language; full UI translation comes later.
 
 ## Non-Goals
-- **Recipient accounts:** against the core principle.
+- **Required recipient accounts:** against the core principle. (Signing in to see Received is optional.)
 - **Buying gifts or taking payments:** no time in a hackathon build, and risky to handle.
 
 ## Open Questions

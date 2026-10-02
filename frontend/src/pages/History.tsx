@@ -90,7 +90,10 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
             <li key={c.id} className="capsule-row">
               <div className="capsule-row-main">
                 <p className="capsule-to">
-                  <strong>{c.recipient_name}</strong> <span className="muted">· {c.city_label}</span>
+                  <Link to={`/capsules/${c.id}`} className="capsule-link">
+                    <strong>{c.recipient_name}</strong>
+                  </Link>{' '}
+                  <span className="muted">· {c.city_label}</span>
                 </p>
                 <p className={c.delivery_trouble ? 'capsule-when error' : 'capsule-when'}>{deliveryLine(c)}</p>
                 {c.reply && (

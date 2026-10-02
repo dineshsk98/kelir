@@ -16,6 +16,8 @@ export type PickedMedia = {
   status: 'uploading' | 'ready' | 'error'
   error?: string
   uploaded?: MediaItem
+  /** Already in the saved capsule (editing): removing it only takes effect on save */
+  existing?: boolean
 }
 
 /** In-flight uploads by item key, outside React so they outlive this component. */
@@ -81,8 +83,11 @@ export function MediaPicker({
 
   const remove = (item: PickedMedia) => {
     runningUploads.get(item.key)?.abort()
-    if (item.uploaded) api.discardUpload(item.uploaded.id).catch(() => {}) // leftovers are also cleaned up after a day
-    URL.revokeObjectURL(item.localUrl)
+    if (!item.existing) {
+      // A new upload nobody needs: discard it now (leftovers are also cleaned up after a day)
+      if (item.uploaded) api.discardUpload(item.uploaded.id).catch(() => {})
+      URL.revokeObjectURL(item.localUrl)
+    }
     onChange((list) => list.filter((m) => m.key !== item.key))
   }
 

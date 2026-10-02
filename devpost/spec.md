@@ -168,6 +168,26 @@ Implements `prd.md > The opening moment` and `prd.md > Thank-you reply`.
 - `POST /v1/c/{secret}/reply {preset|text}`: one reply per capsule; text up to 500 characters.
 - The page sends `noindex`, and API responses aren't cached.
 
+### Received API (`routes/received.py`)
+Implements `prd.md > Sent and received (multi-user)`.
+- `GET /v1/received`: capsules whose `lower(recipient_email)` equals the signed-in sender's Google-verified email, status `delivered` or `opened`, newest delivery first.
+- `GET /v1/received/{id}`: the same content as the link (`RecipientCapsuleOut`); marks it opened exactly once.
+- `POST /v1/received/{id}/reply` and `GET /v1/received/{id}/media/{media_id}`: as the link's, authorized by the email match instead of the secret.
+- Anything else (another person's capsule, scheduled, cancelled) answers 404, so nothing can be probed.
+
+### People API (`routes/people.py`)
+Implements `prd.md > Regular recipients (People)`.
+- Creating a capsule upserts the person by `(sender_id, lower(email))` and links `capsules.person_id`.
+- `GET /v1/people`: the sender's people with `next_delivery` from the midnight engine, soonest first.
+- `PATCH /v1/people/{id}` (name, birthday, city) and `DELETE /v1/people/{id}` (past capsules keep their own copies of the details).
+
+### Message languages and fonts (`frontend/src/languages.ts`, `backend/app/delivery/email_copy.py`)
+Implements `prd.md > Message languages`.
+- `capsules.message_lang`: one of `en ko zh ja es ta hi fr it de` (default `en`).
+- Handwritten fonts, all SIL Open Font License via Fontsource, bundled and credited in `ATTRIBUTION.md`: Caveat (en, es, fr, it, de), Nanum Pen Script (ko), Ma Shan Zheng (zh), Yomogi (ja), Kavivanar (ta), Kalam (hi). Fontsource splits large fonts by Unicode range, so browsers download only the characters used.
+- The message element gets `lang` (correct line breaking, screen-reader pronunciation) and the font for that language, in the editor, Preview and the opening.
+- The email subject and "Open your capsule" button use fixed translated copy for the capsule's language; the sender's name stays as written.
+
 ### Demo controls (`routes/demo.py`)
 Implements `prd.md > Delivery at the recipient's midnight` (demo).
 - Only when `DEMO_MODE=true`.
@@ -279,6 +299,10 @@ PostgreSQL, created by Alembic migrations.
 - `kind` (`image`|`audio`|`video`), `mime`, `size_bytes`, `path`, `created_at`
 - Unique `(capsule_id, position)`; at most 6 per capsule; 150 MB total per capsule.
 - Limits: photos (JPEG, PNG, WebP, GIF; HEIC refused because only Safari can display it) ≤15 MB; audio (webm, ogg, mp3, m4a, wav) and video (webm, mp4, mov) ≤50 MB.
+
+**`people`** (a sender's regular recipients)
+- `id`, `sender_id`, `name`, `email` (unique per sender, case-insensitive), `birth_month`, `birth_day`, `feb29_pref`, `city_label`, `tz`, `created_at`, `updated_at`
+- `capsules.person_id` (nullable, set null if the person is removed); `capsules.message_lang`
 
 **`replies`**
 - `id`, `capsule_id` (unique, so one reply per capsule), `preset_key` (nullable), `text` (nullable), `created_at`

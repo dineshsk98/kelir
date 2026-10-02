@@ -1,13 +1,23 @@
 import { cloneElement, useEffect, useId, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { api, ApiError, type CapsuleCreate, type Feb29Pref, type GiftKind, type Me, type SendMode } from '../api'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import {
+  api,
+  ApiError,
+  mediaUrl,
+  type Capsule,
+  type CapsuleCreate,
+  type Feb29Pref,
+  type GiftKind,
+  type Me,
+  type SendMode,
+} from '../api'
 import type { City } from '../cities'
 import { CityPicker } from '../components/CityPicker'
 import { MediaGallery } from '../components/MediaGallery'
 import { MediaPicker, type PickedMedia } from '../components/MediaPicker'
 import { StepNav } from '../components/StepNav'
 import { isValidEmail, suggestEmail } from '../email'
-import { daysInMonth, deliveryMoment, monthNames } from '../format'
+import { cityName, daysInMonth, deliveryMoment, monthNames } from '../format'
 import './CapsuleEditor.css'
 
 const STEPS = [
@@ -45,6 +55,38 @@ const EMPTY: Draft = {
   gift_value: '',
   gift_note: '',
   send_mode: 'birthday',
+}
+
+/** The editor's form state for an existing capsule (editing) */
+function draftFrom(c: Capsule): Draft {
+  return {
+    recipient_name: c.recipient_name,
+    recipient_email: c.recipient_email,
+    birth_month: c.birth_month,
+    birth_day: c.birth_day,
+    feb29_pref: c.feb29_pref,
+    city: { name: cityName(c.city_label), region: '', country: '', tz: c.tz, label: c.city_label },
+    message_text: c.message_text ?? '',
+    gift_kind: c.gift_kind,
+    gift_value: c.gift_value ?? '',
+    gift_note: c.gift_note ?? '',
+    send_mode: c.send_mode,
+  }
+}
+
+const MEDIA_LABEL = { image: 'Photo', audio: 'Audio', video: 'Video' } as const
+
+function mediaFrom(c: Capsule): PickedMedia[] {
+  return c.media.map((m, i) => ({
+    key: m.id,
+    kind: m.kind,
+    name: `${MEDIA_LABEL[m.kind]} ${i + 1}`,
+    localUrl: mediaUrl.own(m.id),
+    progress: 1,
+    status: 'ready',
+    uploaded: m,
+    existing: true,
+  }))
 }
 
 type Errors = Partial<Record<keyof Draft | 'media', string>>
@@ -92,12 +134,30 @@ function toRequest(d: Draft, media: PickedMedia[]): CapsuleCreate {
   }
 }
 
-export function CapsuleEditor({ me }: { me: Me }) {
+/** /capsules/:id/edit: load the capsule, then edit it (opened or cancelled ones go back to detail). */
+export function EditCapsule({ me }: { me: Me }) {
+  const { id = '' } = useParams()
+  const [capsule, setCapsule] = useState<Capsule | null | 'missing'>(null)
+  useEffect(() => {
+    api.getCapsule(id).then(setCapsule).catch(() => setCapsule('missing'))
+  }, [id])
+  if (capsule === 'missing') return <Navigate to="/history" replace />
+  if (!capsule) return <main className="page" aria-busy="true" />
+  if (capsule.status !== 'scheduled' && capsule.status !== 'delivered')
+    return <Navigate to={`/capsules/${capsule.id}`} replace />
+  return <CapsuleEditor me={me} initial={capsule} />
+}
+
+/** New capsule, or editing `initial`. Once delivered, who and when are locked (the email has
+ *  gone out); the message, media and gift can still change until it's opened. */
+export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
   const navigate = useNavigate()
-  const [draft, setDraft] = useState<Draft>(EMPTY)
-  const [media, setMedia] = useState<PickedMedia[]>([])
-  const [step, setStep] = useState<StepId>('who')
-  const [reached, setReached] = useState(0)
+  const delivered = initial?.status === 'delivered'
+  const locked: StepId[] = delivered ? ['who', 'when'] : []
+  const [draft, setDraft] = useState<Draft>(() => (initial ? draftFrom(initial) : EMPTY))
+  const [media, setMedia] = useState<PickedMedia[]>(() => (initial ? mediaFrom(initial) : []))
+  const [step, setStep] = useState<StepId>(delivered ? 'message' : 'who')
+  const [reached, setReached] = useState(initial ? STEPS.length - 1 : 0)
   const [errors, setErrors] = useState<Errors>({})
   const [deliverAt, setDeliverAt] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -109,6 +169,12 @@ export function CapsuleEditor({ me }: { me: Me }) {
   }
 
   const stepIndex = STEPS.findIndex((s) => s.id === step)
+  /** The next (or previous) step that isn't locked */
+  const neighbour = (direction: 1 | -1): number => {
+    let i = stepIndex + direction
+    while (STEPS[i] && locked.includes(STEPS[i].id)) i += direction
+    return i
+  }
 
   const [checkingEmail, setCheckingEmail] = useState(false)
   const [emailTouched, setEmailTouched] = useState(false)
@@ -129,7 +195,7 @@ export function CapsuleEditor({ me }: { me: Me }) {
         return
       }
     }
-    const i = stepIndex + 1
+    const i = neighbour(1)
     setStep(STEPS[i].id)
     setReached((r) => Math.max(r, i))
   }
@@ -159,17 +225,28 @@ export function CapsuleEditor({ me }: { me: Me }) {
     setSaving(true)
     setSaveError(null)
     try {
-      await api.createCapsule(toRequest(draft, media))
-      navigate('/history')
+      if (initial) {
+        await api.updateCapsule(initial.id, toRequest(draft, media))
+        navigate(`/capsules/${initial.id}`)
+      } else {
+        await api.createCapsule(toRequest(draft, media))
+        navigate('/history')
+      }
     } catch (e) {
       setSaveError(
-        e instanceof ApiError && e.messages.length
-          ? e.messages.join('. ')
-          : "We couldn't save your capsule. Please try again.",
+        e instanceof ApiError && e.code === 'CAPSULE_FINAL'
+          ? 'They have already opened it, so it can no longer change.'
+          : e instanceof ApiError && e.code === 'CAPSULE_CANCELLED'
+            ? 'This capsule was cancelled.'
+            : e instanceof ApiError && e.messages.length
+              ? e.messages.join('. ')
+              : "We couldn't save your capsule. Please try again.",
       )
       setSaving(false)
     }
   }
+
+  const leaveTo = initial ? `/capsules/${initial.id}` : '/history'
 
   const firstName = draft.recipient_name.trim().split(' ')[0] || 'them'
 
@@ -179,13 +256,16 @@ export function CapsuleEditor({ me }: { me: Me }) {
         <Link to="/history" className="brand">
           Birthday Capsule
         </Link>
-        <Link to="/history" className="btn btn-quiet">
-          Cancel
+        <Link to={leaveTo} className="btn btn-quiet">
+          {initial ? 'Discard changes' : 'Cancel'}
         </Link>
       </header>
 
-      <h1>New capsule</h1>
-      <StepNav steps={STEPS} current={step} reached={reached} onGo={setStep} />
+      <h1>{initial ? 'Edit capsule' : 'New capsule'}</h1>
+      {delivered && (
+        <p className="muted">Already delivered: you can still change the message, media and gift until they open it.</p>
+      )}
+      <StepNav steps={STEPS} current={step} reached={reached} locked={locked} onGo={setStep} />
 
       <form
         className="card editor-card"
@@ -426,8 +506,8 @@ export function CapsuleEditor({ me }: { me: Me }) {
         )}
 
         <div className="editor-actions">
-          {stepIndex > 0 ? (
-            <button type="button" className="btn btn-quiet" onClick={() => setStep(STEPS[stepIndex - 1].id)}>
+          {neighbour(-1) >= 0 ? (
+            <button type="button" className="btn btn-quiet" onClick={() => setStep(STEPS[neighbour(-1)].id)}>
               Back
             </button>
           ) : (
@@ -437,9 +517,11 @@ export function CapsuleEditor({ me }: { me: Me }) {
             {step === 'preview'
               ? saving
                 ? 'Saving…'
-                : draft.send_mode === 'now'
-                  ? 'Send it now'
-                  : 'Schedule it'
+                : initial
+                  ? 'Save changes'
+                  : draft.send_mode === 'now'
+                    ? 'Send it now'
+                    : 'Schedule it'
               : checkingEmail
                 ? 'Checking…'
                 : 'Next'}

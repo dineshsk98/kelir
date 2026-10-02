@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { api, ApiError, type Me } from './api'
-import { CapsuleEditor } from './pages/CapsuleEditor'
+import { CapsuleDetail } from './pages/CapsuleDetail'
+import { CapsuleEditor, EditCapsule } from './pages/CapsuleEditor'
 import { History } from './pages/History'
 import { NotFound } from './pages/NotFound'
 import { RecipientCapsule } from './pages/RecipientCapsule'
@@ -63,6 +64,8 @@ function SenderApp() {
         element={me ? <History me={me} onSignOut={signOut} /> : <Navigate to="/" replace />}
       />
       <Route path="/capsules/new" element={me ? <CapsuleEditor me={me} /> : <Navigate to="/" replace />} />
+      <Route path="/capsules/:id" element={me ? <CapsuleDetail /> : <Navigate to="/" replace />} />
+      <Route path="/capsules/:id/edit" element={me ? <EditCapsule me={me} /> : <Navigate to="/" replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   )

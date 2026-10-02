@@ -80,25 +80,55 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Make a capsule with two photos and a short video, preview it, simulate midnight and watch the opening on your phone.
   Commit: `Add multiple photos, audio and video to a capsule`
 
-- [ ] **8. You can record your voice or face in the browser**
-  Becomes usable: In the Message step, record audio (≤120 s) or video (≤60 s) with play-back and redo; the recording joins the capsule's media like an upload. A blocked camera or microphone shows a clear note and offers upload or text.
-  Why now: Recording reuses slice 7's upload and display path, so it's isolated browser work (MediaRecorder formats differ between Chrome and Safari).
-  PRD ref: `prd.md > Creating a capsule` (Message: recorded, played back, redone), `prd.md > States and Boundaries` (recording not allowed)
-  Spec ref: `spec.md > Components > Web app: Recorder and CityPicker` (Recorder)
-  Build: `Recorder` component (MediaRecorder, webm on Chrome / mp4 on Safari, length caps, play-back, redo, permission-denied state); write the real duration into recorded WebM before upload (browsers leave it out, so players show an unknown length); recordings uploaded through `POST /v1/uploads`.
-  Verify (mechanical): `npm run build` passes; `pytest` passes, including a webm and an mp4 recording accepted by upload type checks; in the browser pane, a fake-device recording is captured, played back, redone, attached, and plays in the opening; a denied permission shows the note.
-  Learner check: Record a short video, play it back, redo it once, save, simulate midnight and watch it inside the opening on your phone.
-  Commit: `Add in-browser audio and video recording`
-
-- [ ] **9. You can edit or cancel a capsule until it's opened**
+- [ ] **8. You can edit or cancel a capsule until it's opened**
   Becomes usable: `CapsuleDetail` shows the preview, status, local delivery time and reply, with Edit and Cancel while Scheduled or Delivered. Edits to a delivered but unopened capsule are what the recipient sees. Once Opened, both disappear and the API refuses (409). A cancelled link shows "This capsule is no longer available." A failed send shows "Delivery trouble".
-  Why now: This depends on every earlier piece (media replacement, delivery, opening). It's the last behavior in the PRD.
+  Why now: This depends on every earlier piece (media, delivery, opening), and received capsules (slice 9) must respect edits and cancellations.
   PRD ref: `prd.md > Editing and cancelling (until opened)`, `prd.md > States and Boundaries` (cancelled capsule)
   Spec ref: `spec.md > Components > Capsules API` (PATCH, cancel), `spec.md > Components > Recipient API` (cancelled → 410), `spec.md > Important Failure Modes`
   Build: `PATCH /v1/capsules/{id}` (recompute `deliver_at` while scheduled; add/remove media items; `409 CAPSULE_FINAL` once opened), `POST /v1/capsules/{id}/cancel`, 410 handling on the recipient page. `CapsuleDetail` page; editor reused for editing; "Delivery trouble" badge.
   Verify (mechanical): `pytest` passes, including edit while scheduled recomputes, edit after delivery changes what the link returns, edit or cancel after open gives 409, and a cancelled link gives 410. `npm run build` passes.
   Learner check: Edit the message on a delivered-but-unopened capsule and open its link to see the new text; cancel another and open its link; confirm an opened capsule has no Edit or Cancel.
   Commit: `Add edit and cancel until opened`
+
+- [ ] **9. You see capsules sent to you, not only the ones you sent**
+  Becomes usable: History has Sent | Received tabs. Signed in with Google, you see every capsule sent to your verified email that has been delivered (scheduled ones stay a surprise; cancelled ones are hidden), and can open it there with the same staged opening and thank-you card. The email link still works without signing in.
+  Why now: Dinesh: multi-user, sent and received, is core ("this app is not 1-1"). It reuses the opening, media and reply paths from slices 4–7, and edit/cancel (slice 8) defines what a received capsule may show.
+  PRD ref: `prd.md > Sent and received`, `prd.md > The opening moment`, `prd.md > Thank-you reply`
+  Spec ref: `spec.md > Components > Received API`, `spec.md > Components > Web app: sender screens`
+  Build: `GET /v1/received` (delivered/opened capsules whose `recipient_email` matches the signed-in Google email), `GET /v1/received/{id}` (marks opened once), `POST /v1/received/{id}/reply`, `GET /v1/received/{id}/media/{media_id}`; index on `lower(recipient_email)`. History tabs; a received-capsule page reusing `Reveal` and `ReplyPanel`.
+  Verify (mechanical): `pytest` passes, including only your own email's capsules listed, scheduled and cancelled hidden, someone else can't open or reply to yours, opening from Received marks it opened once, and reply via Received or link gives one reply. `npm run build` passes; in the browser pane, two test senders send each other capsules and each sees the other's under Received.
+  Learner check: With two Google accounts, send a capsule from one to the other, simulate midnight, sign in as the recipient and open it from Received.
+  Commit: `Add received capsules for signed-in recipients`
+
+- [ ] **10. Your regular people are saved and easy to reuse**
+  Becomes usable: Every capsule you send saves (or updates) that person: name, email, birthday and city. A People page lists them by next birthday ("Aiko · in 12 days · 00:00 in Tokyo") with Make a capsule, Edit and Remove; the Who step offers "Someone you've sent to before" to fill everything in one tap.
+  Why now: It needs capsules and the city/time-zone data from earlier slices; it's independent of languages and recording.
+  PRD ref: `prd.md > Regular recipients`
+  Spec ref: `spec.md > Data Model` (`people`), `spec.md > Components > People API`
+  Build: `people` migration (per sender, unique email), upsert on capsule create, `capsules.person_id`, `GET/PATCH/DELETE /v1/people` with next-birthday computed by the midnight engine; People page; Who-step picker.
+  Verify (mechanical): `pytest` passes, including upsert by email (case-insensitive), next-birthday order across time zones and Feb 29, owner-only access, and removing a person keeps their capsules. `npm run build` passes; in the browser pane, a second capsule for the same person is made from the People page with the form prefilled.
+  Learner check: Send to two people, open People, check the order and countdowns, then make a new capsule for one of them from there.
+  Commit: `Add saved people with next-birthday list`
+
+- [ ] **11. You can write in your language, in a handwritten font that fits it**
+  Becomes usable: The Message step has a language picker (English, Korean, Chinese, Japanese, Spanish, Tamil, Hindi, French, Italian, German). It sets a stylized handwritten font for that script and the `lang` attribute, in the editor, the preview and the opening. The email's subject line and "Open your capsule" button are in the capsule's language.
+  Why now: Independent of the others; fonts and copy are contained changes.
+  PRD ref: `prd.md > Message languages`
+  Spec ref: `spec.md > Components > Message languages and fonts`
+  Build: `message_lang` on capsules (migration), allowed list in the API; fonts via Fontsource (Caveat; Nanum Pen Script; Ma Shan Zheng; Yomogi; Kavivanar; Kalam), all SIL OFL, credited in `ATTRIBUTION.md`; translated email subject and button for the 10 languages.
+  Verify (mechanical): `pytest` passes, including each language's email subject and button, unknown language rejected, and non-Latin text stored and returned unchanged. `npm run build` passes; in the browser pane, a Korean and a Tamil capsule render in their fonts (font files actually loaded) in Preview and the opening.
+  Learner check: Write a short message in two languages you can read, check the fonts in Preview and in the opening, and read the email's subject in the console output.
+  Commit: `Add message languages with script-specific handwritten fonts`
+
+- [ ] **12. You can record your voice or face in the browser**
+  Becomes usable: In the Message step, record audio (≤120 s) or video (≤60 s) with play-back and redo; the recording joins the capsule's media like an upload. A blocked camera or microphone shows a clear note and offers upload or text.
+  Why now: Recording reuses slice 7's upload and display path, so it's isolated browser work (MediaRecorder formats differ between Chrome and Safari). Moved after 9–11 because multi-user is core.
+  PRD ref: `prd.md > Creating a capsule` (Message: recorded, played back, redone), `prd.md > States and Boundaries` (recording not allowed)
+  Spec ref: `spec.md > Components > Web app: Recorder and CityPicker` (Recorder)
+  Build: `Recorder` component (MediaRecorder, webm on Chrome / mp4 on Safari, length caps, play-back, redo, permission-denied state); write the real duration into recorded WebM before upload (browsers leave it out, so players show an unknown length); recordings uploaded through `POST /v1/uploads`.
+  Verify (mechanical): `npm run build` passes; `pytest` passes, including a webm and an mp4 recording accepted by upload type checks; in the browser pane, a fake-device recording is captured, played back, redone, attached, and plays in the opening; a denied permission shows the note.
+  Learner check: Record a short video, play it back, redo it once, save, simulate midnight and watch it inside the opening on your phone.
+  Commit: `Add in-browser audio and video recording`
 
 ## Hands-on Checkpoints
 
@@ -108,10 +138,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
 
 ## Final Review
 
-Scope changes Dinesh raised after slice 5 (2026-09-30), awaiting his decision; not in the plan until agreed:
-- "Capsules received": a signed-in sender also sees capsules sent to their own email.
-- "Regular recipients": saved people to reuse (the PRD deferred reuse).
-- Language options for the text (and the email).
+Scope changes Dinesh raised after slice 5 were agreed on 2026-10-02 and are now slices 9–11 (received capsules, saved people, message languages). UI translation of the app's own text stays deferred.
 
 Folded into slice 6 (receiver side): less text on screen, a designed recipient experience, the thank-you as its own container.
 
@@ -145,8 +172,9 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Added `GET /v1/config` (returns the non-secret Google client ID) — the web app needs the client ID to render the Google button, and serving it from the API keeps `.env` the single place it's set instead of duplicating it as a Vite variable.
 - Added `POST /v1/delivery-preview` — the When step must show the exact delivery moment before saving, and only the server's midnight engine can compute it correctly (DST gaps, Feb 29); duplicating that in the browser would risk the two disagreeing.
 - City list is ~4,200 cities (not 1–2k) — pop. ≥150k plus capitals left gaps: whole time zones such as America/St_Johns (UTC−3:30) had no city. It now also keeps the largest city of every zone; 227 KB (≈70 KB gzipped). Zones with no town of 15k+ people (e.g. Australia/Eucla) remain absent; the picker suggests choosing a nearby city in the same zone. GeoNames credit is in `ATTRIBUTION.md` until the README exists.
+- Added slices 9 (received capsules: multi-user is core), 10 (saved people) and 11 (message languages with script-specific fonts; email subject and button in the capsule's language); recording moved to 12; edit/cancel became 8 — Dinesh, 2026-10-02: "Multi user, multi capsules sent and received from different users is a core functionality. This app is not 1-1."
 - Sessions: a browser-session cookie (cleared on close) plus a 12-hour limit from sign-in, instead of a 30-day cookie — Dinesh: "log out on close", then "set session cookie to 12 hours" (2026-10-02).
-- Multiple media per capsule (up to 6 photos/audio/video items, ordered) with a `capsule_media` table instead of single `media_*` columns; old slice 7 split into 7 (upload + display) and 8 (browser recording); edit/cancel became slice 9 — Dinesh chose multiple pieces of media per capsule after the slice 6 check.
+- Multiple media per capsule (up to 6 photos/audio/video items, ordered) with a `capsule_media` table instead of single `media_*` columns; old slice 7 split into 7 (upload + display) and 8 (browser recording); edit/cancel became slice 9 (renumbered on 2026-10-02: edit/cancel 8, recording 12) — Dinesh chose multiple pieces of media per capsule after the slice 6 check.
 - Look-and-feel pick moved out of slice 6 to the separate design session (with photocard-style options) — Dinesh's call after trying the opening; both token sets stay in `tokens.css`, `APP_THEME` stays `sunrise` until then.
 - Build-up lengthened from 1.4 s to 2.4 s and intensified (dimming, energy rings, swelling rattle, accelerating heartbeat sound) — Dinesh: "build up is not enough".
 - Photo added back as a message media kind (slice 7, PRD, spec, scope) — Dinesh asked for image as well as audio and video after the slice 6 check; the original scope had it, the PRD had dropped it.

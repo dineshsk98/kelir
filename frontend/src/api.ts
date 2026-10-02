@@ -129,6 +129,10 @@ export const api = {
     request<{ valid_format: boolean; accepts_mail: boolean | null }>('/v1/email-check', post({ email })),
   listCapsules: () => request<Capsule[]>('/v1/capsules'),
   createCapsule: (body: CapsuleCreate) => request<Capsule>('/v1/capsules', post(body)),
+  getCapsule: (id: string) => request<Capsule>(`/v1/capsules/${encodeURIComponent(id)}`),
+  updateCapsule: (id: string, body: CapsuleCreate) =>
+    request<Capsule>(`/v1/capsules/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  cancelCapsule: (id: string) => request<Capsule>(`/v1/capsules/${encodeURIComponent(id)}/cancel`, { method: 'POST' }),
   deliveryPreview: (body: Birthday & { tz: string; send_mode: SendMode }) =>
     request<{ deliver_at: string }>('/v1/delivery-preview', post(body)),
   uploadFile,

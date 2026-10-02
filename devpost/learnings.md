@@ -6,6 +6,12 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-02 · A race test that could never fail
+- **Symptom:** the first version of "an edit and the delivery tick don't collide" passed every time, but its assertions (`status in (200, 409)`, `delivered or tick.delivered == 0`) accepted every possible outcome, including the broken ones.
+- **Cause:** the test was written before deciding what *should* happen. An edit that only changes the message is allowed both before and after delivery, so the right answer is always the same: edit saved, delivered exactly once.
+- **Fix:** the test now requires a 200, the edited text, `delivered`, and exactly one email, with a follow-up tick in case the edit held the lock first; repeated runs pass (`backend/tests/test_edit_cancel.py`).
+- **Lesson:** for every concurrency test, write down the single correct end state first. An assertion that accepts any result proves nothing.
+
 ## 2026-09-30 · Pressing Enter in the city box submitted the form
 - **Symptom:** on a fresh page, typing "tokyo" and pressing Enter straight away showed "Choose the city they live in" instead of picking Tokyo.
 - **Cause:** the 227 KB city list was still loading, so there were no results to pick; the key handler returned early and the browser's default Enter action submitted the surrounding form.

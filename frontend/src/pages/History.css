@@ -36,6 +36,32 @@
   overflow-wrap: anywhere;
 }
 
+.capsule-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.capsule-link:hover,
+.capsule-link:focus-visible {
+  text-decoration: underline;
+}
+
+/* The whole row is clickable via the name link's stretched hit area */
+.capsule-row {
+  position: relative;
+}
+
+.capsule-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.capsule-row .demo-button {
+  position: relative;
+  z-index: 1;
+}
+
 .capsule-reply {
   margin: 10px 0 0;
   padding: 8px 12px;
