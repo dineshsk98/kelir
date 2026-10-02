@@ -6,6 +6,24 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-02 · The gift box ran edge to edge on wide screens
+- **Symptom:** Dinesh: the box filled the full height of the screen; on a laptop the risen photocard touched the top edge.
+- **Cause:** the camera fit a circle around the subject to the whole screen height, ignoring that the title, the controls and the pull button also need room on top of the 3D view.
+- **Fix:** the fit now uses only 62% of the height and 90% of the scene's width (`USABLE_HEIGHT`, `USABLE_WIDTH` in `frontend/src/reveal3d/GiftScene.tsx`), with tighter framing for the closed box.
+- **Lesson:** when HTML sits on top of a 3D view, fit the camera to the space the HTML leaves, not to the whole canvas.
+
+## 2026-10-02 · The 3D scene "vanished" when the browser pane was hidden
+- **Symptom:** while checking the 3D opening, the gift box sometimes never appeared, though the stages still advanced and the box showed in other runs.
+- **Cause:** not the code. The browser pane was hidden, and a hidden page runs no `requestAnimationFrame` callbacks (counted: 0 frames in 1.5 s). React Three Fiber draws only on animation frames, while the stage machine uses `setTimeout`, which keeps running. So the stages moved on while nothing was drawn.
+- **Fix:** none needed in the app. Animation is checked only while the pane is visible; stage logic (skip, reduced motion, mute) is checked through the DOM, which doesn't need frames.
+- **Lesson:** before debugging a "missing" canvas animation, count animation frames first. Zero frames means the page is hidden or throttled, not broken.
+
+## 2026-10-02 · A stage class made the whole 3D opening 46 px wide
+- **Symptom:** on `/dev/reveal` the new 3D opening collapsed into a thin strip on the left of the screen.
+- **Cause:** the root's stage class was `r3d-${stage}`, so in the pull stage it became `r3d-pull`, the same name as the "Pull the ribbon" button's class. The root picked up the button's `display: inline-flex` and shrank to fit.
+- **Fix:** stage classes are now `r3d-at-${stage}`, and the CSS uses those names (`frontend/src/reveal3d/Reveal3D.tsx`, `Reveal3D.css`).
+- **Lesson:** never build class names from data in the same namespace as hand-written element classes. Give state classes their own prefix (`is-`, `at-`).
+
 ## 2026-10-02 · A race test that could never fail
 - **Symptom:** the first version of "an edit and the delivery tick don't collide" passed every time, but its assertions (`status in (200, 409)`, `delivered or tick.delivered == 0`) accepted every possible outcome, including the broken ones.
 - **Cause:** the test was written before deciding what *should* happen. An edit that only changes the message is allowed both before and after delivery, so the right answer is always the same: edit saved, delivered exactly once.

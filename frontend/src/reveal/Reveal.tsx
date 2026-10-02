@@ -16,7 +16,7 @@ export type RevealCapsule = {
   gift?: RevealGift
 }
 
-function usePrefersReducedMotion(): boolean {
+export function usePrefersReducedMotion(): boolean {
   const query = '(prefers-reduced-motion: reduce)'
   const [reduced, setReduced] = useState(() => window.matchMedia?.(query).matches ?? false)
   useEffect(() => {

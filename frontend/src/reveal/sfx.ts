@@ -4,7 +4,7 @@
 type Ctx = AudioContext
 
 export class Sfx {
-  private ctx: Ctx | null = null
+  protected ctx: Ctx | null = null
   muted: boolean
 
   constructor(muted: boolean) {
@@ -26,11 +26,11 @@ export class Sfx {
     this.ctx = null
   }
 
-  private ready(): Ctx | null {
+  protected ready(): Ctx | null {
     return this.muted || !this.ctx || this.ctx.state !== 'running' ? null : this.ctx
   }
 
-  private tone(ctx: Ctx, freq: number, start: number, length: number, type: OscillatorType, peak: number) {
+  protected tone(ctx: Ctx, freq: number, start: number, length: number, type: OscillatorType, peak: number) {
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.type = type
@@ -43,7 +43,7 @@ export class Sfx {
     osc.stop(start + length + 0.05)
   }
 
-  private noise(ctx: Ctx, start: number, length: number, from: number, to: number, peak: number) {
+  protected noise(ctx: Ctx, start: number, length: number, from: number, to: number, peak: number) {
     const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * length), ctx.sampleRate)
     const data = buffer.getChannelData(0)
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1

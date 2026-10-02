@@ -168,8 +168,8 @@ Implements `prd.md > The opening moment` and `prd.md > Thank-you reply`.
 - `POST /v1/c/{secret}/reply {preset|text}`: one reply per capsule; text up to 500 characters.
 - The page sends `noindex`, and API responses aren't cached.
 
-### Received API (`routes/received.py`)
-Implements `prd.md > Sent and received (multi-user)`.
+### Received API (`routes/received.py`), deferred
+Not in the POC (`prd.md > Deferred From the POC`, sent and received); kept here as the design for later.
 - `GET /v1/received`: capsules whose `lower(recipient_email)` equals the signed-in sender's Google-verified email, status `delivered` or `opened`, newest delivery first.
 - `GET /v1/received/{id}`: the same content as the link (`RecipientCapsuleOut`); marks it opened exactly once.
 - `POST /v1/received/{id}/reply` and `GET /v1/received/{id}/media/{media_id}`: as the link's, authorized by the email match instead of the secret.

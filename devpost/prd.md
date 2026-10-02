@@ -111,13 +111,6 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
   - [ ] The sender sees it on that capsule in their history.
   - [ ] After sending, the capsule page shows "Your thank-you was sent."
 
-### Sent and received (multi-user)
-- Every signed-in person can both send and receive. This app is not one-to-one: many people send capsules to many people. (Added 2026-10-02.)
-  - [ ] History has **Sent** and **Received** tabs.
-  - [ ] Received lists capsules sent to my Google-verified email that have been delivered. Scheduled capsules stay a surprise; cancelled ones don't appear.
-  - [ ] Opening a received capsule plays the same staged opening, with the thank-you card; it counts as opening (once).
-  - [ ] The private email link still works for recipients who never sign in.
-
 ### Regular recipients (People)
 - As a sender, the people I send to are remembered so the next birthday is quick. (Added 2026-10-02.)
   - [ ] Each capsule I send saves or updates that person (name, email, birthday, city), matched by email.
@@ -143,7 +136,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - **What persists:** senders, capsules, media, statuses and thank-you replies.
 
 ## Product Decisions
-- **Recipients never need an account.** "A person who doesn't know such a thing exists cannot receive anything." They get a private link. If they do sign in, the capsules sent to them also appear under Received.
+- **Recipients never need an account.** "A person who doesn't know such a thing exists cannot receive anything." They get a private link.
 - **Sign in with Google only.** Senders are authenticated by a reliable entity, which makes the sender's identity trustworthy to the recipient.
 - **City picker, not a time-zone list.** It's friendlier for the sender.
 - **Final once opened, not once sent.** The sender can edit or cancel until the recipient opens it.
@@ -168,13 +161,14 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - The "Simulate their midnight" demo control.
 
 ## Deferred From the POC
+- **Sent and received (multi-user):** a signed-in person also seeing the capsules sent to their Google email under a Received tab. The hackathon submission is the single-sender product; the private link already lets anyone open what was sent to them. (Planned 2026-10-02, deferred the same day.)
 - **Audio and video thank-you replies:** a second recorder on the recipient's side; text proves the loop.
 - **Other sign-in providers:** Google alone proves trusted identity.
 - **Multiple recipients per capsule, or reusing a capsule:** one person at a time proves the kernel. (Reusing a *person* is now in scope, see People.)
 - **Translating the app's own buttons and labels:** the message, email subject and button follow the capsule's language; full UI translation comes later.
 
 ## Non-Goals
-- **Required recipient accounts:** against the core principle. (Signing in to see Received is optional.)
+- **Required recipient accounts:** against the core principle.
 - **Buying gifts or taking payments:** no time in a hackathon build, and risky to handle.
 
 ## Open Questions

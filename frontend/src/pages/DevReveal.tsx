@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Reveal, type RevealCapsule } from '../reveal/Reveal'
+import type { BackdropPhoto } from '../reveal3d/Backdrop'
+import { Reveal3D } from '../reveal3d/Reveal3D'
 import { APP_THEME, applyTheme, THEMES, type Theme } from '../theme'
 import './DevReveal.css'
 
@@ -67,50 +69,82 @@ export function DevReveal() {
   const [sample, setSample] = useState(Object.keys(SAMPLES)[0])
   const [reduced, setReduced] = useState<'device' | 'on' | 'off'>('device')
   const [run, setRun] = useState(0)
+  const [version, setVersion] = useState<'3d' | 'v1'>('3d')
+  const [backdrop, setBackdrop] = useState<BackdropPhoto>('colour')
+  const [barOpen, setBarOpen] = useState(true)
 
   useEffect(() => {
     applyTheme(theme)
     return () => applyTheme(APP_THEME)
   }, [theme])
 
+  const key = `${run}-${sample}-${reduced}-${theme}-${version}-${backdrop}`
+  const reducedMotion = reduced === 'device' ? undefined : reduced === 'on'
+
   return (
     <>
-      <div className="dev-bar" role="toolbar" aria-label="Opening preview controls">
-        <strong>/dev/reveal · sample data</strong>
-        <label>
-          Look{' '}
-          <select value={theme} onChange={(e) => setTheme(e.target.value as Theme)}>
-            {THEMES.map((t) => (
-              <option key={t}>{t}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Sample{' '}
-          <select value={sample} onChange={(e) => setSample(e.target.value)}>
-            {Object.keys(SAMPLES).map((s) => (
-              <option key={s}>{s}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Reduced motion{' '}
-          <select value={reduced} onChange={(e) => setReduced(e.target.value as typeof reduced)}>
-            <option value="device">device setting</option>
-            <option value="on">on</option>
-            <option value="off">off</option>
-          </select>
-        </label>
-        <button type="button" onClick={() => setRun((r) => r + 1)}>
-          Replay
+      {/* The bar can hide so it doesn't cover the opening's own buttons on a phone */}
+      {!barOpen ? (
+        <button type="button" className="dev-bar-open" onClick={() => setBarOpen(true)}>
+          dev
         </button>
-      </div>
-      <Reveal
-        key={`${run}-${sample}-${reduced}-${theme}`}
-        capsule={SAMPLES[sample]}
-        replyPanel={SAMPLE_REPLY}
-        reducedMotion={reduced === 'device' ? undefined : reduced === 'on'}
-      />
+      ) : (
+        <div className="dev-bar" role="toolbar" aria-label="Opening preview controls">
+          <strong>/dev/reveal · sample data</strong>
+          <label>
+            Version{' '}
+            <select value={version} onChange={(e) => setVersion(e.target.value as typeof version)}>
+              <option value="3d">3D gift box</option>
+              <option value="v1">v1 capsule</option>
+            </select>
+          </label>
+          {version === '3d' ? (
+            <label>
+              Backdrop{' '}
+              <select value={backdrop} onChange={(e) => setBackdrop(e.target.value as BackdropPhoto)}>
+                <option value="colour">colourful bokeh</option>
+                <option value="warm">warm + blue bokeh</option>
+              </select>
+            </label>
+          ) : (
+            <label>
+              Look{' '}
+              <select value={theme} onChange={(e) => setTheme(e.target.value as Theme)}>
+                {THEMES.map((t) => (
+                  <option key={t}>{t}</option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label>
+            Sample{' '}
+            <select value={sample} onChange={(e) => setSample(e.target.value)}>
+              {Object.keys(SAMPLES).map((s) => (
+                <option key={s}>{s}</option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Reduced motion{' '}
+            <select value={reduced} onChange={(e) => setReduced(e.target.value as typeof reduced)}>
+              <option value="device">device setting</option>
+              <option value="on">on</option>
+              <option value="off">off</option>
+            </select>
+          </label>
+          <button type="button" onClick={() => setRun((r) => r + 1)}>
+            Replay
+          </button>
+          <button type="button" onClick={() => setBarOpen(false)}>
+            Hide
+          </button>
+        </div>
+      )}
+      {version === '3d' ? (
+        <Reveal3D key={key} capsule={SAMPLES[sample]} replyPanel={SAMPLE_REPLY} reducedMotion={reducedMotion} backdrop={backdrop} />
+      ) : (
+        <Reveal key={key} capsule={SAMPLES[sample]} replyPanel={SAMPLE_REPLY} reducedMotion={reducedMotion} />
+      )}
     </>
   )
 }
