@@ -70,7 +70,8 @@ async def test_sign_in_creates_sender_and_session(client, monkeypatch, settings)
     assert seen["audience"] == settings.google_client_id  # token must be for our app
     assert seen["clock_skew"] >= 5  # a laptop clock slightly behind Google's must not fail sign-in
     cookie = r.headers["set-cookie"]
-    assert "HttpOnly" in cookie and "SameSite=lax" in cookie and "Max-Age=2592000" in cookie
+    assert "HttpOnly" in cookie and "SameSite=lax" in cookie
+    assert "Max-Age" not in cookie and "expires" not in cookie.lower()  # ends when the browser closes
 
     me = await client.get("/v1/me")
     assert me.status_code == 200
@@ -88,6 +89,21 @@ async def test_signing_in_again_finds_the_same_sender(client, monkeypatch, sessi
     assert second.json()["name"] == "Sam S."
     async with sessionmaker() as s:
         assert await s.scalar(select(func.count()).select_from(Sender)) == 1
+
+
+async def test_session_expires_12_hours_after_sign_in(client, monkeypatch, settings):
+    import itsdangerous.timed
+
+    fake_google(monkeypatch)
+    signed_in_at = 2_000_000_000
+    monkeypatch.setattr(itsdangerous.timed.time, "time", lambda: signed_in_at)
+    await client.post("/v1/auth/google", json={"credential": "good-token"})
+
+    monkeypatch.setattr(itsdangerous.timed.time, "time", lambda: signed_in_at + 12 * 3600 - 60)
+    assert (await client.get("/v1/me")).status_code == 200  # 11h59m later: still signed in
+    monkeypatch.setattr(itsdangerous.timed.time, "time", lambda: signed_in_at + 12 * 3600 + 60)
+    assert (await client.get("/v1/me")).status_code == 401  # 12h01m later: signed out
+    assert settings.session_hours == 12
 
 
 async def test_sign_out_ends_the_session(client, monkeypatch):

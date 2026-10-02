@@ -47,11 +47,12 @@ def _serializer(settings: Settings) -> URLSafeTimedSerializer:
 
 
 def set_session_cookie(response: Response, sender_id: uuid.UUID, settings: Settings) -> None:
+    """A browser-session cookie (no Max-Age: cleared when the browser closes). Browsers that
+    restore cookies on reopen are covered by the server-side limit in current_sender."""
     token = _serializer(settings).dumps({"sid": str(sender_id)})
     response.set_cookie(
         SESSION_COOKIE,
         token,
-        max_age=settings.session_days * 24 * 3600,
         httponly=True,
         samesite="lax",
         secure=settings.app_base_url.startswith("https://"),
@@ -72,9 +73,8 @@ async def current_sender(
     if not capsule_session:
         raise not_signed_in
     try:
-        data = _serializer(settings).loads(
-            capsule_session, max_age=settings.session_days * 24 * 3600
-        )
+        # The signed token carries its sign-in time: older than session_hours means signed out
+        data = _serializer(settings).loads(capsule_session, max_age=settings.session_hours * 3600)
         sender_id = uuid.UUID(data["sid"])
     except (BadSignature, KeyError, ValueError, TypeError):
         raise not_signed_in

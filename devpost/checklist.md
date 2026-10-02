@@ -70,7 +70,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Open `/dev/reveal`, try both looks and pick one, then open a real capsule link on your phone with sound on and say how the moment feels.
   Commit: `Add staged gift-opening reveal`
 
-- [ ] **7. You can add several photos, audio and video files to a capsule**
+- [x] **7. You can add several photos, audio and video files to a capsule**
   Becomes usable: In the Message step, add up to 6 items in any mix: photos (≤15 MB each; on a phone the picker also offers the camera), audio (≤50 MB) and video (≤50 MB) files; remove any before saving. Preview shows them, and the recipient's opening shows them after the message: photos as a swipeable gallery, audio and video as players. A wrong type or oversized file shows a readable message.
   Why now: Multiple media changes the data model (a `capsule_media` table replaces the single media columns), so it lands before recording and editing build on it. Upload first: it proves storage, streaming and display without the browser-recording risk.
   PRD ref: `prd.md > Creating a capsule` (Message), `prd.md > The opening moment` (stage 6), `prd.md > States and Boundaries` (file can't be used)
@@ -109,7 +109,6 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
 ## Final Review
 
 Scope changes Dinesh raised after slice 5 (2026-09-30), awaiting his decision; not in the plan until agreed:
-- Session length / sign out on browser close (currently a 30-day cookie).
 - "Capsules received": a signed-in sender also sees capsules sent to their own email.
 - "Regular recipients": saved people to reuse (the PRD deferred reuse).
 - Language options for the text (and the email).
@@ -146,6 +145,7 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 - Added `GET /v1/config` (returns the non-secret Google client ID) — the web app needs the client ID to render the Google button, and serving it from the API keeps `.env` the single place it's set instead of duplicating it as a Vite variable.
 - Added `POST /v1/delivery-preview` — the When step must show the exact delivery moment before saving, and only the server's midnight engine can compute it correctly (DST gaps, Feb 29); duplicating that in the browser would risk the two disagreeing.
 - City list is ~4,200 cities (not 1–2k) — pop. ≥150k plus capitals left gaps: whole time zones such as America/St_Johns (UTC−3:30) had no city. It now also keeps the largest city of every zone; 227 KB (≈70 KB gzipped). Zones with no town of 15k+ people (e.g. Australia/Eucla) remain absent; the picker suggests choosing a nearby city in the same zone. GeoNames credit is in `ATTRIBUTION.md` until the README exists.
+- Sessions: a browser-session cookie (cleared on close) plus a 12-hour limit from sign-in, instead of a 30-day cookie — Dinesh: "log out on close", then "set session cookie to 12 hours" (2026-10-02).
 - Multiple media per capsule (up to 6 photos/audio/video items, ordered) with a `capsule_media` table instead of single `media_*` columns; old slice 7 split into 7 (upload + display) and 8 (browser recording); edit/cancel became slice 9 — Dinesh chose multiple pieces of media per capsule after the slice 6 check.
 - Look-and-feel pick moved out of slice 6 to the separate design session (with photocard-style options) — Dinesh's call after trying the opening; both token sets stay in `tokens.css`, `APP_THEME` stays `sunrise` until then.
 - Build-up lengthened from 1.4 s to 2.4 s and intensified (dimming, energy rings, swelling rattle, accelerating heartbeat sound) — Dinesh: "build up is not enough".

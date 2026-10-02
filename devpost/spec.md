@@ -25,7 +25,7 @@ PRD ref: `prd.md > The Core Journey`.
 1. **Welcome and sign-in.**
    - The sender opens `http://localhost:8000` and clicks "Sign in with Google".
    - Google's sign-in button returns a signed ID token.
-   - The API checks it with Google's public keys, creates or finds the sender row, and sets a signed session cookie (30 days).
+   - The API checks it with Google's public keys, creates or finds the sender row, and sets a signed session cookie that ends when the browser closes, and in any case 12 hours after sign-in.
 2. **History.** The web app calls `GET /v1/capsules` and lists the sender's capsules.
 3. **Make a capsule.** The editor walks through the steps: Who → Message → Gift → When → Preview.
    - The city picker reads a bundled `cities.json` to get each city's time zone.

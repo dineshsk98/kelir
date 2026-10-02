@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     demo_mode: bool = False
     mailer: Literal["smtp", "console"] = "console"
 
-    session_days: int = 30
+    session_hours: int = 12  # from sign-in; the cookie itself also ends when the browser closes
     frontend_dist: Path = REPO_ROOT / "frontend" / "dist"
     uploads_dir: Path = REPO_ROOT / "uploads"
 
