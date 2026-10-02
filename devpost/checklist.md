@@ -100,7 +100,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: On your laptop (localhost, so the browser allows the camera), record a short video and a voice note, play them back, redo one, save, simulate midnight and watch them inside the opening. Recording from the phone needs https, which comes with hosting.
   Commit: `Add in-browser audio and video recording`
 
-- [ ] **10. The recipient's link opens the 3D gift**
+- [x] **10. The recipient's link opens the 3D gift**
   Becomes usable: Opening a capsule link plays the 3D opening from the parallel design work: a real cake photo at the centre whose candles she blows out (tap, or "Blow for real" with the microphone only if she chooses it; flames go out, smoke rises), then the cake glides to the bottom left as the gift box arrives; she unties the box, a soft burst with gentle confetti, the photocard, and a note "<Sender> wrapped up four little surprises for you" with thumbnails that each open in a closable viewer, plus its own "Say thank you".
   Why now: Dinesh asked to integrate the reveal work (built in parallel with another tool) before the remaining slices, so languages build on the opening the recipient actually sees.
   PRD ref: `prd.md > The opening moment`
@@ -110,15 +110,15 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Open a capsule link on your phone and laptop: blow out the candles (try "Blow for real" once), pull the ribbon, open each thumbnail, send a thank-you, and say how it feels and how it looks.
   Commit: `Open capsule links with the 3D gift`
 
-- [ ] **11. Voice notes play on a tape recorder, videos on a projector**
-  Becomes usable: In the opened capsule's viewer, a voice note plays inside an animated cassette recorder (reels turning while it plays, play/pause, progress), and a video plays inside a film-projector scene (a beam onto a screen, the projector's reels turning). Photos and the letter keep the plain viewer.
+- [ ] **11. Voice notes play on a record player, videos on a projector**
+  Becomes usable: Voice notes and videos open in the scene itself (lights dimmed, no box). A voice note plays on a record player seen from above at an angle: the needle moving onto the record plays it, lifting it pauses. A video is projected onto the wall by a small projector, its light fanning up to the picture, with controls along the picture's bottom. Photos and the letter keep the plain viewer.
   Why now: Dinesh asked for it alongside the slice 10 revision ("audio to be played with the recorder, video with the projector animation"); it builds on the viewer from slice 10.
   PRD ref: `prd.md > The opening moment` (stage 7)
   Spec ref: `spec.md > Components > Web app: the 3D opening`
-  Build: `TapePlayer` and `ProjectorPlayer` components (CSS/SVG animation driven by the media element's play/pause/timeupdate events; reduced motion keeps them still), used by the viewer for audio and video.
+  Build: `RecordPlayer` and `ProjectorPlayer` components, shown in a boxless "room" viewer (CSS/SVG animation driven by the media element's play/pause/timeupdate events; reduced motion keeps them still), used by the viewer for audio and video. `/dev/reveal` gains a "Voice note + video + photo" sample made in the browser, so the players can be tried without the API.
   Verify (mechanical): `npm run build` passes; in the browser pane, a recorded voice note and video play inside their players, the animation runs only while playing and stops on pause/end, the controls work by keyboard, and reduced motion shows no movement.
-  Learner check: Open a capsule with a voice note and a video on your phone and say whether the recorder and projector feel right.
-  Commit: `Play voice notes on a tape recorder and videos on a projector`
+  Learner check: Open a capsule with a voice note and a video on your phone and say whether the record player and projector feel right.
+  Commit: `Play voice notes on a record player and videos on a projector`
 
 - [ ] **12. You can write in your language, in a handwritten font that fits it**
   Becomes usable: The Message step has a language picker (English, Korean, Chinese, Japanese, Spanish, Tamil, Hindi, French, Italian, German). It sets a stylized handwritten font for that script and the `lang` attribute, in the editor, the preview and the opening. The email's subject line and "Open your capsule" button are in the capsule's language.
@@ -179,6 +179,7 @@ Activity mode: [live app and editor, explicit static fallback, focused alternati
 
 ## Revisions
 
+- Slice 11 redone (2026-10-02): the first build (a cassette deck and a projector inside the viewer box) missed what Dinesh meant. From his two reference images: play them in the scene itself, a turntable seen from above at an angle whose needle is the play/pause, and a video projected on the wall by a small projector.
 - Slice 10, third look (2026-10-02): the birthday tune loops while the capsule is open and ducks under every other sound (including her voice notes and videos), then swells back. An https dev server for phone testing was added and then taken out again at Dinesh's request ("that will be handled when link is hosted"): phone camera/microphone checks wait for the hosted https app.
 
 - Slice 10, Dinesh's second look (2026-10-02): smoother blow-out (flames fade and smoke rises in place for 1 s, then a slow 1.6 s glide; `cake_aside` 1 s → 2.6 s); applause when the candles go out and a synthesized "Happy Birthday" piano tune; a compact contents note on phones (a quarter of the screen instead of over 40%, one swipeable row of thumbnails, and the title hidden once open because it sat on the photocard). "Blow for real" was missing on his phone because phones only allow the microphone on https (the dev page over Wi-Fi is http); it appears on localhost and will on the hosted https app.

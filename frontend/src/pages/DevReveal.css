@@ -29,6 +29,13 @@
   font-size: 0.75rem;
 }
 
+.dev-making {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  margin: 0;
+}
+
 .dev-bar select,
 .dev-bar button {
   font: inherit;

@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
+import type { GalleryItem } from '../components/MediaGallery'
 import { Reveal, type RevealCapsule } from '../reveal/Reveal'
 import type { BackdropPhoto } from '../reveal3d/Backdrop'
 import { Reveal3D } from '../reveal3d/Reveal3D'
 import { APP_THEME, applyTheme, THEMES, type Theme } from '../theme'
+import { sampleVideo, sampleVoiceNote } from './devSamples'
 import './DevReveal.css'
 
 // Development only (not in production builds): tune the opening and compare looks
@@ -27,6 +29,12 @@ const SAMPLES: Record<string, RevealCapsule> = {
       { key: 'p3', kind: 'image', url: samplePhoto('Sample photo 3', '#7cc6a4', '#2c7a5b') },
     ],
     gift: { kind: 'code', value: 'SAMPLE-1234-ABCD', note: 'For the new game!' },
+  },
+  // Its media is made in the browser when picked (see MEDIA_SAMPLE below)
+  'Voice note + video + photo': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: 'Press play, I recorded something for you!',
   },
   'Text + gift code': {
     senderName: 'Sam (sample)',
@@ -55,6 +63,8 @@ const SAMPLES: Record<string, RevealCapsule> = {
   },
 }
 
+const MEDIA_SAMPLE = 'Voice note + video + photo'
+
 const SAMPLE_REPLY = (
   <section className="reply-panel">
     <h2>Say thank you to Sam</h2>
@@ -72,14 +82,34 @@ export function DevReveal() {
   const [version, setVersion] = useState<'3d' | 'v1'>('3d')
   const [backdrop, setBackdrop] = useState<BackdropPhoto>('colour')
   const [barOpen, setBarOpen] = useState(true)
+  const [recorded, setRecorded] = useState<GalleryItem[] | null>(null)
 
   useEffect(() => {
     applyTheme(theme)
     return () => applyTheme(APP_THEME)
   }, [theme])
 
+  // The media sample's video takes a few seconds to record, once per page load
+  const needsMedia = sample === MEDIA_SAMPLE && !recorded
+  useEffect(() => {
+    if (!needsMedia) return
+    let live = true
+    sampleVideo().then((video) => {
+      if (!live) return
+      setRecorded([
+        { key: 'a1', kind: 'audio', url: sampleVoiceNote() },
+        { key: 'v1', kind: 'video', url: video },
+        { key: 'p1', kind: 'image', url: samplePhoto('Sample photo', '#ff8a6b', '#ffcf5c') },
+      ])
+    })
+    return () => {
+      live = false
+    }
+  }, [needsMedia])
+
   const key = `${run}-${sample}-${reduced}-${theme}-${version}-${backdrop}`
   const reducedMotion = reduced === 'device' ? undefined : reduced === 'on'
+  const capsule = sample === MEDIA_SAMPLE ? { ...SAMPLES[sample], media: recorded ?? [] } : SAMPLES[sample]
 
   return (
     <>
@@ -140,10 +170,12 @@ export function DevReveal() {
           </button>
         </div>
       )}
-      {version === '3d' ? (
-        <Reveal3D key={key} capsule={SAMPLES[sample]} replyPanel={SAMPLE_REPLY} reducedMotion={reducedMotion} backdrop={backdrop} />
+      {needsMedia ? (
+        <p className="dev-making">Recording the sample video…</p>
+      ) : version === '3d' ? (
+        <Reveal3D key={key} capsule={capsule} replyPanel={SAMPLE_REPLY} reducedMotion={reducedMotion} backdrop={backdrop} />
       ) : (
-        <Reveal key={key} capsule={SAMPLES[sample]} replyPanel={SAMPLE_REPLY} reducedMotion={reducedMotion} />
+        <Reveal key={key} capsule={capsule} replyPanel={SAMPLE_REPLY} reducedMotion={reducedMotion} />
       )}
     </>
   )

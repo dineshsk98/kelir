@@ -98,7 +98,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
     4. They pull the ribbon (drag in any direction, or tap "Pull the ribbon").
     5. The ribbon unties, a soft build-up glows under the lid, and the lid lifts with a gentle confetti shower (no shake).
     6. A photocard rises with their name and the sender's.
-    7. A note appears: "A capsule from <sender>", "<Sender> wrapped up four little surprises for you", with a thumbnail for each thing inside (the letter, photos, videos, voice notes, the gift) and a "Say thank you" button. Nothing opens by itself: each thumbnail opens in a viewer they can close (×, Esc or a tap outside), with Previous/Next.
+    7. A note appears: "A capsule from <sender>", "<Sender> wrapped up four little surprises for you", with a thumbnail for each thing inside (the letter, photos, videos, voice notes, the gift) and a "Say thank you" button. Nothing opens by itself: each thumbnail opens in a viewer they can close (×, Esc or a tap outside), with Previous/Next. Voice notes and videos play in the scene itself, with the lights dimmed, not in a box. A voice note plays on a record player seen from above at an angle: moving the needle onto the record plays it (the needle creeps inward as it plays), lifting it pauses. A video is projected onto the wall by a small projector at the bottom, its light fanning up to the picture. Nothing spins or flickers under reduced motion.
   - [ ] Sound effects are on by default, with a visible mute.
   - [ ] A "Skip" control jumps straight to the reveal.
   - [ ] The microphone is never requested unless they tap "Blow for real", and it's released as soon as the candle is out.

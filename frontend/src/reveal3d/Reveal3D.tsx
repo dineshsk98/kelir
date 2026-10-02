@@ -338,6 +338,7 @@ export function Reveal3D({
             capsule={capsule}
             replyPanel={replyPanel}
             overlayRoot={rootRef.current}
+            reduced={reduced}
             onMediaPlaying={onMediaPlaying}
           />
         )}

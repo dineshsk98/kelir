@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { GalleryItem } from '../components/MediaGallery'
 import { Gift } from '../reveal/Gift'
 import type { RevealCapsule } from '../reveal/Reveal'
+import { ProjectorPlayer, RecordPlayer } from './MediaPlayers'
 
 /** One thing in the capsule she can open */
 type Item =
@@ -37,10 +38,13 @@ export function CapsuleContents({
   capsule,
   replyPanel,
   overlayRoot,
+  reduced,
   onMediaPlaying,
 }: {
   capsule: RevealCapsule
   replyPanel?: ReactNode
+  /** Reduced motion: the record player's needle drops without waiting for its swing */
+  reduced?: boolean
   /** A voice note or video started (true) or stopped (false) playing */
   onMediaPlaying?: (playing: boolean) => void
   /** Where viewers are drawn. Not inside this note: its frosted-glass backdrop-filter would
@@ -83,11 +87,18 @@ export function CapsuleContents({
           {open !== null && (
             <Viewer
               title={label(items[open])}
+              room={isPlayable(items[open])}
               onClose={() => setOpen(null)}
               onPrev={open > 0 ? () => setOpen(open - 1) : undefined}
               onNext={open < items.length - 1 ? () => setOpen(open + 1) : undefined}
             >
-              <Opened key={items[open].key} item={items[open]} onPlaying={onMediaPlaying} />
+              <Opened
+                key={items[open].key}
+                item={items[open]}
+                from={sender}
+                reduced={reduced}
+                onPlaying={onMediaPlaying}
+              />
             </Viewer>
           )}
           {/* Always mounted, only hidden: the panel remembers that her thank-you was sent */}
@@ -105,6 +116,9 @@ export function CapsuleContents({
 
 const thumbKind = (item: Item) => (item.kind === 'media' ? item.media.kind : item.kind)
 
+/** Voice notes and videos play in the scene itself rather than in a box */
+const isPlayable = (item: Item) => item.kind === 'media' && item.media.kind !== 'image'
+
 function Thumb({ item }: { item: Item }) {
   if (item.kind === 'message') return <span className="r3d-thumb-letter">{item.text}</span>
   if (item.kind === 'gift') return <span className="r3d-thumb-icon" aria-hidden="true">🎁</span>
@@ -121,48 +135,30 @@ function Thumb({ item }: { item: Item }) {
   return <span className="r3d-thumb-icon" aria-hidden="true">🎙️</span>
 }
 
-function Opened({ item, onPlaying }: { item: Item; onPlaying?: (playing: boolean) => void }) {
+function Opened({
+  item,
+  from,
+  reduced,
+  onPlaying,
+}: {
+  item: Item
+  from: string
+  reduced?: boolean
+  onPlaying?: (playing: boolean) => void
+}) {
   if (item.kind === 'message') return <p className="r3d-letter">{item.text}</p>
   if (item.kind === 'gift') return <Gift gift={item.gift} />
   const m = item.media
   if (m.kind === 'image') return <img className="r3d-viewer-photo" src={m.url} alt="A photo from the capsule" />
-  return <PlayingMedia kind={m.kind} src={m.url} onPlaying={onPlaying} />
-}
-
-/** A voice note or video that reports when it starts and stops playing (so the birthday
- *  tune can step back while she listens). Each start is matched by exactly one stop. */
-function PlayingMedia({
-  kind,
-  src,
-  onPlaying,
-}: {
-  kind: 'audio' | 'video'
-  src: string
-  onPlaying?: (playing: boolean) => void
-}) {
-  const playing = useRef(false)
-  const report = useRef(onPlaying)
-  report.current = onPlaying
-  const set = (now: boolean) => {
-    if (playing.current === now) return
-    playing.current = now
-    report.current?.(now)
-  }
-  // Closing the viewer mid-play counts as stopping
-  useEffect(() => () => set(false), [src])
-
-  const events = { onPlay: () => set(true), onPause: () => set(false), onEnded: () => set(false) }
-  return kind === 'video' ? (
-    <video className="r3d-viewer-video" src={src} controls autoPlay playsInline {...events} />
-  ) : (
-    <audio className="r3d-viewer-audio" src={src} controls autoPlay {...events} />
-  )
+  if (m.kind === 'video') return <ProjectorPlayer src={m.url} from={from} onPlaying={onPlaying} />
+  return <RecordPlayer src={m.url} from={from} reduced={reduced} onPlaying={onPlaying} />
 }
 
 /** A closable overlay: × button, Esc, or a tap outside. Focus moves in and comes back. */
 function Viewer({
   title,
   hidden = false,
+  room = false,
   onClose,
   onPrev,
   onNext,
@@ -170,6 +166,8 @@ function Viewer({
 }: {
   title: string
   hidden?: boolean
+  /** No box: the scene stays visible behind, dimmed as if the lights went down */
+  room?: boolean
   onClose: () => void
   onPrev?: () => void
   onNext?: () => void
@@ -186,6 +184,8 @@ function Viewer({
     closeRef.current?.focus()
     const keys = (e: KeyboardEvent) => {
       if (e.key === 'Escape') handlers.current.onClose()
+      // Arrow keys on a slider (a player's position) move the slider, not to another item
+      if (e.target instanceof HTMLInputElement) return
       if (e.key === 'ArrowLeft') handlers.current.onPrev?.()
       if (e.key === 'ArrowRight') handlers.current.onNext?.()
     }
@@ -198,7 +198,7 @@ function Viewer({
 
   return (
     <div
-      className="r3d-viewer"
+      className={`r3d-viewer${room ? ' r3d-room' : ''}`}
       hidden={hidden}
       role="dialog"
       aria-modal="true"

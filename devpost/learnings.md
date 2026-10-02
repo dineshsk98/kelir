@@ -6,6 +6,30 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-02 · Projected video ran off the side of a phone
+- **Symptom:** at phone size (375 px wide) the projected sample video was cut off on the right and the projector sat off-centre.
+- **Cause:** the room viewer centres its content in a one-column CSS grid. An `auto` grid column grows to its content's natural width (the 640 px video), so `max-width: 100%` inside it meant 100% of an already too-wide column.
+- **Fix:** `.r3d-room .r3d-viewer-body` in `frontend/src/reveal3d/Reveal3D.css` uses `grid-template-columns: minmax(0, 1fr)` (and the same for rows), so the column is the screen's width and the video shrinks to fit.
+- **Lesson:** in a grid or flex parent, give tracks a `minmax(0, …)` (or items `min-width: 0`) before relying on `max-width: 100%`; check media at phone width.
+
+## 2026-10-02 · Replaying a finished voice note swung the needle to the label first
+- **Symptom:** after the voice note ended, pressing play swung the record player's arm to the inner groove (49°), and it jumped back to the outer groove when the sound restarted.
+- **Cause:** the arm's angle follows the note's progress, and after the end the position stays at the full length until playback begins again, so the target angle was "finished".
+- **Fix:** `RecordPlayer.drop` in `frontend/src/reveal3d/MediaPlayers.tsx` rewinds a finished note before lowering the arm.
+- **Lesson:** when animation follows media position, check the replay-after-end path, not just the first play.
+
+## 2026-10-02 · Built the wrong players for voice notes and videos
+- **Symptom:** Dinesh: the first slice 11 went "with completely different artifacts". It was a cassette deck and a small projector drawn inside the viewer box.
+- **Cause:** a one-line request ("audio played with the recorder, video with the projector") was read literally. He meant a record player whose needle is play/pause, and a video projected onto the wall in the scene, which his reference images then showed.
+- **Fix:** rebuilt as `RecordPlayer` (angled turntable, tonearm as play/pause) and `ProjectorPlayer` (projection with a light beam), both shown in a boxless "room" viewer (`MediaPlayers.tsx`, `MediaPlayers.css`, `CapsuleContents.tsx`, `Reveal3D.css`).
+- **Lesson:** for a visual feature described in a few words, ask for a reference image or sketch a quick option before building.
+
+## 2026-10-02 · Player clock read "0:04 / 0:04" for a 5-second video
+- **Symptom:** in the browser pane the projector's time showed 0:04 as the total and at the end, while the video's own picture showed it ran to 5.0 s.
+- **Cause:** recordings are rarely whole seconds (this one was 4.98 s), and the clock cut the fraction off (`Math.floor`), so the total was always up to a second short.
+- **Fix:** the clock in `frontend/src/reveal3d/MediaPlayers.tsx` rounds instead, so it reads 0:05 and ends there.
+- **Lesson:** a media clock should round; check the total against a recording of known length, not just that some number appears.
+
 ## 2026-10-02 · "Blow for real" missing on the phone
 - **Symptom:** Dinesh, on his phone on `/dev/reveal`: only "Blow out the candles" showed; on the laptop both buttons did.
 - **Cause:** browsers only offer the microphone (`navigator.mediaDevices`) on secure pages. `localhost` counts as secure, but the dev server opened from the phone over Wi-Fi is plain `http://<laptop-ip>`, so the page correctly hid the button. Not a bug, but surprising.
