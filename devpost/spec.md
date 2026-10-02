@@ -208,8 +208,11 @@ Implements `prd.md > Screens and Layout` (sender side).
 ### Web app: `Recorder` and `CityPicker` (`frontend/src/components/`)
 - `Recorder`:
   - records audio or video with `MediaRecorder` (webm on Chrome, mp4 on Safari)
-  - caps length (video 60 s, audio 120 s) and offers play-back and redo
+  - caps length (video 60 s, audio 120 s, stopping automatically) and offers play-back and redo
+  - records without a timeslice (Chrome then writes the WebM length itself) and runs `fix-webm-duration` as a fallback
+  - turns the camera and microphone off as soon as a take ends, on Cancel/Discard, and when the sender leaves the step
   - if the camera or microphone is blocked, shows a note and offers upload
+  - needs a secure page (https or localhost); on plain http from another device it says so and offers upload
 - Photos: upload only (`<input type="file" accept="image/*" multiple>`, which offers the camera on phones). A capsule holds up to 6 media items in any mix; the opening shows them after the message (photos as a swipeable gallery, audio and video as players).
 - `CityPicker`: type-ahead over bundled `cities.json` ({name, country, tz}); it shows "Tokyo, Japan · Asia/Tokyo".
 
@@ -374,6 +377,9 @@ All $0.
 
 **GeoNames** ([cities15000](https://download.geonames.org/export/dump/))
 - A one-time download at build time, CC BY 4.0.
+
+**fix-webm-duration** ([npm](https://www.npmjs.com/package/fix-webm-duration)), MIT, no dependencies
+- Writes the measured length into a recorded WebM when the browser left it out; does nothing when the length is already there.
 
 ## Important Failure Modes
 - **The email doesn't send** (wrong app password, network) → the capsule shows "Delivery trouble" in history with a retry. The ConsoleMailer lets the demo keep going.

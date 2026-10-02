@@ -20,6 +20,15 @@ MP4 = b"\x00\x00\x00\x18ftypisom" + b"\x00" * 4000
 M4A = b"\x00\x00\x00\x18ftypM4A " + b"\x00" * 4000
 MP3 = b"ID3\x04" + b"\x00" * 3000
 
+# First bytes of real in-browser recordings (Chromium's MediaRecorder, captured 2026-10-02).
+# Audio-only and video WebM start identically, so the browser's claimed type tells them apart.
+RECORDED_WEBM = bytes.fromhex(
+    "1a45dfa39f4286810142f7810142f2810442f381084282847765626d42878104428581021853 8067".replace(" ", "")
+) + b"\x00" * 4000
+RECORDED_MP4 = bytes.fromhex(
+    "0000002466747970 69736f6d00000200 69736f6d69736f36 69736f3261766331 6d703431".replace(" ", "")
+) + b"\x00" * 4000
+
 
 @pytest.mark.parametrize(
     ("head", "claimed", "expected"),
@@ -76,6 +85,22 @@ async def test_upload_detects_type_and_stores_privately(client, sign_in, setting
     assert (body["kind"], body["mime"], body["size_bytes"]) == ("image", "image/jpeg", len(JPEG))
     stored = settings.uploads_dir / str(sender.id) / body["id"]
     assert stored.read_bytes() == JPEG
+
+
+@pytest.mark.parametrize(
+    ("data", "content_type", "expected"),
+    [
+        (RECORDED_WEBM, "video/webm;codecs=vp8,opus", ("video", "video/webm")),  # Chrome/Firefox video
+        (RECORDED_WEBM, "audio/webm;codecs=opus", ("audio", "audio/webm")),  # Chrome/Firefox voice
+        (RECORDED_MP4, "video/mp4", ("video", "video/mp4")),  # Safari video
+        (RECORDED_MP4, "audio/mp4", ("audio", "audio/mp4")),  # Safari voice
+    ],
+)
+async def test_browser_recordings_are_accepted(client, sign_in, data, content_type, expected):
+    await sign_in()
+    r = await upload(client, data, "Voice recording", content_type)
+    assert r.status_code == 201
+    assert (r.json()["kind"], r.json()["mime"]) == expected
 
 
 @pytest.mark.parametrize(

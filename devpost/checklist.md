@@ -97,7 +97,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Spec ref: `spec.md > Components > Web app: Recorder and CityPicker` (Recorder)
   Build: `Recorder` component (MediaRecorder, webm on Chrome / mp4 on Safari, length caps, play-back, redo, permission-denied state); write the real duration into recorded WebM before upload (browsers leave it out, so players show an unknown length); recordings uploaded through `POST /v1/uploads`.
   Verify (mechanical): `npm run build` passes; `pytest` passes, including a webm and an mp4 recording accepted by upload type checks; in the browser pane, a fake-device recording is captured, played back, redone, attached, and plays in the opening; a denied permission shows the note.
-  Learner check: Record a short video, play it back, redo it once, save, simulate midnight and watch it inside the opening on your phone.
+  Learner check: On your laptop (localhost, so the browser allows the camera), record a short video and a voice note, play them back, redo one, save, simulate midnight and watch them inside the opening. Recording from the phone needs https, which comes with hosting.
   Commit: `Add in-browser audio and video recording`
 
 - [ ] **10. You can write in your language, in a handwritten font that fits it**
@@ -158,6 +158,8 @@ Reflection: [offered/answered/declined/already covered — personal answer belon
 Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
 
 ## Revisions
+
+- Recorder: added the `fix-webm-duration` npm package (MIT, no dependencies) instead of hand-writing a WebM header patcher, and record without a timeslice so Chrome writes the length itself. The browser pane blocks real cameras, so its recording checks used a synthetic camera and microphone (canvas + oscillator) in place of `getUserMedia`; the blocked path was checked against the pane's real refusal.
 
 - Reprioritized for a single-sender submission: recording moved up to 9, languages 10, people 11; the received-capsules slice (Sent | Received tabs, `/v1/received`) left the POC and is deferred — Dinesh, 2026-10-02: "multi tenant is not the mvp. single user is the hackathon submission. so move the core like personal video recording up the scope order". Recipients still need no account; the private email link is the only way to open a capsule.
 

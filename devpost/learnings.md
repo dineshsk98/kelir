@@ -6,6 +6,18 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-02 · Recorded WebM: whether it has a length depends on how you record
+- **Symptom:** while building the recorder, a test recording in Chromium reported a proper length (1.95 s), which contradicted the 2026-09-30 entry ("recorded WebM has no length"). Recording the same clip in chunks (`recorder.start(250)`) gave `Infinity`.
+- **Cause:** the earlier entry was only half right. Current Chromium writes the Duration field when the whole recording arrives at the end (`start()` with no timeslice), but not when it's delivered in chunks. Firefox and older Chrome leave it out either way.
+- **Fix:** `frontend/src/components/Recorder.tsx` records without a timeslice and, for WebM, runs `fix-webm-duration` (new dependency, MIT, no dependencies of its own) with the measured length. That library only adds the field when it's missing. Checked both paths in the browser pane: a chunked recording went from `Infinity` to 2.01 s, and real takes played through the capsule link with their lengths (0:06 video, 0:08 voice).
+- **Lesson:** check a "known" browser limitation again before building around it. Browsers change, and here the way the API is called made the difference. Test both the fast path and the fallback.
+
+## 2026-10-02 · A test dropped between a decorator and its function
+- **Symptom:** `pytest` stopped at collection with "duplicate parametrization of 'data'" in `backend/tests/test_media.py`.
+- **Cause:** the new recordings test was inserted right after the `@pytest.mark.parametrize` of the next test, so that decorator attached to the new test too.
+- **Fix:** moved the new test above the other test's decorator.
+- **Lesson:** when inserting code above a function, anchor on its decorators, not on the `def` line.
+
 ## 2026-10-02 · The gift box ran edge to edge on wide screens
 - **Symptom:** Dinesh: the box filled the full height of the screen; on a laptop the risen photocard touched the top edge.
 - **Cause:** the camera fit a circle around the subject to the whole screen height, ignoring that the title, the controls and the pull button also need room on top of the 3D view.

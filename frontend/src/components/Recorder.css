@@ -1,0 +1,88 @@
+.recorder {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+}
+
+.recorder-live,
+.recorder-playback {
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--radius-md);
+  background: #000;
+}
+
+audio.recorder-playback {
+  background: transparent;
+}
+
+/* A mirror is what people expect while framing themselves; the recording itself isn't flipped */
+.recorder-live {
+  transform: scaleX(-1);
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.recorder-mic {
+  font-size: 3rem;
+  margin: 0;
+}
+
+.recorder-meter {
+  width: min(240px, 80%);
+  height: 6px;
+  border-radius: 999px;
+  background: var(--color-border);
+  overflow: hidden;
+}
+
+.recorder-meter span {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+.recorder-clock {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.recorder-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--color-danger);
+  animation: recorder-blink 1s steps(2, start) infinite;
+}
+
+@keyframes recorder-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recorder-dot {
+    animation: none;
+  }
+}
+
+.recorder-note {
+  margin: 0;
+  text-align: center;
+}
+
+.recorder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}

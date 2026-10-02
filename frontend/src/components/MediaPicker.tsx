@@ -1,5 +1,6 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { api, ApiError, type MediaItem, type MediaKind } from '../api'
+import { Recorder, type RecordKind } from './Recorder'
 import './MediaPicker.css'
 
 export const MAX_ITEMS = 6
@@ -26,8 +27,8 @@ const runningUploads = new Map<string, AbortController>()
 const kindOf = (file: File): MediaKind | null =>
   file.type.startsWith('image/') ? 'image' : file.type.startsWith('video/') ? 'video' : file.type.startsWith('audio/') ? 'audio' : null
 
-/** Add photos, audio and video files (up to 6), remove any before saving. The list lives in
- *  the editor so it survives moving between steps. */
+/** Add photos, audio and video files or record them here (up to 6), remove any before saving.
+ *  The list lives in the editor so it survives moving between steps. */
 export function MediaPicker({
   items,
   onChange,
@@ -37,6 +38,7 @@ export function MediaPicker({
 }) {
   const photoInput = useRef<HTMLInputElement>(null)
   const clipInput = useRef<HTMLInputElement>(null)
+  const [recording, setRecording] = useState<RecordKind | null>(null)
   const room = MAX_ITEMS - items.length
 
   // Uploads keep running when the sender moves to another step (this component unmounts,
@@ -44,10 +46,10 @@ export function MediaPicker({
   const update = (key: string, patch: Partial<PickedMedia>) =>
     onChange((list) => list.map((m) => (m.key === key ? { ...m, ...patch } : m)))
 
-  const add = (files: FileList | null) => {
-    if (!files) return
+  // Picked files and finished recordings take the same path: check, preview, upload
+  const add = (files: File[]) => {
     const picked: PickedMedia[] = []
-    for (const file of Array.from(files).slice(0, room)) {
+    for (const file of files.slice(0, room)) {
       const kind = kindOf(file)
       const item: PickedMedia = {
         key: crypto.randomUUID(),
@@ -124,8 +126,24 @@ export function MediaPicker({
           ))}
         </ul>
       )}
-      {room > 0 && (
+      {room > 0 && recording && (
+        <Recorder
+          kind={recording}
+          onUse={(file) => {
+            add([file])
+            setRecording(null)
+          }}
+          onClose={() => setRecording(null)}
+        />
+      )}
+      {room > 0 && !recording && (
         <div className="media-add">
+          <button type="button" className="btn btn-soft" onClick={() => setRecording('video')}>
+            🎥 Record video
+          </button>
+          <button type="button" className="btn btn-soft" onClick={() => setRecording('audio')}>
+            🎙️ Record voice
+          </button>
           <button type="button" className="btn btn-soft" onClick={() => photoInput.current?.click()}>
             📷 Add photos
           </button>
@@ -142,7 +160,7 @@ export function MediaPicker({
         multiple
         hidden
         onChange={(e) => {
-          add(e.target.files)
+          add(Array.from(e.target.files ?? []))
           e.target.value = ''
         }}
       />
@@ -153,7 +171,7 @@ export function MediaPicker({
         multiple
         hidden
         onChange={(e) => {
-          add(e.target.files)
+          add(Array.from(e.target.files ?? []))
           e.target.value = ''
         }}
       />
