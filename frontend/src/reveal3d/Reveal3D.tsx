@@ -9,6 +9,8 @@ import {
   type PointerEvent,
   type ReactNode,
 } from 'react'
+import { knownLang, useMessageLang } from '../languages'
+import { RecipientLangProvider, useRecipientCopy, useRecipientLang } from '../recipientCopy'
 import { burstConfetti, themeConfettiColors } from '../reveal/confetti'
 import { usePrefersReducedMotion, type RevealCapsule } from '../reveal/Reveal'
 import { loadMuted, saveMuted } from '../reveal/sfx'
@@ -43,25 +45,31 @@ class SceneBoundary extends Component<{ onError: () => void; children: ReactNode
 /** How far a drag (in any direction) must travel to pull the ribbon loose: a share of the short side. */
 const PULL_SPAN = 0.28
 
-/**
- * The 3D opening (design canvas "Capsule Reveal"): the box arrives, she pulls the ribbon,
- * it unties, charges, bursts, and the photocard rises. Same props as the first <Reveal>.
- * Mute, sound, skip and reduced motion live in here.
- */
-export function Reveal3D({
-  capsule,
-  replyPanel,
-  onFirstReveal,
-  reducedMotion,
-  backdrop = 'colour',
-}: {
+type Reveal3DProps = {
   capsule: RevealCapsule
   replyPanel?: ReactNode
   onFirstReveal?: () => void
   /** Force reduced motion on/off (the dev page); otherwise follows the device setting */
   reducedMotion?: boolean
   backdrop?: BackdropPhoto
-}) {
+}
+
+/**
+ * The 3D opening (design canvas "Capsule Reveal"): the box arrives, she pulls the ribbon,
+ * it unties, charges, bursts, and the photocard rises. Same props as the first <Reveal>.
+ * Mute, sound, skip and reduced motion live in here. Everything around the sender's own words
+ * is in the capsule's language, and so is its handwriting.
+ */
+export function Reveal3D(props: Reveal3DProps) {
+  // The viewers, players, gift and thank-you inside read the language from here
+  return (
+    <RecipientLangProvider value={knownLang(props.capsule.messageLang)}>
+      <Opening {...props} />
+    </RecipientLangProvider>
+  )
+}
+
+function Opening({ capsule, replyPanel, onFirstReveal, reducedMotion, backdrop = 'colour' }: Reveal3DProps) {
   const prefersReduced = usePrefersReducedMotion()
   const reduced = reducedMotion ?? prefersReduced
   const [stage, setStage] = useState<Stage>('cake_arrive')
@@ -83,6 +91,9 @@ export function Reveal3D({
   const tapTimer = useRef<number>()
   const revealedOnce = useRef(false)
   const firstName = capsule.recipientName.split(' ')[0]
+  const lang = useRecipientLang()
+  const t = useRecipientCopy()
+  const langProps = useMessageLang(lang) // the handwriting (titles, letter, record label) follows it
 
   stageRef.current = stage
 
@@ -271,10 +282,11 @@ export function Reveal3D({
       ref={rootRef}
       className={`r3d r3d-at-${stage}${reduced ? ' reduced' : ''}`}
       style={{ ['--reduced-fade' as string]: `${REDUCED_FADE_MS}ms` }}
+      {...langProps}
     >
       <section
         className="r3d-stage"
-        aria-label={`A gift for ${firstName} from ${capsule.senderName}`}
+        aria-label={t.giftFromTo(firstName, capsule.senderName)}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -290,6 +302,7 @@ export function Reveal3D({
                 reduced={reduced}
                 recipientFirstName={firstName}
                 senderName={capsule.senderName}
+                lang={lang}
                 onReady={onSceneReady}
               />
             </Suspense>
@@ -300,8 +313,8 @@ export function Reveal3D({
         <div className="r3d-flash" aria-hidden="true" />
 
         <header className={`r3d-title${titleShown ? '' : ' hidden'}`}>
-          <h1>{open ? `Happy birthday, ${firstName}` : `A gift for ${firstName}`}</h1>
-          <p>from {capsule.senderName}</p>
+          <h1>{open ? t.happyBirthday(firstName) : t.giftFor(firstName)}</h1>
+          <p>{t.from(capsule.senderName)}</p>
         </header>
 
         <div className="r3d-controls">
@@ -309,8 +322,8 @@ export function Reveal3D({
             type="button"
             className="r3d-icon"
             aria-pressed={muted}
-            aria-label={muted ? 'Sound off' : 'Sound on'}
-            title={muted ? 'Sound off' : 'Sound on'}
+            aria-label={muted ? t.soundOff : t.soundOn}
+            title={muted ? t.soundOff : t.soundOn}
             onClick={toggleMute}
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
@@ -328,7 +341,7 @@ export function Reveal3D({
           </button>
           {!open && (
             <button type="button" className="r3d-pill" onClick={skip}>
-              Skip
+              {t.skip}
             </button>
           )}
         </div>
@@ -346,20 +359,20 @@ export function Reveal3D({
         <div className="r3d-bottom" aria-live="polite">
           {stage === 'pull' && (
             <button type="button" className="r3d-pull" onClick={pullByTap}>
-              Pull the ribbon
+              {t.pullRibbon}
             </button>
           )}
           {stage === 'blow' && (
             <div className="r3d-blow">
               <button type="button" className="r3d-pull" onClick={blowCandle}>
-                Blow out the candles
+                {t.blowCandles}
               </button>
               {micAvailable && !listening && (
                 <button type="button" className="r3d-pill" onClick={() => setListening(true)}>
-                  🎤 Blow for real
+                  🎤 {t.blowForReal}
                 </button>
               )}
-              {listening && <p className="r3d-listening">Listening… blow at your phone</p>}
+              {listening && <p className="r3d-listening">{t.listening}</p>}
             </div>
           )}
         </div>

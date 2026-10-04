@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useRecipientCopy } from '../recipientCopy'
 import './MediaPlayers.css'
 
 type OnPlaying = ((playing: boolean) => void) | undefined
@@ -73,21 +74,22 @@ function Transport({
   children?: ReactNode
 }) {
   const { time, duration, known, seek } = media
+  const t = useRecipientCopy()
   return (
     <div className="mp-transport">
-      <button type="button" className="mp-play" aria-label={playing ? 'Pause' : 'Play'} onClick={onToggle}>
+      <button type="button" className="mp-play" aria-label={playing ? t.pause : t.play} onClick={onToggle}>
         <span aria-hidden="true">{playing ? '❚❚' : '▶'}</span>
       </button>
       <input
         type="range"
         className="mp-seek"
-        aria-label="Position"
+        aria-label={t.position}
         min={0}
         max={known ? duration : 1}
         step={0.1}
         value={known ? time : 0}
         disabled={!known}
-        aria-valuetext={known ? `${clock(time)} of ${clock(duration)}` : clock(time)}
+        aria-valuetext={known ? t.timeOf(clock(time), clock(duration)) : clock(time)}
         onChange={(e) => seek(Number(e.target.value))}
       />
       <span className="mp-time">
@@ -123,6 +125,7 @@ export function RecordPlayer({
   onPlaying?: OnPlaying
 }) {
   const media = useMediaClock<HTMLAudioElement>(onPlaying)
+  const t = useRecipientCopy()
   const [armDown, setArmDown] = useState(false)
   const landing = useRef<number>()
 
@@ -172,10 +175,10 @@ export function RecordPlayer({
             ))}
             <circle cx="160" cy="150" r="40" fill="url(#mp-label)" />
             <text x="160" y="143" textAnchor="middle" className="mp-label-from">
-              {from ?? 'For you'}
+              {from ?? t.forYou}
             </text>
             <text x="160" y="161" textAnchor="middle" className="mp-label-what">
-              voice note
+              {t.recordLabel}
             </text>
           </g>
           {/* Light catching the grooves stays put while the record turns underneath */}
@@ -225,6 +228,7 @@ const fullscreen = (video: HTMLVideoElement | null) => {
 /** A video projected onto the wall by a small projector, its light fanning up to the picture */
 export function ProjectorPlayer({ src, from, onPlaying }: { src: string; from?: string; onPlaying?: OnPlaying }) {
   const media = useMediaClock<HTMLVideoElement>(onPlaying)
+  const t = useRecipientCopy()
   // The beam fans out to the picture's width, which depends on the video's shape
   const [pictureW, setPictureW] = useState<number>()
   useEffect(() => {
@@ -243,12 +247,12 @@ export function ProjectorPlayer({ src, from, onPlaying }: { src: string; from?: 
         {/* Tapping the picture plays or pauses it; the button below does the same by keyboard */}
         <video ref={media.ref} src={src} autoPlay playsInline preload="metadata" onClick={media.toggle} {...media.events} />
         <div className="mp-projection-bar">
-          <span className="mp-projection-title">{from ? `A video from ${from}` : 'A video'}</span>
+          <span className="mp-projection-title">{from ? t.videoFrom(from) : t.video}</span>
           <Transport media={media}>
             <button
               type="button"
               className="mp-fullscreen"
-              aria-label="Full screen"
+              aria-label={t.fullScreen}
               onClick={() => fullscreen(media.ref.current)}
             >
               <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">

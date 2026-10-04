@@ -13,6 +13,12 @@
   text-align: center;
 }
 
+.reply-lang {
+  display: grid;
+  gap: 6px;
+  margin-top: 14px;
+}
+
 .reply-presets {
   display: grid;
   gap: 8px;
@@ -40,6 +46,12 @@
   display: grid;
   gap: 6px;
   margin-bottom: 14px;
+}
+
+/* Her own words in her chosen language's handwriting, as the sender will see them */
+.reply-own textarea {
+  font-family: var(--font-hand);
+  font-size: 1.3rem;
 }
 
 .reply-count {

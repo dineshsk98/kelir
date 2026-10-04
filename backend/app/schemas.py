@@ -153,6 +153,7 @@ class ReplyIn(BaseModel):
 
     preset_key: str | None = None
     text: Annotated[Text | None, AfterValidator(_blank_to_none)] = None
+    lang: MessageLang = "en"
 
     @model_validator(mode="after")
     def _one_of(self):
@@ -167,18 +168,23 @@ class ReplyIn(BaseModel):
 
 class ReplyOut(BaseModel):
     text: str
+    lang: MessageLang
     created_at: datetime
 
     @classmethod
     def from_model(cls, reply) -> "ReplyOut | None":
         if reply is None:
             return None
-        return cls(text=reply_text(reply.preset_key, reply.text), created_at=reply.created_at)
+        return cls(
+            text=reply_text(reply.preset_key, reply.text, reply.lang),
+            lang=reply.lang,
+            created_at=reply.created_at,
+        )
 
 
 class ReplyPreset(BaseModel):
     key: str
-    text: str
+    texts: dict[MessageLang, str]  # the same thank-you in every message language
 
 
 def _reply(value):

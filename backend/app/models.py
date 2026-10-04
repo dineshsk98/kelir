@@ -118,6 +118,10 @@ class Reply(Base):
     __tablename__ = "replies"
     __table_args__ = (
         CheckConstraint("(preset_key IS NULL) <> (text IS NULL)", name="preset_or_text"),
+        CheckConstraint(
+            "lang IN ('en', 'ko', 'zh', 'ja', 'es', 'ta', 'hi', 'fr', 'it', 'de')",
+            name="reply_lang_valid",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
@@ -126,6 +130,8 @@ class Reply(Base):
     )
     preset_key: Mapped[str | None] = mapped_column(String(40))
     text: Mapped[str | None] = mapped_column(String(500))
+    # The language it was written in (or a preset was picked in): sets its handwriting
+    lang: Mapped[str] = mapped_column(String(2), default="en", server_default="en")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

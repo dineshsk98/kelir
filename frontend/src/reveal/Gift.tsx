@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useRecipientCopy } from '../recipientCopy'
 
 export type RevealGift = { kind: 'link' | 'code'; value: string; note?: string }
 
@@ -6,6 +7,7 @@ export type RevealGift = { kind: 'link' | 'code'; value: string; note?: string }
 export function Gift({ gift }: { gift: RevealGift }) {
   const [revealed, setRevealed] = useState(false)
   const [copied, setCopied] = useState(false)
+  const t = useRecipientCopy() // English outside the 3D opening (the first <Reveal>)
 
   const copy = async () => {
     try {
@@ -18,23 +20,23 @@ export function Gift({ gift }: { gift: RevealGift }) {
   }
 
   return (
-    <section className="reveal-gift" aria-label="Your gift">
+    <section className="reveal-gift" aria-label={t.gift}>
       {gift.note && <p className="reveal-gift-note">{gift.note}</p>}
       {gift.kind === 'link' ? (
         // noreferrer: the gift site never sees this page's private URL
         <a className="btn" href={gift.value} target="_blank" rel="noopener noreferrer">
-          🎁 Open your gift
+          🎁 {t.openGift}
         </a>
       ) : revealed ? (
         <div className="reveal-code-row">
           <code className="reveal-code">{gift.value}</code>
           <button type="button" className="btn" onClick={copy}>
-            {copied ? 'Copied!' : 'Copy'}
+            {copied ? t.copied : t.copy}
           </button>
         </div>
       ) : (
         <button type="button" className="reveal-code-hidden" onClick={() => setRevealed(true)}>
-          🎁 Tap to reveal your gift
+          🎁 {t.revealGift}
         </button>
       )}
     </section>

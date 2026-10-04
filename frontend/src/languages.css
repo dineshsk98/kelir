@@ -1,6 +1,13 @@
 /* A message's handwritten font follows its language. Message elements already use
    var(--font-hand), so each language just redefines it there (Caveat stays as the fallback
    for any Latin letters, digits and emoji in the message). */
+
+/* Every language starts from Caveat, so an English reply inside a Korean capsule's opening
+   doesn't inherit the Korean handwriting */
+[data-msg-lang] {
+  --font-hand: 'Caveat', cursive;
+}
+
 [data-msg-lang='ko'] {
   --font-hand: 'Nanum Pen Script', 'Caveat', cursive;
 }

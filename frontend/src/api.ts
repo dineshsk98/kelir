@@ -45,8 +45,9 @@ export type Capsule = Omit<CapsuleCreate, 'upload_ids'> & {
   created_at: string
 }
 
-export type Reply = { text: string; created_at: string }
-export type ReplyPreset = { key: string; text: string }
+export type Reply = { text: string; lang: MessageLang; created_at: string }
+/** One thank-you, offered in every message language */
+export type ReplyPreset = { key: string; texts: Record<MessageLang, string> }
 
 /** What the recipient's private link returns */
 export type RecipientCapsule = {
@@ -145,6 +146,6 @@ export const api = {
     request<Capsule>(`/v1/demo/capsules/${encodeURIComponent(id)}/simulate-midnight`, { method: 'POST' }),
 
   openCapsule: (secret: string) => request<RecipientCapsule>(`/v1/c/${encodeURIComponent(secret)}`),
-  sendReply: (secret: string, body: { preset_key: string } | { text: string }) =>
+  sendReply: (secret: string, body: ({ preset_key: string } | { text: string }) & { lang: MessageLang }) =>
     request<Reply>(`/v1/c/${encodeURIComponent(secret)}/reply`, post(body)),
 }

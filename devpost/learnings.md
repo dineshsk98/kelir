@@ -6,6 +6,12 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-04 · The recipient's opening stayed in English for a Korean capsule
+- **Symptom:** Dinesh, after slice 12: a capsule written in another language still opened with English titles, buttons, labels, photocard and thank-you presets; only the letter itself used the language.
+- **Cause:** slice 12 applied the language to the message element and the email only. Every other string on the recipient page was hard-coded English in the components (`Reveal3D`, `CapsuleContents`, `MediaPlayers`, `Gift`, `ReplyPanel`, the canvas photocard) and in the API's reply presets, and nothing passed the capsule's language down to them.
+- **Fix:** all recipient-facing strings moved into `frontend/src/recipientCopy.ts` (10 languages), read through a context that `Reveal3D` sets from the capsule's language; `photocard.ts` loads the script's font before drawing (`loadHandFont` in `languages.ts`). Presets are translated in `backend/app/replies.py`, and replies store their own `lang` (migration `0007`), chosen in the reply panel. `languages.css` now resets `--font-hand` to Caveat for every `[data-msg-lang]`, so an English reply inside a Korean opening doesn't inherit the Korean handwriting.
+- **Lesson:** when a feature is "in the user's language", list every string that user sees (including canvas text, aria-labels and server-provided copy) before calling it done. With CSS custom properties set per language, give the default language its own rule, or nested elements inherit the parent's value.
+
 ## 2026-10-04 · `capsules.message_lang` missing in the dev database
 - **Symptom:** Dinesh, trying slice 12: the app failed because the column `capsules.message_lang` doesn't exist.
 - **Cause:** the slice added migration `0006`, but only the test database is migrated automatically (the test setup runs `alembic upgrade head`). The dev database stayed at `0005`, so the passing tests said nothing about it, and the step to run the migration was only in the hand-off notes.

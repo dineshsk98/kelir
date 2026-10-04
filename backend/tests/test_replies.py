@@ -2,12 +2,14 @@
 
 import asyncio
 from datetime import datetime, timezone
+from typing import get_args
 
 import pytest
 from sqlalchemy import func, select, update
 
 from app.models import Capsule, Reply
 from app.replies import REPLY_PRESETS
+from app.schemas import MessageLang
 from tests.test_recipient import delivered_link
 
 REPLIED_AT = datetime(2027, 3, 13, 23, 5, tzinfo=timezone.utc)
@@ -23,14 +25,21 @@ async def link(client, sign_in, freeze_now, sessionmaker, mailer, settings):
 async def test_presets_come_with_the_capsule(client, link):
     body = (await client.get(link[0])).json()
     assert body["reply"] is None
-    assert {p["key"]: p["text"] for p in body["reply_presets"]} == REPLY_PRESETS
+    assert {p["key"]: p["texts"] for p in body["reply_presets"]} == REPLY_PRESETS
+
+
+def test_every_preset_is_in_every_language():
+    for texts in REPLY_PRESETS.values():
+        assert set(texts) == set(get_args(MessageLang))
+        assert all(t.strip() for t in texts.values())
 
 
 async def test_reply_with_a_preset(client, link):
-    key, text = next(iter(REPLY_PRESETS.items()))
+    key, texts = next(iter(REPLY_PRESETS.items()))
+    text = texts["en"]  # English unless the recipient picks another language
     r = await client.post(f"{link[0]}/reply", json={"preset_key": key})
     assert r.status_code == 201
-    assert r.json()["text"] == text
+    assert r.json()["text"] == text and r.json()["lang"] == "en"
     assert r.headers["cache-control"] == "no-store"
     # Replay shows it was sent
     assert (await client.get(link[0])).json()["reply"]["text"] == text
@@ -39,6 +48,24 @@ async def test_reply_with_a_preset(client, link):
 async def test_reply_with_own_words_is_trimmed(client, link):
     r = await client.post(f"{link[0]}/reply", json={"text": "  Thank you, I love it!  "})
     assert r.status_code == 201 and r.json()["text"] == "Thank you, I love it!"
+
+
+async def test_preset_in_another_language(client, link):
+    key, texts = next(iter(REPLY_PRESETS.items()))
+    r = await client.post(f"{link[0]}/reply", json={"preset_key": key, "lang": "ta"})
+    assert r.status_code == 201 and r.json() | {"created_at": None} == {
+        "text": texts["ta"],
+        "lang": "ta",
+        "created_at": None,
+    }
+    assert (await client.get(link[0])).json()["reply"]["text"] == texts["ta"]
+
+
+async def test_own_words_keep_their_language(client, link):
+    r = await client.post(f"{link[0]}/reply", json={"text": "정말 고마워!", "lang": "ko"})
+    assert r.status_code == 201
+    reply = (await client.get(link[0])).json()["reply"]
+    assert (reply["text"], reply["lang"]) == ("정말 고마워!", "ko")
 
 
 async def test_sender_sees_the_reply_in_history(client, link, act_as, sessionmaker):
@@ -51,7 +78,7 @@ async def test_sender_sees_the_reply_in_history(client, link, act_as, sessionmak
     assert row["reply"]["text"] == "Thank you!"
     assert row["status"] == "opened"
     detail = (await client.get(f"/v1/capsules/{capsule['id']}")).json()
-    assert detail["reply"]["text"] == "Thank you!"
+    assert detail["reply"]["text"] == "Thank you!" and detail["reply"]["lang"] == "en"
 
 
 async def test_only_one_reply_per_capsule(client, link, sessionmaker):
@@ -80,6 +107,7 @@ async def test_double_tap_still_makes_one_reply(client, link, sessionmaker):
         {"preset_key": "not_a_preset"},
         {"text": "x" * 501},
         {"text": "hi", "extra": 1},
+        {"text": "hi", "lang": "xx"},
     ],
 )
 async def test_invalid_replies_are_rejected(client, link, body):

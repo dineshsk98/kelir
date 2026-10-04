@@ -16,6 +16,11 @@ function Message({ text, lang }: { text: string; lang: string }) {
   )
 }
 
+/** Their thank-you, in the handwriting of the language they wrote (or picked) it in */
+function ReplyQuote({ text, lang }: { text: string; lang: string }) {
+  return <blockquote {...useMessageLang(lang)}>“{text}”</blockquote>
+}
+
 /** One sent capsule: what it holds, where it is, the thank-you, and Edit/Cancel until opened. */
 export function CapsuleDetail() {
   const { id = '' } = useParams()
@@ -85,7 +90,7 @@ export function CapsuleDetail() {
       {c.reply && (
         <section className="detail-reply" aria-label="Their thank-you">
           <p className="small muted">Their thank-you</p>
-          <blockquote>“{c.reply.text}”</blockquote>
+          <ReplyQuote text={c.reply.text} lang={c.reply.lang} />
         </section>
       )}
 

@@ -77,7 +77,7 @@ async def open_capsule(secret: str, session: Session, now: Now, response: Respon
         gift_value=capsule.gift_value,
         gift_note=capsule.gift_note,
         reply=ReplyOut.from_model(capsule.reply),
-        reply_presets=[ReplyPreset(key=k, text=t) for k, t in REPLY_PRESETS.items()],
+        reply_presets=[ReplyPreset(key=k, texts=t) for k, t in REPLY_PRESETS.items()],
     )
 
 
@@ -106,7 +106,9 @@ async def send_reply(
     already_replied = HTTPException(409, detail={"code": "REPLY_EXISTS"}, headers=PRIVATE_HEADERS)
     if capsule.reply is not None:
         raise already_replied
-    reply = Reply(capsule_id=capsule.id, preset_key=body.preset_key, text=body.text, created_at=now)
+    reply = Reply(
+        capsule_id=capsule.id, preset_key=body.preset_key, text=body.text, lang=body.lang, created_at=now
+    )
     try:
         session.add(reply)
         # The INSERT is flushed by this next statement (autoflush), so it belongs inside the try

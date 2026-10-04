@@ -62,12 +62,13 @@ const FONT_CSS: Partial<Record<MessageLang, () => Promise<unknown>>> = {
   hi: () => import('@fontsource/kalam/400.css'),
 }
 
-const known = (lang: string | undefined): MessageLang =>
+/** The language if it's one of ours, otherwise English */
+export const knownLang = (lang: string | undefined): MessageLang =>
   MESSAGE_LANGS.some((l) => l.code === lang) ? (lang as MessageLang) : 'en'
 
 /** Loads the language's font (once) and returns the attributes for the message element */
 export function useMessageLang(lang: string | undefined) {
-  const code = known(lang)
+  const code = knownLang(lang)
   useEffect(() => {
     FONT_CSS[code]?.().catch(() => {}) // without it the message falls back to Caveat
   }, [code])
@@ -76,7 +77,33 @@ export function useMessageLang(lang: string | undefined) {
 
 /** `lang` (line breaking, screen-reader voice) and the hook for the script's font in CSS */
 export function messageLangProps(lang: string | undefined) {
-  const code = known(lang)
+  const code = knownLang(lang)
   const htmlLang = MESSAGE_LANGS.find((l) => l.code === code)!.htmlLang
   return { lang: htmlLang, 'data-msg-lang': code }
+}
+
+// The same families as languages.css, for drawing on a canvas (the photocard)
+const HAND_FAMILY: Partial<Record<MessageLang, string>> = {
+  ko: 'Nanum Pen Script',
+  zh: 'Ma Shan Zheng',
+  ja: 'Yomogi',
+  ta: 'Kavivanar',
+  hi: 'Kalam',
+}
+
+/** Loads the language's handwriting for `text` and returns a CSS font-family list for it.
+ *  A canvas doesn't wait for fonts: they must be loaded before it draws. */
+export async function loadHandFont(lang: string | undefined, text: string): Promise<string> {
+  const code = knownLang(lang)
+  const family = HAND_FAMILY[code]
+  try {
+    await document.fonts.load('700 64px Caveat', text)
+    if (family) {
+      await FONT_CSS[code]?.()
+      await document.fonts.load(`64px "${family}"`, text) // only the characters it needs
+    }
+  } catch {
+    // the system's cursive font is a fine fallback
+  }
+  return family ? `"${family}", Caveat, cursive` : 'Caveat, cursive'
 }

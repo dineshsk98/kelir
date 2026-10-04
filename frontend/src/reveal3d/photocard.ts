@@ -1,25 +1,35 @@
 // The default photocard every capsule gets: original art drawn on a canvas, with her name
-// written on it live. The canvas becomes the texture on the 3D card.
+// written on it live, in the capsule's language and handwriting. The canvas becomes the
+// texture on the 3D card.
+
+import { loadHandFont, type MessageLang } from '../languages'
+import { RECIPIENT_COPY } from '../recipientCopy'
 
 const W = 640
 const H = 794
 
 /** Writes `text` centred at (x, y), shrinking the font until it fits `maxWidth`. */
-function fitText(g: CanvasRenderingContext2D, text: string, x: number, y: number, size: number, maxWidth: number) {
+function fitText(
+  g: CanvasRenderingContext2D,
+  family: string,
+  text: string,
+  x: number,
+  y: number,
+  size: number,
+  maxWidth: number,
+) {
   let px = size
   do {
-    g.font = `700 ${px}px Caveat, cursive`
+    g.font = `700 ${px}px ${family}`
     px -= 2
   } while (g.measureText(text).width > maxWidth && px > 20)
   g.fillText(text, x, y)
 }
 
-export async function drawPhotocard(name: string, sender: string): Promise<HTMLCanvasElement> {
-  try {
-    await document.fonts.load('700 64px Caveat')
-  } catch {
-    // the system's cursive font is a fine fallback
-  }
+export async function drawPhotocard(name: string, sender: string, lang: MessageLang): Promise<HTMLCanvasElement> {
+  const copy = RECIPIENT_COPY[lang]
+  const words = [copy.cardHappyBirthday, name, copy.from(sender)]
+  const family = await loadHandFont(lang, words.join(''))
   const c = document.createElement('canvas')
   c.width = W
   c.height = H
@@ -85,12 +95,12 @@ export async function drawPhotocard(name: string, sender: string): Promise<HTMLC
   // Her name, written live
   g.textAlign = 'center'
   g.fillStyle = '#f7f1e6'
-  fitText(g, 'Happy birthday', W / 2, py + 430, 76, pw - 60)
+  fitText(g, family, words[0], W / 2, py + 430, 76, pw - 60)
   g.fillStyle = '#ffcf7a'
-  fitText(g, name, W / 2, py + 520, 84, pw - 60)
+  fitText(g, family, name, W / 2, py + 520, 84, pw - 60)
 
   // The white strip at the bottom
   g.fillStyle = '#3a2a30'
-  fitText(g, `from ${sender}`, W / 2, H - 52, 48, pw - 60)
+  fitText(g, family, words[2], W / 2, H - 52, 48, pw - 60)
   return c
 }

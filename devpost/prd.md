@@ -124,7 +124,11 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
   - [ ] Languages: English, Korean, Chinese, Japanese, Spanish, Tamil, Hindi, French, Italian, German.
   - [ ] The chosen language sets the message font in the editor, the preview and the opening.
   - [ ] The email's subject line and "Open your capsule" button are in the capsule's language (as are its greeting and closing, so the email doesn't mix two languages).
-  - [ ] Typing uses the device's own keyboard; the app's own buttons and labels stay in English for now.
+  - [ ] Typing uses the device's own keyboard (the language is picked from a list; detecting it from the text or keyboard is for later).
+- As a recipient, the whole opening is in the language the capsule was written in: its titles, buttons, photocard, viewers, players, gift and thank-you panel. An English capsule stays English. (Added 2026-10-04.)
+  - [ ] My thank-you starts in that language too; I can pick another one from the same list, and the presets follow my pick.
+  - [ ] The sender sees my thank-you in the handwriting of the language I chose.
+  - [ ] The sender's own pages stay in English for now.
 
 ## States and Boundaries
 - **First use (sender):** the history is empty and shows an inviting "Make your first capsule" prompt.
@@ -166,7 +170,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - **Audio and video thank-you replies:** a second recorder on the recipient's side; text proves the loop.
 - **Other sign-in providers:** Google alone proves trusted identity.
 - **Multiple recipients per capsule, or reusing a capsule:** one person at a time proves the kernel. (Reusing a *person* is now in scope, see People.)
-- **Translating the app's own buttons and labels:** the message, email subject and button follow the capsule's language; full UI translation comes later.
+- **Translating the sender's pages:** the email and the recipient's whole opening follow the capsule's language; the sender's own buttons and labels stay English for now.
 
 ## Non-Goals
 - **Required recipient accounts:** against the core principle.

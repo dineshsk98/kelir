@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { GalleryItem } from '../components/MediaGallery'
 import { useMessageLang } from '../languages'
+import { useRecipientCopy, type RecipientCopy } from '../recipientCopy'
 import { Gift } from '../reveal/Gift'
 import type { RevealCapsule } from '../reveal/Reveal'
 import { ProjectorPlayer, RecordPlayer } from './MediaPlayers'
@@ -20,15 +21,12 @@ function itemsOf(capsule: RevealCapsule): Item[] {
   return items
 }
 
-const COUNT_WORDS = ['', 'a little surprise', 'two little surprises', 'three little surprises', 'four little surprises',
-  'five little surprises', 'six little surprises', 'seven little surprises', 'eight little surprises']
-
-const label = (item: Item) =>
-  item.kind === 'message' ? 'Your letter'
-    : item.kind === 'gift' ? 'Your gift'
-      : item.media.kind === 'image' ? 'A photo'
-        : item.media.kind === 'video' ? 'A video'
-          : 'A voice note'
+const label = (item: Item, t: RecipientCopy) =>
+  item.kind === 'message' ? t.letter
+    : item.kind === 'gift' ? t.gift
+      : item.media.kind === 'image' ? t.photo
+        : item.media.kind === 'video' ? t.video
+          : t.voiceNote
 
 /**
  * What she finds once the box is open: a short note from the sender with a thumbnail for
@@ -56,24 +54,22 @@ export function CapsuleContents({
   const [open, setOpen] = useState<number | null>(null)
   const [thanking, setThanking] = useState(false)
   const sender = capsule.senderName.split(' ')[0]
-  const count = COUNT_WORDS[items.length] ?? `${items.length} little surprises`
+  const t = useRecipientCopy()
   // The letter (thumbnail and opened) in its language's handwriting
   const letterLang = useMessageLang(capsule.messageLang)
 
   return (
-    <section className="r3d-contents" aria-label={`What ${sender} sent you`}>
-      <p className="r3d-contents-kicker">A capsule from {capsule.senderName}</p>
-      <h2 className="r3d-contents-title">
-        {sender} wrapped up {count} for you
-      </h2>
-      <p className="r3d-contents-hint">Tap one to open it</p>
+    <section className="r3d-contents" aria-label={t.contentsLabel(sender)}>
+      <p className="r3d-contents-kicker">{t.capsuleFrom(capsule.senderName)}</p>
+      <h2 className="r3d-contents-title">{t.wrapped(sender, items.length)}</h2>
+      <p className="r3d-contents-hint">{t.tapToOpen}</p>
 
       <ul className="r3d-thumbs">
         {items.map((item, i) => (
           <li key={item.key}>
             <button type="button" className={`r3d-thumb r3d-thumb-${thumbKind(item)}`} onClick={() => setOpen(i)}>
               <Thumb item={item} letterLang={letterLang} />
-              <span className="r3d-thumb-label">{label(item)}</span>
+              <span className="r3d-thumb-label">{label(item, t)}</span>
             </button>
           </li>
         ))}
@@ -81,7 +77,7 @@ export function CapsuleContents({
 
       {replyPanel && (
         <button type="button" className="r3d-pull r3d-thanks" onClick={() => setThanking(true)}>
-          💌 Say thank you to {sender}
+          💌 {t.sayThanks(sender)}
         </button>
       )}
 
@@ -89,7 +85,7 @@ export function CapsuleContents({
         <>
           {open !== null && (
             <Viewer
-              title={label(items[open])}
+              title={label(items[open], t)}
               room={isPlayable(items[open])}
               onClose={() => setOpen(null)}
               onPrev={open > 0 ? () => setOpen(open - 1) : undefined}
@@ -107,7 +103,7 @@ export function CapsuleContents({
           )}
           {/* Always mounted, only hidden: the panel remembers that her thank-you was sent */}
           {replyPanel && (
-            <Viewer title={`Thank ${sender}`} hidden={!thanking} onClose={() => setThanking(false)}>
+            <Viewer title={t.thank(sender)} hidden={!thanking} onClose={() => setThanking(false)}>
               {replyPanel}
             </Viewer>
           )}
@@ -159,6 +155,7 @@ function Opened({
   reduced?: boolean
   onPlaying?: (playing: boolean) => void
 }) {
+  const t = useRecipientCopy()
   if (item.kind === 'message')
     return (
       <p className="r3d-letter" {...letterLang}>
@@ -167,7 +164,7 @@ function Opened({
     )
   if (item.kind === 'gift') return <Gift gift={item.gift} />
   const m = item.media
-  if (m.kind === 'image') return <img className="r3d-viewer-photo" src={m.url} alt="A photo from the capsule" />
+  if (m.kind === 'image') return <img className="r3d-viewer-photo" src={m.url} alt={t.photoAlt} />
   if (m.kind === 'video') return <ProjectorPlayer src={m.url} from={from} onPlaying={onPlaying} />
   return <RecordPlayer src={m.url} from={from} reduced={reduced} onPlaying={onPlaying} />
 }
@@ -192,6 +189,7 @@ function Viewer({
   children: ReactNode
 }) {
   const closeRef = useRef<HTMLButtonElement>(null)
+  const t = useRecipientCopy()
   // The latest handlers, so the effect below runs only when the viewer opens or closes
   const handlers = useRef({ onClose, onPrev, onNext })
   handlers.current = { onClose, onPrev, onNext }
@@ -226,7 +224,7 @@ function Viewer({
       <div className="r3d-viewer-box">
         <header className="r3d-viewer-head">
           <span>{title}</span>
-          <button ref={closeRef} type="button" className="r3d-icon" aria-label="Close" onClick={onClose}>
+          <button ref={closeRef} type="button" className="r3d-icon" aria-label={t.close} onClick={onClose}>
             ×
           </button>
         </header>
@@ -234,10 +232,10 @@ function Viewer({
         {(onPrev || onNext) && (
           <nav className="r3d-viewer-nav">
             <button type="button" className="r3d-pill" disabled={!onPrev} onClick={onPrev}>
-              ‹ Previous
+              ‹ {t.previous}
             </button>
             <button type="button" className="r3d-pill" disabled={!onNext} onClick={onNext}>
-              Next ›
+              {t.next} ›
             </button>
           </nav>
         )}

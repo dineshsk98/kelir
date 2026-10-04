@@ -6,6 +6,7 @@ import { Bloom, EffectComposer } from '@react-three/postprocessing'
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
+import type { MessageLang } from '../languages'
 import { drawPhotocard } from './photocard'
 import { DURATION, sceneStage, type Stage } from './stages'
 
@@ -24,6 +25,8 @@ export type GiftSceneProps = {
   reduced: boolean
   recipientFirstName: string
   senderName: string
+  /** The capsule's language: the photocard is written in it */
+  lang: MessageLang
   /** Called once the 3D view is up, so the opening can wait for it */
   onReady?: () => void
 }
@@ -188,7 +191,7 @@ function Particles({ stage, reduced }: { stage: Stage; reduced: boolean }) {
   return <instancedMesh ref={mesh} args={[geo, mat, count]} />
 }
 
-function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftSceneProps) {
+function GiftBox({ stage, pull, reduced, recipientFirstName, senderName, lang }: GiftSceneProps) {
   const clock = useStageClock(stage)
   const box = useRef<THREE.Group>(null!)
   const lid = useRef<THREE.Group>(null!)
@@ -255,7 +258,7 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftS
   useEffect(() => {
     let cancelled = false
     let made: THREE.CanvasTexture | null = null
-    void drawPhotocard(recipientFirstName, senderName).then((canvas) => {
+    void drawPhotocard(recipientFirstName, senderName, lang).then((canvas) => {
       if (cancelled) return
       made = new THREE.CanvasTexture(canvas)
       made.colorSpace = THREE.SRGBColorSpace
@@ -266,7 +269,7 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName }: GiftS
       cancelled = true
       made?.dispose()
     }
-  }, [recipientFirstName, senderName])
+  }, [recipientFirstName, senderName, lang])
   useEffect(() => {
     mat.cardFront.map = cardTexture
     mat.cardFront.color.set(cardTexture ? '#ffffff' : '#f7f1e6')
