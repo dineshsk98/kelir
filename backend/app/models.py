@@ -35,6 +35,37 @@ class Sender(Base):
     )
 
 
+class Person(Base):
+    """Someone a sender has sent to (prd.md > Regular recipients). Saved or updated by every
+    capsule they're sent; their capsules keep their own copy of the details."""
+
+    __tablename__ = "people"
+    __table_args__ = (
+        # Emails arrive lowercased from the API, so this is unique regardless of case
+        UniqueConstraint("sender_id", "email", name="uq_people_sender_email"),
+        CheckConstraint("email = lower(email)", name="person_email_lowercase"),
+        CheckConstraint("birth_month BETWEEN 1 AND 12", name="person_birth_month_range"),
+        CheckConstraint("birth_day BETWEEN 1 AND 31", name="person_birth_day_range"),
+        CheckConstraint("feb29_pref IN ('FEB_28', 'MAR_1')", name="person_feb29_pref_valid"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    sender_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("senders.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(120))
+    email: Mapped[str] = mapped_column(String(320))
+    birth_month: Mapped[int] = mapped_column(SmallInteger)
+    birth_day: Mapped[int] = mapped_column(SmallInteger)
+    feb29_pref: Mapped[str | None] = mapped_column(String(6))
+    city_label: Mapped[str] = mapped_column(String(200))
+    tz: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 class Capsule(Base):
     __tablename__ = "capsules"
     __table_args__ = (
@@ -62,6 +93,10 @@ class Capsule(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     sender_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("senders.id", ondelete="CASCADE"))
+    # The saved person this was sent to; removing them leaves the capsule as it is
+    person_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("people.id", ondelete="SET NULL"), index=True
+    )
 
     # Recipient
     recipient_name: Mapped[str] = mapped_column(String(120))

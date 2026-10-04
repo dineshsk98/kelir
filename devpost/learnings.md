@@ -6,6 +6,12 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-04 · Shared birthday fields didn't type-check with the editor's setter
+- **Symptom:** `tsc` failed after moving the birthday fields into `BirthdayFields`: the editor's `set` (generic over every `Draft` key) wasn't assignable to the component's `onChange` (generic over the three birthday keys).
+- **Cause:** for a generic key `K`, TypeScript can't prove that `BirthdayValue[K]` equals `Draft[K]`, even though they match for each of the three keys. The old inline code also called `set` twice when a month change cleared a day that no longer fit.
+- **Fix:** `BirthdayFields` reports a partial change (`onChange({ birth_month, birth_day })`, both in one call when the day has to clear). The editor applies it with a small `setAll` that merges the change and clears those fields' errors (`frontend/src/components/BirthdayFields.tsx`, `frontend/src/pages/CapsuleEditor.tsx`).
+- **Lesson:** for a shared form component, pass changes as a partial object rather than a generic `(key, value)` setter. It type-checks against any parent state shape that includes those fields, and related fields change together in one update.
+
 ## 2026-10-04 · The recipient's opening stayed in English for a Korean capsule
 - **Symptom:** Dinesh, after slice 12: a capsule written in another language still opened with English titles, buttons, labels, photocard and thank-you presets; only the letter itself used the language.
 - **Cause:** slice 12 applied the language to the message element and the email only. Every other string on the recipient page was hard-coded English in the components (`Reveal3D`, `CapsuleContents`, `MediaPlayers`, `Gift`, `ReplyPanel`, the canvas photocard) and in the API's reply presets, and nothing passed the capsule's language down to them.

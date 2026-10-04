@@ -120,7 +120,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Open a capsule with a voice note and a video on your phone and say whether the record player and projector feel right.
   Commit: `Play voice notes on a record player and videos on a projector`
 
-- [ ] **12. You can write in your language, in a handwritten font that fits it**
+- [x] **12. You can write in your language, in a handwritten font that fits it**
   Becomes usable: The Message step has a language picker (English, Korean, Chinese, Japanese, Spanish, Tamil, Hindi, French, Italian, German). It sets a stylized handwritten font for that script and the `lang` attribute, in the editor, the preview and the opening. The email's subject line and "Open your capsule" button are in the capsule's language.
   Why now: It shapes what the recipient reads and hears in the opening, so it's part of the single-sender core. Fonts and copy are contained changes.
   PRD ref: `prd.md > Message languages`
@@ -136,6 +136,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   PRD ref: `prd.md > Regular recipients`
   Spec ref: `spec.md > Data Model` (`people`), `spec.md > Components > People API`
   Build: `people` migration (per sender, unique email), upsert on capsule create, `capsules.person_id`, `GET/PATCH/DELETE /v1/people` with next-birthday computed by the midnight engine; People page; Who-step picker.
+  Built in two parts: **13a** (done, 2026-10-04) the table and backfill, upsert on create and on scheduled edits, the People API, and the People page with Edit and Remove; **13b** Make a capsule from a person (`/capsules/new?person=`) and the Who-step picker.
   Verify (mechanical): `pytest` passes, including upsert by email (case-insensitive), next-birthday order across time zones and Feb 29, owner-only access, and removing a person keeps their capsules. `npm run build` passes; in the browser pane, a second capsule for the same person is made from the People page with the form prefilled.
   Learner check: Send to two people, open People, check the order and countdowns, then make a new capsule for one of them from there.
   Commit: `Add saved people with next-birthday list`
@@ -178,6 +179,9 @@ Reflection: [offered/answered/declined/already covered — personal answer belon
 Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
 
 ## Revisions
+
+- Slice 12 follow-up (2026-10-04), at Dinesh's request: the recipient's whole opening (titles, buttons, photocard, viewers, players, gift, thank-you panel) follows the capsule's language, and the thank-you has its own language picker (`replies.lang`, migration 0007). Automatic language/keyboard detection was wanted but left for later: the dropdown is fine for the demo.
+- Slice 13 split into 13a and 13b (2026-10-04). Dinesh's calls: fill People from existing capsules; keep a person updated when a scheduled capsule is edited; don't remember a per-person language; soonest birthday first by their midnight, ties by name.
 
 - Slice 11 redone (2026-10-02): the first build (a cassette deck and a projector inside the viewer box) missed what Dinesh meant. From his two reference images: play them in the scene itself, a turntable seen from above at an angle whose needle is the play/pause, and a video projected on the wall by a small projector.
 - Slice 10, third look (2026-10-02): the birthday tune loops while the capsule is open and ducks under every other sound (including her voice notes and videos), then swells back. An https dev server for phone testing was added and then taken out again at Dinesh's request ("that will be handled when link is hosted"): phone camera/microphone checks wait for the hosted https app.

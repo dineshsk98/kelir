@@ -15,7 +15,7 @@ from app.db import SessionLocal, engine
 from app.delivery.mailer import get_mailer
 from app.delivery.scheduler import delivery_loop
 from app.media import remove_stale_uploads
-from app.routes import auth, capsules, demo, media, recipient
+from app.routes import auth, capsules, demo, media, people, recipient
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:     %(name)s: %(message)s")
 
@@ -48,6 +48,7 @@ app = FastAPI(title="Birthday Capsule", lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(capsules.router)
 app.include_router(media.router)
+app.include_router(people.router)
 app.include_router(recipient.router)
 app.include_router(demo.router)
 

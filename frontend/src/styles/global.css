@@ -91,6 +91,12 @@ h2 {
   padding: 8px 12px;
 }
 
+/* Used by Cancel capsule and Remove person */
+.btn-danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+
 .error {
   color: var(--color-danger);
   margin: 6px 0 0;

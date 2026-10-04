@@ -46,6 +46,23 @@ export function deliveryLine(c: Capsule): string {
   }
 }
 
+/** The calendar date of `at` in `tz`, as a day number (for counting days between dates) */
+function localDay(at: Date, tz: string): number {
+  // en-CA writes dates as YYYY-MM-DD
+  const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit' })
+  return Date.parse(ymd.format(at)) / 86_400_000
+}
+
+/** "today", "tomorrow" or "in 12 days" until their birthday, counted in their time zone */
+export function countdown(nextDelivery: string, tz: string, now = new Date()): string {
+  const at = new Date(nextDelivery)
+  const days = at <= now ? 0 : Math.round(localDay(at, tz) - localDay(now, tz))
+  return days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
+}
+
+/** "14 March" */
+export const birthdayLabel = (month: number, day: number) => `${day} ${monthNames[month - 1]}`
+
 export const monthNames = Array.from({ length: 12 }, (_, i) =>
   new Intl.DateTimeFormat('en-GB', { month: 'long', timeZone: 'UTC' }).format(new Date(Date.UTC(2000, i, 1))),
 )

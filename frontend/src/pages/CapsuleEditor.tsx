@@ -12,12 +12,13 @@ import {
   type SendMode,
 } from '../api'
 import type { City } from '../cities'
+import { BirthdayFields, isFeb29 } from '../components/BirthdayFields'
 import { CityPicker } from '../components/CityPicker'
 import { MediaGallery } from '../components/MediaGallery'
 import { MediaPicker, type PickedMedia } from '../components/MediaPicker'
 import { StepNav } from '../components/StepNav'
 import { isValidEmail, suggestEmail } from '../email'
-import { cityName, daysInMonth, deliveryMoment, monthNames } from '../format'
+import { cityName, deliveryMoment } from '../format'
 import { EMAIL_SUBJECT, MESSAGE_LANGS, MESSAGE_PLACEHOLDER, useMessageLang, type MessageLang } from '../languages'
 import './CapsuleEditor.css'
 
@@ -95,8 +96,6 @@ function mediaFrom(c: Capsule): PickedMedia[] {
 
 type Errors = Partial<Record<keyof Draft | 'media', string>>
 
-const isFeb29 = (d: Draft) => d.birth_month === 2 && d.birth_day === 29
-
 function validate(step: StepId, d: Draft, media: PickedMedia[]): Errors {
   const e: Errors = {}
   if (step === 'who') {
@@ -171,6 +170,10 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
   const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }))
     setErrors((e) => ({ ...e, [key]: undefined }))
+  }
+  const setAll = (change: Partial<Draft>) => {
+    setDraft((d) => ({ ...d, ...change }))
+    setErrors((e) => ({ ...e, ...Object.fromEntries(Object.keys(change).map((k) => [k, undefined])) }))
   }
 
   const stepIndex = STEPS.findIndex((s) => s.id === step)
@@ -321,59 +324,12 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
                 </p>
               )}
             </div>
-            <fieldset className="field">
-              <legend>Their birthday</legend>
-              <div className="row">
-                <select
-                  className="input"
-                  aria-label="Day"
-                  value={draft.birth_day ?? ''}
-                  onChange={(e) => set('birth_day', Number(e.target.value) || null)}
-                >
-                  <option value="">Day</option>
-                  {Array.from({ length: daysInMonth(draft.birth_month ?? 1) }, (_, i) => (
-                    <option key={i + 1}>{i + 1}</option>
-                  ))}
-                </select>
-                <select
-                  className="input"
-                  aria-label="Month"
-                  value={draft.birth_month ?? ''}
-                  onChange={(e) => {
-                    const m = Number(e.target.value) || null
-                    set('birth_month', m)
-                    if (m && draft.birth_day && draft.birth_day > daysInMonth(m)) set('birth_day', null)
-                  }}
-                >
-                  <option value="">Month</option>
-                  {monthNames.map((name, i) => (
-                    <option key={name} value={i + 1}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {errors.birth_day && <p className="error">{errors.birth_day}</p>}
-            </fieldset>
-            {isFeb29(draft) && (
-              <fieldset className="field">
-                <legend>In years without Feb 29, send it on</legend>
-                <div className="row">
-                  {(['FEB_28', 'MAR_1'] as const).map((pref) => (
-                    <label key={pref} className="choice">
-                      <input
-                        type="radio"
-                        name="feb29"
-                        checked={draft.feb29_pref === pref}
-                        onChange={() => set('feb29_pref', pref)}
-                      />
-                      {pref === 'FEB_28' ? '28 February' : '1 March'}
-                    </label>
-                  ))}
-                </div>
-                {errors.feb29_pref && <p className="error">{errors.feb29_pref}</p>}
-              </fieldset>
-            )}
+            <BirthdayFields
+              value={draft}
+              onChange={setAll}
+              dayError={errors.birth_day}
+              feb29Error={errors.feb29_pref}
+            />
             <Field label="The city they live in" hint="This sets their time zone" error={errors.city}>
               <CityPicker value={draft.city} onChange={(c) => set('city', c)} invalid={!!errors.city} />
             </Field>

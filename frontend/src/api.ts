@@ -45,6 +45,15 @@ export type Capsule = Omit<CapsuleCreate, 'upload_ids'> & {
   created_at: string
 }
 
+/** Someone the sender has sent to, saved by their capsules */
+export type PersonUpdate = Birthday & { name: string; city_label: string; tz: string }
+export type Person = PersonUpdate & {
+  id: string
+  email: string
+  /** Their next birthday's midnight where they live (now, if it has already begun) */
+  next_delivery: string
+}
+
 export type Reply = { text: string; lang: MessageLang; created_at: string }
 /** One thank-you, offered in every message language */
 export type ReplyPreset = { key: string; texts: Record<MessageLang, string> }
@@ -148,4 +157,9 @@ export const api = {
   openCapsule: (secret: string) => request<RecipientCapsule>(`/v1/c/${encodeURIComponent(secret)}`),
   sendReply: (secret: string, body: ({ preset_key: string } | { text: string }) & { lang: MessageLang }) =>
     request<Reply>(`/v1/c/${encodeURIComponent(secret)}/reply`, post(body)),
+
+  listPeople: () => request<Person[]>('/v1/people'),
+  updatePerson: (id: string, body: PersonUpdate) =>
+    request<Person>(`/v1/people/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  removePerson: (id: string) => request<void>(`/v1/people/${encodeURIComponent(id)}`, { method: 'DELETE' }),
 }

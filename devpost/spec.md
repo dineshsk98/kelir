@@ -177,9 +177,12 @@ Not in the POC (`prd.md > Deferred From the POC`, sent and received); kept here 
 
 ### People API (`routes/people.py`)
 Implements `prd.md > Regular recipients (People)`.
-- Creating a capsule upserts the person by `(sender_id, lower(email))` and links `capsules.person_id`.
-- `GET /v1/people`: the sender's people with `next_delivery` from the midnight engine, soonest first.
-- `PATCH /v1/people/{id}` (name, birthday, city) and `DELETE /v1/people/{id}` (past capsules keep their own copies of the details).
+- Creating a capsule upserts the person by `(sender_id, email)` (one `INSERT … ON CONFLICT`, so two saves at once can't make two people) and links `capsules.person_id`. Emails are always stored lowercased (the API lowercases them; a check constraint holds the table to it), so this is case-insensitive.
+- Editing a *scheduled* capsule upserts again, so the person follows the new details (a new email is a new person; the old one stays). Edits to a delivered capsule don't, since who and when are locked then and re-saving would undo changes made on the People page.
+- `GET /v1/people`: the sender's people with `next_delivery` from the midnight engine (`now` if their birthday has already begun where they live), soonest first; ties by name.
+- `PATCH /v1/people/{id}` (name, birthday, city; the email is who they are, so it isn't editable) and `DELETE /v1/people/{id}` (past capsules keep their own copies of the details; `person_id` becomes null). Another sender's person answers 404 `PERSON_NOT_FOUND`.
+- Migration `0008` fills `people` from existing capsules (each recipient's latest capsule) and links them.
+- People page (`/people`, linked from History): name and countdown ("in 12 days", counted in their time zone), when a capsule would arrive in their city and the sender's time, birthday and email; Edit inline (sharing `BirthdayFields` with the editor's Who step) and Remove with a confirmation.
 
 ### Message languages and fonts (`frontend/src/languages.ts`, `backend/app/delivery/email_copy.py`)
 Implements `prd.md > Message languages`.
@@ -326,7 +329,7 @@ PostgreSQL, created by Alembic migrations.
 - `capsules.person_id` (nullable, set null if the person is removed); `capsules.message_lang`
 
 **`replies`**
-- `id`, `capsule_id` (unique, so one reply per capsule), `preset_key` (nullable), `text` (nullable), `created_at`
+- `id`, `capsule_id` (unique, so one reply per capsule), `preset_key` (nullable), `text` (nullable), `lang` (default `en`), `created_at`
 
 **Where things live:**
 - Media files go in `uploads/` on disk; the database holds only their paths.

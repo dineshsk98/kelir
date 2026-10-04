@@ -17,6 +17,7 @@ from app.email_check import domain_accepts_mail, is_valid_format
 from app.engine.schedule import due_now
 from app.media import MAX_CAPSULE_BYTES, MB, media_file
 from app.models import Capsule, CapsuleMedia
+from app.people import save_person
 from app.schemas import (
     CapsuleCreate,
     CapsuleOut,
@@ -86,6 +87,7 @@ async def create_capsule(
     media = await _claim_uploads(session, sender.id, None, body.upload_ids)
     capsule = Capsule(
         sender_id=sender.id,
+        person_id=await save_person(session, sender.id, body, now),
         **body.model_dump(exclude={"upload_ids"}),
         deliver_at=deliver_at,
         status="scheduled",
@@ -217,6 +219,9 @@ async def update_capsule(
         capsule.deliver_at = due_now(
             body.send_mode, body.birth_month, body.birth_day, body.feb29_pref, body.tz, now
         )
+        # Who and when can still change, so the saved person follows. (Once delivered they
+        # can't, and re-saving would undo edits made on the People page since.)
+        capsule.person_id = await save_person(session, sender.id, body, now)
     await session.commit()
 
     for path in removed_paths:

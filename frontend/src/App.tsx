@@ -5,6 +5,7 @@ import { CapsuleDetail } from './pages/CapsuleDetail'
 import { CapsuleEditor, EditCapsule } from './pages/CapsuleEditor'
 import { History } from './pages/History'
 import { NotFound } from './pages/NotFound'
+import { People } from './pages/People'
 import { RecipientCapsule } from './pages/RecipientCapsule'
 import { Welcome } from './pages/Welcome'
 
@@ -63,6 +64,7 @@ function SenderApp() {
         path="/history"
         element={me ? <History me={me} onSignOut={signOut} /> : <Navigate to="/" replace />}
       />
+      <Route path="/people" element={me ? <People me={me} onSignOut={signOut} /> : <Navigate to="/" replace />} />
       <Route path="/capsules/new" element={me ? <CapsuleEditor me={me} /> : <Navigate to="/" replace />} />
       <Route path="/capsules/:id" element={me ? <CapsuleDetail /> : <Navigate to="/" replace />} />
       <Route path="/capsules/:id/edit" element={me ? <EditCapsule me={me} /> : <Navigate to="/" replace />} />

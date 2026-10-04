@@ -63,9 +63,14 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
           <p className="muted">Your capsules</p>
         </div>
         {capsules && capsules.length > 0 && (
-          <Link to="/capsules/new" className="btn">
-            New capsule
-          </Link>
+          <span className="history-actions">
+            <Link to="/people" className="btn btn-quiet">
+              Your people
+            </Link>
+            <Link to="/capsules/new" className="btn">
+              New capsule
+            </Link>
+          </span>
         )}
       </div>
 

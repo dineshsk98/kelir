@@ -69,6 +69,7 @@ Email = Annotated[
     str, StringConstraints(strip_whitespace=True, max_length=320), AfterValidator(_email)
 ]
 Zone = Annotated[str, AfterValidator(_zone)]
+CityLabel = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 Feb29Pref = Literal["FEB_28", "MAR_1"]
 SendMode = Literal["birthday", "now"]
 GiftKind = Literal["link", "code"]
@@ -113,7 +114,7 @@ class CapsuleCreate(Birthday):
 
     recipient_name: Name
     recipient_email: Email
-    city_label: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
+    city_label: CityLabel
     tz: Zone
 
     message_text: Annotated[Text | None, Field(max_length=5000), AfterValidator(_blank_to_none)] = None
@@ -146,6 +147,40 @@ class CapsuleCreate(Birthday):
         elif len(self.gift_value) > 200:
             raise ValueError("a gift code can be at most 200 characters")
         return self
+
+
+# --- People --------------------------------------------------------------------
+
+
+class PersonUpdate(Birthday):
+    """Editing a saved person. The email is what identifies them, so it can't change here."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name
+    city_label: CityLabel
+    tz: Zone
+
+
+class PersonOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    email: str
+    birth_month: int
+    birth_day: int
+    feb29_pref: Feb29Pref | None
+    city_label: str
+    tz: str
+    # When a capsule for them would arrive: their next local midnight on their birthday
+    next_delivery: datetime
+
+    @classmethod
+    def from_model(cls, person, next_delivery: datetime) -> "PersonOut":
+        fields = {name: getattr(person, name) for name in cls.model_fields if name != "next_delivery"}
+        return cls(**fields, next_delivery=next_delivery)
+
+
+# --- Replies -------------------------------------------------------------------
 
 
 class ReplyIn(BaseModel):
