@@ -71,6 +71,7 @@ async def open_capsule(secret: str, session: Session, now: Now, response: Respon
         sender_name=sender.name,
         recipient_name=capsule.recipient_name,
         message_text=capsule.message_text,
+        message_lang=capsule.message_lang,
         media=[MediaOut.model_validate(m) for m in capsule.media],
         gift_kind=capsule.gift_kind,
         gift_value=capsule.gift_value,

@@ -4,7 +4,17 @@ import { api, ApiError, mediaUrl, type Capsule } from '../api'
 import { MediaGallery } from '../components/MediaGallery'
 import { StatusBadge } from '../components/StatusBadge'
 import { deliveryLine } from '../format'
+import { useMessageLang } from '../languages'
 import './CapsuleDetail.css'
+
+/** The message in its language's handwriting */
+function Message({ text, lang }: { text: string; lang: string }) {
+  return (
+    <p className="detail-message" {...useMessageLang(lang)}>
+      {text}
+    </p>
+  )
+}
 
 /** One sent capsule: what it holds, where it is, the thank-you, and Edit/Cancel until opened. */
 export function CapsuleDetail() {
@@ -80,7 +90,7 @@ export function CapsuleDetail() {
       )}
 
       <article className="card detail-card">
-        {c.message_text && <p className="detail-message">{c.message_text}</p>}
+        {c.message_text && <Message text={c.message_text} lang={c.message_lang} />}
         {c.media.length > 0 && (
           <MediaGallery items={c.media.map((m) => ({ key: m.id, kind: m.kind, url: mediaUrl.own(m.id) }))} />
         )}

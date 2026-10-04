@@ -32,6 +32,7 @@ async def test_link_opens_the_capsule_without_an_account(client, sign_in, freeze
         "sender_name": "Sam Sender",
         "recipient_name": "Aiko Tanaka",
         "message_text": "Happy birthday!",
+        "message_lang": "en",
         "media": [],
         "gift_kind": "code",
         "gift_value": "ABCD-1234",

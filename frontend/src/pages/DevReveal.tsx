@@ -48,6 +48,18 @@ const SAMPLES: Record<string, RevealCapsule> = {
     messageText: 'Happy birthday! Something small is on its way to you.',
     gift: { kind: 'link', value: 'https://example.com/sample-gift', note: 'Your gift is on its way' },
   },
+  'Korean letter': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: '아이코, 생일 축하해!\n오늘 하루가 너처럼 반짝이길 바라.',
+    messageLang: 'ko',
+  },
+  'Tamil letter': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: 'இனிய பிறந்தநாள் வாழ்த்துகள், ஆய்கோ!\nஉன் நாள் இனிமையாக இருக்கட்டும்.',
+    messageLang: 'ta',
+  },
   'Text only': {
     senderName: 'Sam (sample)',
     recipientName: 'Aiko (sample)',

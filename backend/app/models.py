@@ -45,6 +45,10 @@ class Capsule(Base):
         CheckConstraint("gift_kind IN ('link', 'code')", name="gift_kind_valid"),
         CheckConstraint("send_mode IN ('birthday', 'now')", name="send_mode_valid"),
         CheckConstraint(
+            "message_lang IN ('en', 'ko', 'zh', 'ja', 'es', 'ta', 'hi', 'fr', 'it', 'de')",
+            name="message_lang_valid",
+        ),
+        CheckConstraint(
             "status IN ('scheduled', 'delivered', 'opened', 'cancelled')", name="status_valid"
         ),
         Index("ix_capsules_status_deliver_at", "status", "deliver_at"),
@@ -70,6 +74,8 @@ class Capsule(Base):
 
     # Message and gift
     message_text: Mapped[str | None] = mapped_column(Text)
+    # Sets the message's handwritten font and the email's words
+    message_lang: Mapped[str] = mapped_column(String(2), default="en", server_default="en")
     gift_kind: Mapped[str | None] = mapped_column(String(4))
     gift_value: Mapped[str | None] = mapped_column(String(2000))
     gift_note: Mapped[str | None] = mapped_column(String(300))

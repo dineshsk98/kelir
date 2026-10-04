@@ -54,6 +54,7 @@ class _Outgoing:
     sender_email: str
     recipient_name: str
     recipient_email: str
+    lang: str
 
 
 async def _deliver_due(session: AsyncSession, now: datetime) -> int:
@@ -98,7 +99,7 @@ async def _claim_emails(session: AsyncSession, now: datetime) -> list[_Outgoing]
         outgoing.append(
             _Outgoing(
                 capsule.id, secret, sender.name, sender.email,
-                capsule.recipient_name, capsule.recipient_email,
+                capsule.recipient_name, capsule.recipient_email, capsule.message_lang,
             )
         )
     return outgoing
@@ -128,6 +129,7 @@ async def run_tick(
             link=capsule_url(settings.app_base_url, item.secret),
             app_name=settings.app_name,
             from_address=settings.smtp_user,
+            lang=item.lang,
         )
         error: str | None = None
         try:

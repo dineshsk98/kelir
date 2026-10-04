@@ -110,7 +110,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Open a capsule link on your phone and laptop: blow out the candles (try "Blow for real" once), pull the ribbon, open each thumbnail, send a thank-you, and say how it feels and how it looks.
   Commit: `Open capsule links with the 3D gift`
 
-- [ ] **11. Voice notes play on a record player, videos on a projector**
+- [x] **11. Voice notes play on a record player, videos on a projector**
   Becomes usable: Voice notes and videos open in the scene itself (lights dimmed, no box). A voice note plays on a record player seen from above at an angle: the needle moving onto the record plays it, lifting it pauses. A video is projected onto the wall by a small projector, its light fanning up to the picture, with controls along the picture's bottom. Photos and the letter keep the plain viewer.
   Why now: Dinesh asked for it alongside the slice 10 revision ("audio to be played with the recorder, video with the projector animation"); it builds on the viewer from slice 10.
   PRD ref: `prd.md > The opening moment` (stage 7)
@@ -125,7 +125,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Why now: It shapes what the recipient reads and hears in the opening, so it's part of the single-sender core. Fonts and copy are contained changes.
   PRD ref: `prd.md > Message languages`
   Spec ref: `spec.md > Components > Message languages and fonts`
-  Build: `message_lang` on capsules (migration), allowed list in the API; fonts via Fontsource (Caveat; Nanum Pen Script; Ma Shan Zheng; Yomogi; Kavivanar; Kalam), all SIL OFL, credited in `ATTRIBUTION.md`; translated email subject and button for the 10 languages.
+  Build: `message_lang` on capsules (migration), allowed list in the API; fonts via Fontsource (Caveat; Nanum Pen Script; Ma Shan Zheng; Yomogi; Kavivanar; Kalam), all SIL OFL, credited in `ATTRIBUTION.md`; translated email (subject, greeting, button, closing) for the 10 languages. Each script's font CSS loads only when a message in it is shown. `/dev/reveal` gains Korean and Tamil letter samples.
   Verify (mechanical): `pytest` passes, including each language's email subject and button, unknown language rejected, and non-Latin text stored and returned unchanged. `npm run build` passes; in the browser pane, a Korean and a Tamil capsule render in their fonts (font files actually loaded) in Preview and the opening.
   Learner check: Write a short message in two languages you can read, check the fonts in Preview and in the opening, and read the email's subject in the console output.
   Commit: `Add message languages with script-specific handwritten fonts`

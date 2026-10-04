@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { MediaGallery, type GalleryItem } from '../components/MediaGallery'
+import { useMessageLang } from '../languages'
 import { CapsuleArt } from './CapsuleArt'
 import { burstConfetti, themeConfettiColors } from './confetti'
 import { Gift, type RevealGift } from './Gift'
@@ -11,6 +12,8 @@ export type RevealCapsule = {
   senderName: string
   recipientName: string
   messageText?: string
+  /** The message's language (sets its handwriting); English if missing */
+  messageLang?: string
   /** Photos, audio and video in the order the sender added them */
   media?: GalleryItem[]
   gift?: RevealGift
@@ -56,6 +59,7 @@ export function Reveal({
   const stopConfetti = useRef<() => void>(() => {})
   const revealedOnce = useRef(false)
   const firstName = capsule.recipientName.split(' ')[0]
+  const messageLang = useMessageLang(capsule.messageLang)
 
   // Created in an effect (not during render) so React's dev double-mount gets a fresh one
   useEffect(() => {
@@ -174,7 +178,9 @@ export function Reveal({
             <p className="reveal-card-from">{capsule.senderName}</p>
             <h1 className="reveal-card-title">Happy birthday, {firstName}</h1>
             {reached(stage, 'message') && capsule.messageText && (
-              <p className="reveal-message">{capsule.messageText}</p>
+              <p className="reveal-message" {...messageLang}>
+                {capsule.messageText}
+              </p>
             )}
             {reached(stage, 'message') && capsule.media && capsule.media.length > 0 && (
               <div className="reveal-media">

@@ -1,0 +1,22 @@
+/* A message's handwritten font follows its language. Message elements already use
+   var(--font-hand), so each language just redefines it there (Caveat stays as the fallback
+   for any Latin letters, digits and emoji in the message). */
+[data-msg-lang='ko'] {
+  --font-hand: 'Nanum Pen Script', 'Caveat', cursive;
+}
+
+[data-msg-lang='zh'] {
+  --font-hand: 'Ma Shan Zheng', 'Caveat', cursive;
+}
+
+[data-msg-lang='ja'] {
+  --font-hand: 'Yomogi', 'Caveat', cursive;
+}
+
+[data-msg-lang='ta'] {
+  --font-hand: 'Kavivanar', 'Caveat', cursive;
+}
+
+[data-msg-lang='hi'] {
+  --font-hand: 'Kalam', 'Caveat', cursive;
+}

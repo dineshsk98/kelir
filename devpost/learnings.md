@@ -6,6 +6,12 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-04 · `capsules.message_lang` missing in the dev database
+- **Symptom:** Dinesh, trying slice 12: the app failed because the column `capsules.message_lang` doesn't exist.
+- **Cause:** the slice added migration `0006`, but only the test database is migrated automatically (the test setup runs `alembic upgrade head`). The dev database stayed at `0005`, so the passing tests said nothing about it, and the step to run the migration was only in the hand-off notes.
+- **Fix:** ran `alembic upgrade head` on the dev database (`0005` → `0006`). No code change.
+- **Lesson:** when a slice adds a migration, migrate the dev database as part of verifying it (and check `alembic current` against `alembic heads`), not just the test database.
+
 ## 2026-10-02 · Projected video ran off the side of a phone
 - **Symptom:** at phone size (375 px wide) the projected sample video was cut off on the right and the projector sat off-centre.
 - **Cause:** the room viewer centres its content in a one-column CSS grid. An `auto` grid column grows to its content's natural width (the 640 px video), so `max-width: 100%` inside it meant 100% of an already too-wide column.

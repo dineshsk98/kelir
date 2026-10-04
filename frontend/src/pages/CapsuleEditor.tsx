@@ -18,6 +18,7 @@ import { MediaPicker, type PickedMedia } from '../components/MediaPicker'
 import { StepNav } from '../components/StepNav'
 import { isValidEmail, suggestEmail } from '../email'
 import { cityName, daysInMonth, deliveryMoment, monthNames } from '../format'
+import { EMAIL_SUBJECT, MESSAGE_LANGS, MESSAGE_PLACEHOLDER, useMessageLang, type MessageLang } from '../languages'
 import './CapsuleEditor.css'
 
 const STEPS = [
@@ -37,6 +38,7 @@ type Draft = {
   feb29_pref: Feb29Pref | null
   city: City | null
   message_text: string
+  message_lang: MessageLang
   gift_kind: GiftKind | null
   gift_value: string
   gift_note: string
@@ -51,6 +53,7 @@ const EMPTY: Draft = {
   feb29_pref: null,
   city: null,
   message_text: '',
+  message_lang: 'en',
   gift_kind: null,
   gift_value: '',
   gift_note: '',
@@ -67,6 +70,7 @@ function draftFrom(c: Capsule): Draft {
     feb29_pref: c.feb29_pref,
     city: { name: cityName(c.city_label), region: '', country: '', tz: c.tz, label: c.city_label },
     message_text: c.message_text ?? '',
+    message_lang: c.message_lang,
     gift_kind: c.gift_kind,
     gift_value: c.gift_value ?? '',
     gift_note: c.gift_note ?? '',
@@ -127,6 +131,7 @@ function toRequest(d: Draft, media: PickedMedia[]): CapsuleCreate {
     city_label: d.city!.label,
     tz: d.city!.tz,
     message_text: d.message_text.trim() || null,
+    message_lang: d.message_lang,
     gift_kind: d.gift_kind,
     gift_value: d.gift_kind ? d.gift_value.trim() : null,
     gift_note: d.gift_kind ? d.gift_note.trim() || null : null,
@@ -249,6 +254,8 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
   const leaveTo = initial ? `/capsules/${initial.id}` : '/history'
 
   const firstName = draft.recipient_name.trim().split(' ')[0] || 'them'
+  // The message box and Preview use the chosen language's handwriting
+  const messageLang = useMessageLang(draft.message_lang)
 
   return (
     <main className="page editor">
@@ -376,15 +383,29 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
         {step === 'message' && (
           <>
             <h2>What do you want to tell {firstName}?</h2>
+            <Field label="Written in" hint="Sets the handwriting and the language of their email">
+              <select
+                className="input"
+                value={draft.message_lang}
+                onChange={(e) => set('message_lang', e.target.value as MessageLang)}
+              >
+                {MESSAGE_LANGS.map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="Your message" error={errors.message_text}>
               <textarea
                 className="input message-input"
                 rows={8}
                 maxLength={5000}
                 autoFocus
-                placeholder={`Happy birthday, ${firstName}!`}
+                placeholder={MESSAGE_PLACEHOLDER[draft.message_lang](firstName)}
                 value={draft.message_text}
                 onChange={(e) => set('message_text', e.target.value)}
+                {...messageLang}
               />
             </Field>
             <MediaPicker
@@ -479,12 +500,16 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
             <div className="preview-email">
               <p className="muted small">Email to {draft.recipient_email.trim()}</p>
               <p>
-                <strong>{me.name} has sent you a surprise for your special day.</strong>
+                <strong lang={messageLang.lang}>{EMAIL_SUBJECT[draft.message_lang](me.name)}</strong>
               </p>
             </div>
             <div className="preview-card">
               <p className="muted small">From {me.name}</p>
-              {draft.message_text.trim() && <p className="preview-message">{draft.message_text.trim()}</p>}
+              {draft.message_text.trim() && (
+                <p className="preview-message" {...messageLang}>
+                  {draft.message_text.trim()}
+                </p>
+              )}
               {media.length > 0 && (
                 <MediaGallery items={media.map((m) => ({ key: m.key, kind: m.kind, url: m.localUrl }))} />
               )}

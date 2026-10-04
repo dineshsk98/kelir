@@ -72,6 +72,8 @@ Zone = Annotated[str, AfterValidator(_zone)]
 Feb29Pref = Literal["FEB_28", "MAR_1"]
 SendMode = Literal["birthday", "now"]
 GiftKind = Literal["link", "code"]
+# The same list as app.delivery.email_copy.MESSAGE_LANGS (a test keeps them in step)
+MessageLang = Literal["en", "ko", "zh", "ja", "es", "ta", "hi", "fr", "it", "de"]
 
 
 class Birthday(BaseModel):
@@ -115,6 +117,7 @@ class CapsuleCreate(Birthday):
     tz: Zone
 
     message_text: Annotated[Text | None, Field(max_length=5000), AfterValidator(_blank_to_none)] = None
+    message_lang: MessageLang = "en"
 
     gift_kind: GiftKind | None = None
     gift_value: Annotated[Text | None, Field(max_length=2000), AfterValidator(_blank_to_none)] = None
@@ -211,6 +214,7 @@ class CapsuleOut(BaseModel):
     city_label: str
     tz: str
     message_text: str | None
+    message_lang: MessageLang
     media: list[MediaOut]
     gift_kind: GiftKind | None
     gift_value: str | None
@@ -232,6 +236,7 @@ class RecipientCapsuleOut(BaseModel):
     sender_name: str
     recipient_name: str
     message_text: str | None
+    message_lang: MessageLang
     media: list[MediaOut]
     gift_kind: GiftKind | None
     gift_value: str | None

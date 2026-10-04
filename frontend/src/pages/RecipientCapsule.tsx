@@ -52,6 +52,7 @@ export function RecipientCapsule() {
       senderName: c.sender_name,
       recipientName: c.recipient_name,
       messageText: c.message_text ?? undefined,
+      messageLang: c.message_lang,
       media: c.media.map((m) => ({ key: m.id, kind: m.kind, url: mediaUrl.viaLink(secret, m.id) })),
       gift:
         c.gift_kind && c.gift_value

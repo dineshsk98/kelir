@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import type { GalleryItem } from '../components/MediaGallery'
+import { useMessageLang } from '../languages'
 import { Gift } from '../reveal/Gift'
 import type { RevealCapsule } from '../reveal/Reveal'
 import { ProjectorPlayer, RecordPlayer } from './MediaPlayers'
@@ -56,6 +57,8 @@ export function CapsuleContents({
   const [thanking, setThanking] = useState(false)
   const sender = capsule.senderName.split(' ')[0]
   const count = COUNT_WORDS[items.length] ?? `${items.length} little surprises`
+  // The letter (thumbnail and opened) in its language's handwriting
+  const letterLang = useMessageLang(capsule.messageLang)
 
   return (
     <section className="r3d-contents" aria-label={`What ${sender} sent you`}>
@@ -69,7 +72,7 @@ export function CapsuleContents({
         {items.map((item, i) => (
           <li key={item.key}>
             <button type="button" className={`r3d-thumb r3d-thumb-${thumbKind(item)}`} onClick={() => setOpen(i)}>
-              <Thumb item={item} />
+              <Thumb item={item} letterLang={letterLang} />
               <span className="r3d-thumb-label">{label(item)}</span>
             </button>
           </li>
@@ -96,6 +99,7 @@ export function CapsuleContents({
                 key={items[open].key}
                 item={items[open]}
                 from={sender}
+                letterLang={letterLang}
                 reduced={reduced}
                 onPlaying={onMediaPlaying}
               />
@@ -119,8 +123,15 @@ const thumbKind = (item: Item) => (item.kind === 'media' ? item.media.kind : ite
 /** Voice notes and videos play in the scene itself rather than in a box */
 const isPlayable = (item: Item) => item.kind === 'media' && item.media.kind !== 'image'
 
-function Thumb({ item }: { item: Item }) {
-  if (item.kind === 'message') return <span className="r3d-thumb-letter">{item.text}</span>
+type LangProps = ReturnType<typeof useMessageLang>
+
+function Thumb({ item, letterLang }: { item: Item; letterLang: LangProps }) {
+  if (item.kind === 'message')
+    return (
+      <span className="r3d-thumb-letter" {...letterLang}>
+        {item.text}
+      </span>
+    )
   if (item.kind === 'gift') return <span className="r3d-thumb-icon" aria-hidden="true">🎁</span>
   const m = item.media
   if (m.kind === 'image') return <img src={m.url} alt="" loading="lazy" />
@@ -138,15 +149,22 @@ function Thumb({ item }: { item: Item }) {
 function Opened({
   item,
   from,
+  letterLang,
   reduced,
   onPlaying,
 }: {
   item: Item
   from: string
+  letterLang: LangProps
   reduced?: boolean
   onPlaying?: (playing: boolean) => void
 }) {
-  if (item.kind === 'message') return <p className="r3d-letter">{item.text}</p>
+  if (item.kind === 'message')
+    return (
+      <p className="r3d-letter" {...letterLang}>
+        {item.text}
+      </p>
+    )
   if (item.kind === 'gift') return <Gift gift={item.gift} />
   const m = item.media
   if (m.kind === 'image') return <img className="r3d-viewer-photo" src={m.url} alt="A photo from the capsule" />

@@ -123,7 +123,7 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - As a sender, I write in my own language and it looks handwritten in a font made for that script. (Added 2026-10-02.)
   - [ ] Languages: English, Korean, Chinese, Japanese, Spanish, Tamil, Hindi, French, Italian, German.
   - [ ] The chosen language sets the message font in the editor, the preview and the opening.
-  - [ ] The email's subject line and "Open your capsule" button are in the capsule's language.
+  - [ ] The email's subject line and "Open your capsule" button are in the capsule's language (as are its greeting and closing, so the email doesn't mix two languages).
   - [ ] Typing uses the device's own keyboard; the app's own buttons and labels stay in English for now.
 
 ## States and Boundaries

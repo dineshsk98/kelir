@@ -10,7 +10,12 @@
   },
   "dependencies": {
     "@fontsource/caveat": "^5.3.0",
+    "@fontsource/kalam": "^5.3.0",
+    "@fontsource/kavivanar": "^5.3.0",
+    "@fontsource/ma-shan-zheng": "^5.3.1",
+    "@fontsource/nanum-pen-script": "^5.3.0",
     "@fontsource/nunito": "^5.3.0",
+    "@fontsource/yomogi": "^5.3.0",
     "@react-three/fiber": "^8.18.0",
     "@react-three/postprocessing": "^2.19.1",
     "fix-webm-duration": "1.0.6",

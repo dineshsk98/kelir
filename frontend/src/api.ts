@@ -1,5 +1,7 @@
 // Thin fetch wrapper for the /v1 API plus hand-written response types.
 
+import type { MessageLang } from './languages'
+
 export type Me = { id: string; email: string; name: string }
 export type PublicConfig = { google_client_id: string; demo_mode: boolean }
 
@@ -20,6 +22,7 @@ export type CapsuleCreate = Birthday & {
   city_label: string
   tz: string
   message_text: string | null
+  message_lang: MessageLang
   gift_kind: GiftKind | null
   gift_value: string | null
   gift_note: string | null
@@ -50,6 +53,7 @@ export type RecipientCapsule = {
   sender_name: string
   recipient_name: string
   message_text: string | null
+  message_lang: MessageLang
   media: MediaItem[]
   gift_kind: GiftKind | null
   gift_value: string | null

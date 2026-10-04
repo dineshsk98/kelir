@@ -185,8 +185,9 @@ Implements `prd.md > Regular recipients (People)`.
 Implements `prd.md > Message languages`.
 - `capsules.message_lang`: one of `en ko zh ja es ta hi fr it de` (default `en`).
 - Handwritten fonts, all SIL Open Font License via Fontsource, bundled and credited in `ATTRIBUTION.md`: Caveat (en, es, fr, it, de), Nanum Pen Script (ko), Ma Shan Zheng (zh), Yomogi (ja), Kavivanar (ta), Kalam (hi). Fontsource splits large fonts by Unicode range, so browsers download only the characters used.
-- The message element gets `lang` (correct line breaking, screen-reader pronunciation) and the font for that language, in the editor, Preview and the opening.
-- The email subject and "Open your capsule" button use fixed translated copy for the capsule's language; the sender's name stays as written.
+- The message element gets `lang` (correct line breaking, screen-reader pronunciation; `zh-Hans` for Chinese) and the font for that language, in the editor, Preview, the capsule's detail page and both openings. `useMessageLang` loads the font's CSS on first use (a separate chunk per script: the Korean, Chinese and Japanese ones are 60 to 150 KB of CSS each), and `[data-msg-lang]` redefines `--font-hand` on the element. Latin languages keep Caveat.
+- The Message step has a "Written in" picker; the message box's placeholder and Preview's email line follow it.
+- The whole birthday email (subject, greeting, button, closing, `<html lang>`) uses fixed translated copy for the capsule's language (`email_copy.py`; the editor's Preview repeats the subjects in `languages.ts`); the names stay as written. Translations use the informal "you" where the language has one.
 
 ### Demo controls (`routes/demo.py`)
 Implements `prd.md > Delivery at the recipient's midnight` (demo).
