@@ -22,6 +22,7 @@ import { isValidEmail, suggestEmail } from '../email'
 import { deliveryMoment } from '../format'
 import { EMAIL_SUBJECT, MESSAGE_LANGS, MESSAGE_PLACEHOLDER, useMessageLang, type MessageLang } from '../languages'
 import './CapsuleEditor.css'
+import { Wordmark } from '../components/Wordmark'
 
 const STEPS = [
   { id: 'who', label: 'Who' },
@@ -308,7 +309,7 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
     <main className="page editor">
       <header className="topbar">
         <Link to="/history" className="brand">
-          Birthday Capsule
+          <Wordmark className="wordmark-sm" />
         </Link>
         <Link to={leaveTo} className="btn btn-quiet">
           {initial ? 'Discard changes' : 'Cancel'}

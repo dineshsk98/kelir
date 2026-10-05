@@ -26,8 +26,8 @@ class Settings(BaseSettings):
     frontend_dist: Path = REPO_ROOT / "frontend" / "dist"
     uploads_dir: Path = REPO_ROOT / "uploads"
 
-    # Shown in emails as "<Sender> via <app_name>" (working title until the product is named)
-    app_name: str = "Birthday Capsule"
+    # Shown in emails as "<Sender> via <app_name>"
+    app_name: str = "Kelir"
     # The delivery loop inside the API process; tests turn it off and run ticks directly
     run_scheduler: bool = True
     scheduler_interval_seconds: float = 30

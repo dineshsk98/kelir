@@ -39,7 +39,7 @@ async def test_a_code_signs_you_in(client, mailer):
     email = mailer.sent[-1]
     code = emailed_code(mailer)
     assert email["To"].addresses[0].addr_spec == "aiko.tanaka@gmail.com"
-    assert email["Subject"] == f"{code} is your Birthday Capsule sign-in code"
+    assert email["Subject"] == f"{code} is your Kelir sign-in code"
     assert "http" not in email.get_body(("plain",)).get_content()  # no link to click
 
     wrong = await client.post("/v1/auth/email/verify", json={"email": "aiko.tanaka@gmail.com", "code": other_than(code)})
@@ -84,7 +84,7 @@ async def test_a_code_works_only_for_its_email(client, mailer):
 
 async def test_the_code_email_speaks_the_pages_language(client, mailer):
     code = await send_code(client, mailer, lang="ta")
-    assert mailer.sent[-1]["Subject"] == f"Birthday Capsule உள்நுழைவுக் குறியீடு: {code}"
+    assert mailer.sent[-1]["Subject"] == f"Kelir உள்நுழைவுக் குறியீடு: {code}"
 
 
 async def test_codes_expire_after_ten_minutes(client, mailer, freeze_now):

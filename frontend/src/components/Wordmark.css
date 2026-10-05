@@ -1,0 +1,10 @@
+.wordmark-ink {
+  fill: var(--color-text);
+}
+
+/* In the header: one line tall */
+.wordmark-sm {
+  display: block;
+  height: 36px;
+  width: auto;
+}

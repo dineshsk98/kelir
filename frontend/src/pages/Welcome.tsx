@@ -12,8 +12,7 @@ export function Welcome({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
       <section className="welcome-left">
         <div className="welcome-left-inner">
           <div className="welcome-mark">
-            <Logo />
-            <span className="brand">Birthday Capsule</span>
+            <img className="wordmark-lg" src="/brand/kelir-wordmark-3d.svg" alt="Kelir" />
           </div>
           <div className="welcome-signin">
             {naming ? (
@@ -28,7 +27,7 @@ export function Welcome({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
         </div>
       </section>
 
-      <section className="welcome-right" aria-label="About Birthday Capsule">
+      <section className="welcome-right" aria-label="About Kelir">
         <div className="welcome-right-inner">
           <p className="welcome-kicker">For the people you love, wherever they are</p>
           <h1>
@@ -50,23 +49,14 @@ export function Welcome({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
               <strong>We wait for their midnight.</strong> Then it's in their inbox, ready to open.
             </li>
           </ol>
+
+          <p className="muted small welcome-meaning">
+            <span lang="ta">கேளிர்</span> (kelir), Tamil for kin and friends: <span lang="ta">யாதும் ஊரே யாவரும் கேளிர்</span>,
+            "every place is home, everyone is kin".
+          </p>
         </div>
       </section>
     </main>
-  )
-}
-
-/** The mark: a wrapped gift with a candle */
-function Logo() {
-  return (
-    <svg className="welcome-logo" viewBox="0 0 96 96" role="img" aria-label="Birthday Capsule logo">
-      <circle cx="48" cy="48" r="46" fill="var(--color-accent-soft)" />
-      <path d="M48 14c4 5 4 9 0 12-4-3-4-7 0-12z" fill="var(--capsule-band)" />
-      <rect x="45.5" y="25" width="5" height="12" rx="2.5" fill="var(--color-text-muted)" />
-      <rect x="22" y="37" width="52" height="14" rx="5" fill="var(--capsule-b)" />
-      <rect x="26" y="51" width="44" height="29" rx="5" fill="var(--capsule-a)" />
-      <rect x="44" y="37" width="8" height="43" fill="var(--capsule-band)" />
-    </svg>
   )
 }
 

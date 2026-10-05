@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(title="Birthday Capsule", lifespan=lifespan)
+app = FastAPI(title="Kelir", lifespan=lifespan)
 app.include_router(auth.router)
 app.include_router(capsules.router)
 app.include_router(media.router)

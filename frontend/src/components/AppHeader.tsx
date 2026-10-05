@@ -3,8 +3,9 @@ import { NavLink } from 'react-router-dom'
 import { ACCOUNT_CONFIRMED } from '../account'
 import { api, type Me } from '../api'
 import './AppHeader.css'
+import { Wordmark } from './Wordmark'
 
-const TITLE = 'Birthday Capsule'
+const TITLE = 'Kelir'
 
 /** Received capsules not opened yet, like unread mail: on the tab and in the window title.
  *  Fetched on every page (the header comes with each) and when the tab comes back. */
@@ -38,7 +39,7 @@ export function AppHeader({ me, onSignOut }: { me: Me; onSignOut: () => void }) 
     <header className="app-header">
       <div className="topbar">
         <NavLink to="/history" className="brand">
-          Birthday Capsule
+          <Wordmark className="wordmark-sm" />
         </NavLink>
         <span className="topbar-user">
           <span className="muted topbar-email">{me.email}</span>

@@ -12,7 +12,7 @@ def make(**overrides):
         "recipient_name": "Aiko Tanaka",
         "recipient_email": "aiko@gmail.com",
         "link": LINK,
-        "app_name": "Birthday Capsule",
+        "app_name": "Kelir",
         "from_address": "capsule.app@gmail.com",
     }
     args.update(overrides)
@@ -22,7 +22,7 @@ def make(**overrides):
 def test_headers_name_the_sender_and_reply_to_them():
     msg = make()
     assert msg["Subject"] == "Sam Sender has sent you a surprise for your special day."
-    assert msg["From"].addresses[0].display_name == "Sam Sender via Birthday Capsule"
+    assert msg["From"].addresses[0].display_name == "Sam Sender via Kelir"
     assert msg["From"].addresses[0].addr_spec == "capsule.app@gmail.com"  # Gmail requires its own address
     assert msg["Reply-To"].addresses[0].addr_spec == "sam@gmail.com"
     assert msg["To"].addresses[0].addr_spec == "aiko@gmail.com"
@@ -60,7 +60,7 @@ async def test_console_mailer_survives_a_console_without_the_script(monkeypatch)
     console = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
     monkeypatch.setattr(sys, "stdout", console)
     mailer = ConsoleMailer()
-    message = code_email(code="123456", to="mira@gmail.com", app_name="Birthday Capsule", from_address="", lang="ko")
+    message = code_email(code="123456", to="mira@gmail.com", app_name="Kelir", from_address="", lang="ko")
     await mailer.send(message)
     console.flush()
     shown = console.buffer.getvalue().decode("cp1252")

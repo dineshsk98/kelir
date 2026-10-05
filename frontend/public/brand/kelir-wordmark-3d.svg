@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="60 20 840 480" role="img" aria-label="Kelir">
+  <title>Kelir</title>
+  <defs>
+
+    <!-- Filters for Depth and Lighting -->
+    <filter id="softGlow" filterUnits="userSpaceOnUse" x="0" y="0" width="960" height="540">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+
+    <filter id="castShadow" filterUnits="userSpaceOnUse" x="0" y="0" width="960" height="540">
+      <feDropShadow dx="0" dy="16" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.22" />
+    </filter>
+
+    <filter id="threadContactShadow" filterUnits="userSpaceOnUse" x="0" y="0" width="960" height="540">
+      <feGaussianBlur stdDeviation="7" result="blur" />
+      <feColorMatrix type="matrix" values="0 0 0 0 0.05   0 0 0 0 0.08   0 0 0 0 0.16  0 0 0 0.45 0"/>
+      <feOffset dx="4" dy="8" />
+    </filter>
+
+    <radialGradient id="glowSender"><stop offset="0" stop-color="#FF2E63" stop-opacity=".30"/><stop offset="1" stop-color="#FF2E63" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glowReceiver"><stop offset="0" stop-color="#00D2FF" stop-opacity=".34"/><stop offset="1" stop-color="#00D2FF" stop-opacity="0"/></radialGradient>
+    <!-- Gradients: 3D Thread -->
+    <linearGradient id="threadBodyGrad" x1="140" y1="420" x2="820" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF2E63" />
+      <stop offset="28%" stop-color="#FF6B4A" />
+      <stop offset="52%" stop-color="#FFA800" />
+      <stop offset="78%" stop-color="#00D2FF" />
+      <stop offset="100%" stop-color="#0066FF" />
+    </linearGradient>
+
+    <linearGradient id="threadSpecularGrad" x1="140" y1="420" x2="820" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#FFF4D0" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#D9F8FF" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Gradients: Text Front Face and Extrusions -->
+    <linearGradient id="textFaceGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="65%" stop-color="#F8FAFC" />
+      <stop offset="100%" stop-color="#E2E8F0" />
+    </linearGradient>
+
+    <linearGradient id="extrudeGradDeep" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#E11D48" />
+      <stop offset="40%" stop-color="#BE123C" />
+      <stop offset="100%" stop-color="#4C0519" />
+    </linearGradient>
+
+    <!-- 3D Node Spheres -->
+    <radialGradient id="sphereSender" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#FFA3BA" />
+      <stop offset="35%" stop-color="#FF2E63" />
+      <stop offset="85%" stop-color="#BE123C" />
+      <stop offset="100%" stop-color="#4C0519" />
+    </radialGradient>
+
+    <radialGradient id="sphereReceiver" cx="35%" cy="30%" r="70%">
+      <stop offset="0%" stop-color="#BAF7FF" />
+      <stop offset="35%" stop-color="#00D2FF" />
+      <stop offset="85%" stop-color="#0077FE" />
+      <stop offset="100%" stop-color="#002D7A" />
+    </radialGradient>
+
+    <!-- Faceted Star Gradients -->
+    <linearGradient id="starFacetL" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF099" />
+      <stop offset="100%" stop-color="#FFB800" />
+    </linearGradient>
+    <linearGradient id="starFacetR" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFA000" />
+      <stop offset="100%" stop-color="#D97706" />
+    </linearGradient>
+
+    <!-- Base Text Template for 3D Layering -->
+    <g id="tamilWord" transform="translate(240 305) scale(0.13311 -0.13311)"><path transform="translate(0 0)" d="M526 242Q552 242 566.5 225.5Q581 209 581 183Q581 158 566.5 142.0Q552 126 526 126Q500 126 485.5 142.0Q471 158 471 183Q471 209 485.5 225.5Q500 242 526 242ZM521 367Q467 367 425.0 347.0Q383 327 359.5 292.0Q336 257 336 211Q336 182 347.5 155.5Q359 129 377 112Q396 97 409.5 89.5Q423 82 442 76L435 -14Q522 -14 586.5 11.5Q651 37 686.5 83.0Q722 129 722 191Q722 270 667.0 318.5Q612 367 521 367ZM32 382Q32 293 60.5 220.5Q89 148 142.5 95.5Q196 43 270.0 14.5Q344 -14 435 -14L459 118Q439 114 418.5 113.0Q398 112 377 112Q325 122 286.0 159.0Q247 196 226.0 253.5Q205 311 205 382Q205 457 225.5 512.0Q246 567 286.0 601.5Q326 636 383 648Q403 648 422.0 646.5Q441 645 460 640L435 774Q344 774 270.0 746.0Q196 718 142.5 666.5Q89 615 60.5 543.0Q32 471 32 382ZM529 632Q553 632 568.0 615.5Q583 599 583 573Q583 549 568.0 533.0Q553 517 529 517Q504 517 489.0 533.0Q474 549 474 573Q474 599 489.0 615.5Q504 632 529 632ZM527 390Q617 390 671.0 438.0Q725 486 725 564Q725 627 689.0 674.0Q653 721 588.0 747.5Q523 774 435 774L448 671Q415 668 383 648Q366 635 354.5 607.0Q343 579 343 549Q343 503 366.5 467.0Q390 431 431.5 410.5Q473 390 527 390Z"/><path transform="translate(759 0)" d="M666 564Q674 550 677.0 534.0Q680 518 680 504Q680 472 663.5 455.0Q647 438 606 438H267V304L115 269V466Q115 513 139.5 538.5Q164 564 208 564ZM366 483H515V299L509 256Q511 215 506.0 172.5Q501 130 481 87L429 48Q401 20 359.5 4.5Q318 -11 254 -11Q148 -11 84.0 37.5Q20 86 20 167Q20 226 54.0 267.0Q88 308 145 326Q169 334 189.5 339.0Q210 344 237.5 346.5Q265 349 307 349Q333 349 359.0 349.0Q385 349 411 349V229Q377 229 344.0 229.0Q311 229 277 229Q250 229 231.0 224.5Q212 220 200 212Q189 205 183.5 193.5Q178 182 178 168Q178 142 199.5 128.0Q221 114 258 114Q309 114 337.5 140.0Q366 166 366 215V274V304ZM450 348H472Q607 350 676.0 300.0Q745 250 745 162Q745 80 693.5 34.5Q642 -11 550 -11Q510 -11 464.5 5.0Q419 21 389 51L471 128Q483 121 498.5 114.5Q514 108 536 108Q561 108 577.0 123.0Q593 138 593 168Q593 196 572.0 213.0Q551 230 509 230H450Z"/><path transform="translate(1534 0)" d="M1065 853Q989 853 932.5 828.5Q876 804 844.5 760.0Q813 716 813 657Q813 623 820.5 593.5Q828 564 842 538L1012 539Q996 559 988.5 581.5Q981 604 981 630Q981 670 1005.0 693.0Q1029 716 1072 716Q1127 716 1156.0 679.0Q1185 642 1185 571V82Q1185 -5 1275 -5Q1293 -5 1314.0 -2.5Q1335 0 1354 4V574Q1354 660 1317.0 722.5Q1280 785 1214.5 819.0Q1149 853 1065 853ZM257 232Q283 232 298.0 216.0Q313 200 313 174Q313 149 298.0 133.0Q283 117 257 117Q232 117 216.5 133.0Q201 149 201 174Q201 200 216.5 216.0Q232 232 257 232ZM288 350Q245 350 213.5 331.0Q182 312 165.0 281.5Q148 251 148 216L38 263Q38 179 66.0 117.5Q94 56 144.5 22.5Q195 -11 264 -11Q324 -11 369.5 12.5Q415 36 440.5 77.5Q466 119 466 174Q466 253 417.0 301.5Q368 350 288 350ZM360 575Q266 575 193.0 537.0Q120 499 79.0 429.0Q38 359 38 263L170 202Q176 231 181.5 259.5Q187 288 193 316Q200 354 221.5 382.0Q243 410 279.0 425.0Q315 440 362 440Q417 440 456.5 421.0Q496 402 521.0 369.5Q546 337 555 296L578 481Q570 494 542.0 516.0Q514 538 468.5 556.5Q423 575 360 575ZM668 564Q618 564 592.0 533.5Q566 503 568 462V439L547 368V79Q547 -5 634 -5Q653 -5 673.5 -2.5Q694 0 713 4V433H860L967 432H1043Q1085 432 1102.5 448.5Q1120 465 1120 499Q1120 514 1116.5 530.5Q1113 547 1105 564ZM837 477V80Q837 -5 925 -5Q944 -5 965.0 -2.5Q986 0 1005 4V477Z"/><path transform="translate(2954 0)" d="M629 564Q637 547 640.5 530.5Q644 514 644 499Q644 465 626.5 448.5Q609 432 567 432H472L383 433H229V4Q210 0 189.0 -2.5Q168 -5 150 -5Q61 -5 61 81V466Q61 513 84.5 538.5Q108 564 152 564ZM363 451H532V6L327 -178Q289 -166 257.0 -141.5Q225 -117 225 -83Q225 -64 233.0 -50.0Q241 -36 253 -25L363 66Z"/></g>
+  </defs>
+
+  <!-- ============================================================ -->
+  <!-- 1. AMBIENT BACKDROP / PARTICLES (Transparent Safe)           -->
+  <!-- ============================================================ -->
+  <g opacity="0.6">
+    <circle cx="150" cy="405" r="80" fill="url(#glowSender)" />
+    <circle cx="810" cy="115" r="90" fill="url(#glowReceiver)" />
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 2. BEHIND-THE-TEXT THREAD SEGMENT                           -->
+  <!-- ============================================================ -->
+  <g filter="url(#castShadow)">
+    <!-- Base dark cylinder rim -->
+    <path d="M 150 405
+             C 210 405, 250 450, 310 445
+             C 385 440, 370 330, 430 270
+             C 480 220, 500 130, 560 110
+             C 625 90, 690 145, 740 130
+             L 810 115"
+          fill="none" stroke="#0F172A" stroke-opacity="0.18" stroke-width="26" stroke-linecap="round" />
+
+    <!-- Volumetric gradient tube body -->
+    <path d="M 150 405
+             C 210 405, 250 450, 310 445
+             C 385 440, 370 330, 430 270
+             C 480 220, 500 130, 560 110
+             C 625 90, 690 145, 740 130
+             L 810 115"
+          fill="none" stroke="url(#threadBodyGrad)" stroke-width="20" stroke-linecap="round" />
+
+    <!-- Specular highlight line along the upper curvature -->
+    <path d="M 150 403
+             C 210 403, 250 447, 310 442
+             C 385 437, 370 327, 430 267
+             C 480 217, 500 127, 560 107
+             C 625 87, 690 142, 740 127
+             L 810 113"
+          fill="none" stroke="url(#threadSpecularGrad)" stroke-width="4.5" stroke-linecap="round" opacity="0.85" />
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 3. VOLUMETRIC 3D TAMIL WORDMARK ("கேளிர்")                    -->
+  <!-- ============================================================ -->
+  <g filter="url(#castShadow)">
+    <!-- Deep Cast Ground Shadow -->
+    <use href="#tamilWord" x="14" y="20" fill="#090D16" opacity="0.32" filter="url(#softGlow)" />
+
+    <!-- Isometric Extrusion Stacks (Simulating solid 3D depth) -->
+    <use href="#tamilWord" x="12" y="16" fill="url(#extrudeGradDeep)" opacity="0.9" />
+    <use href="#tamilWord" x="10" y="13.5" fill="#9F1239" />
+    <use href="#tamilWord" x="8"  y="11"   fill="#BE123C" />
+    <use href="#tamilWord" x="6"  y="8.5"  fill="#E11D48" />
+    <use href="#tamilWord" x="4"  y="5.5"  fill="#F43F5E" />
+    <use href="#tamilWord" x="2"  y="2.5"  fill="#FB7185" />
+
+    <!-- Crisp Dark Ambient Inset Edge -->
+    <use href="#tamilWord" x="0"  y="0" fill="#0F172A" stroke="#0F172A" stroke-width="30.1" stroke-linejoin="round" />
+
+    <!-- Front Glossy Face -->
+    <use href="#tamilWord" x="0"  y="0" fill="url(#textFaceGrad)" />
+
+    <!-- Inner Specular Rim / Bevel -->
+    <use href="#tamilWord" x="-0.5" y="-1" fill="none" stroke="#FFFFFF" stroke-width="13.5" stroke-linejoin="round" opacity="0.9" />
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 4. FOREGROUND THREAD WEAVE (Passing over the letters)        -->
+  <!-- ============================================================ -->
+  <!-- Contact shadow cast by foreground thread on top of letters -->
+  <path d="M 320 420
+           C 365 410, 385 345, 415 315
+           C 445 285, 480 300, 510 335"
+        fill="none" stroke="#000000" stroke-width="18" stroke-linecap="round" filter="url(#threadContactShadow)" />
+
+  <!-- The Foreground Tube Segment looping over "க" and "ளி" -->
+  <path d="M 320 420
+           C 365 410, 385 345, 415 315
+           C 445 285, 480 300, 510 335"
+        fill="none" stroke="url(#threadBodyGrad)" stroke-width="20" stroke-linecap="round" />
+
+  <!-- Foreground Specular Ridge -->
+  <path d="M 320 418
+           C 365 408, 385 343, 415 313
+           C 445 283, 480 298, 510 333"
+        fill="none" stroke="url(#threadSpecularGrad)" stroke-width="4.5" stroke-linecap="round" opacity="0.9" />
+
+  <!-- ============================================================ -->
+  <!-- 5. 3D FACETED MIDNIGHT SPARKLE (The Pulli on ர்)            -->
+  <!-- ============================================================ -->
+  <!-- Center: (715, 175) -->
+  <g filter="url(#castShadow)">
+    <!-- Golden Ambient Aura -->
+    <circle cx="715" cy="175" r="28" fill="#F59E0B" opacity="0.3" filter="url(#softGlow)" />
+
+    <!-- Faceted Star Left / Top Facets -->
+    <path d="M 715 135 L 724 166 L 715 175 Z" fill="url(#starFacetL)" />
+    <path d="M 715 175 L 724 184 L 715 215 Z" fill="url(#starFacetL)" />
+    <path d="M 675 175 L 706 166 L 715 175 Z" fill="url(#starFacetL)" />
+    <path d="M 715 175 L 706 184 L 675 175 Z" fill="url(#starFacetL)" />
+
+    <!-- Faceted Star Right / Bottom Facets -->
+    <path d="M 715 135 L 715 175 L 726 166 Z" fill="url(#starFacetR)" />
+    <path d="M 715 175 L 715 215 L 726 184 Z" fill="url(#starFacetR)" />
+    <path d="M 715 175 L 755 175 L 726 184 Z" fill="url(#starFacetR)" />
+    <path d="M 715 175 L 726 166 L 755 175 Z" fill="url(#starFacetR)" />
+
+    <!-- High-glare diamond center -->
+    <polygon points="715,165 723,175 715,185 707,175" fill="#FFFFFF" opacity="0.95" />
+    <circle cx="715" cy="175" r="2.5" fill="#FFFFFF" />
+  </g>
+
+  <!-- ============================================================ -->
+  <!-- 6. 3D PINS / NODES (Sender & Receiver)                       -->
+  <!-- ============================================================ -->
+  <!-- SENDER NODE (Bottom Left) -->
+  <g filter="url(#castShadow)">
+    <!-- Floating Perspective Halo -->
+    <ellipse cx="150" cy="425" rx="34" ry="12" fill="none" stroke="#FF2E63" stroke-width="2.5" opacity="0.35" />
+    <ellipse cx="150" cy="425" rx="22" ry="7.5" fill="#FF2E63" opacity="0.12" />
+
+    <!-- 3D Sphere -->
+    <circle cx="150" cy="405" r="18" fill="url(#sphereSender)" />
+    <ellipse cx="145" cy="399" rx="6" ry="3.5" fill="#FFFFFF" opacity="0.75" />
+  </g>
+
+  <!-- RECEIVER NODE (Top Right - 00:00) -->
+  <g filter="url(#castShadow)">
+    <!-- Floating Perspective Halo -->
+    <ellipse cx="810" cy="135" rx="38" ry="13" fill="none" stroke="#00D2FF" stroke-width="2.5" opacity="0.35" />
+    <ellipse cx="810" cy="135" rx="24" ry="8" fill="#00D2FF" opacity="0.12" />
+
+    <!-- 3D Sphere -->
+    <circle cx="810" cy="115" r="20" fill="url(#sphereReceiver)" />
+    <ellipse cx="804" cy="108" rx="7" ry="4" fill="#FFFFFF" opacity="0.8" />
+  </g>
+</svg>

@@ -6,6 +6,7 @@ import { StatusBadge } from '../components/StatusBadge'
 import { deliveryLine } from '../format'
 import { useMessageLang } from '../languages'
 import './CapsuleDetail.css'
+import { Wordmark } from '../components/Wordmark'
 
 /** The message in its language's handwriting */
 function Message({ text, lang }: { text: string; lang: string }) {
@@ -71,7 +72,7 @@ export function CapsuleDetail() {
     <main className="page detail">
       <header className="topbar">
         <Link to="/history" className="brand">
-          Birthday Capsule
+          <Wordmark className="wordmark-sm" />
         </Link>
         <Link to="/history" className="btn btn-quiet">
           ← Your capsules

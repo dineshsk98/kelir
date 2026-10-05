@@ -30,19 +30,18 @@
 }
 
 .welcome-mark {
+  width: 100%;
   display: grid;
   justify-items: center;
   align-content: center;
   gap: 8px;
 }
 
-.welcome-logo {
-  width: 280px;
-  height: 280px;
-}
-
-.welcome-mark .brand {
-  font-size: 2.8rem;
+.wordmark-lg {
+  display: block;
+  width: 100%;
+  max-width: 460px;
+  height: auto;
 }
 
 .welcome-right-inner {
@@ -110,11 +109,6 @@
   .welcome-left-inner {
     min-height: 0;
     gap: 24px;
-  }
-
-  .welcome-logo {
-    width: 160px;
-    height: 160px;
   }
 
 }
