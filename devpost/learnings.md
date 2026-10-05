@@ -6,6 +6,12 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-04 · A saved person's city didn't show in the editor
+- **Symptom:** making a capsule from the People page filled in the name, email and birthday, but the city box stayed empty, even though the form already held the city (Lisbon) and the hint under the box showed its time zone.
+- **Cause:** `CityPicker` copies its `value` into its own text state (`query`) only when it first renders. The person's details arrive after the editor has rendered (their list loads first), so the box never heard about the new city. Until now nothing set the city from outside the box after the first render.
+- **Fix:** `frontend/src/components/CityPicker.tsx` now updates the text when `value` changes from outside. A new city shows its label; a city cleared from outside ("Someone new") empties the box, unless the user is typing, since typing also clears `value` but leaves the typed text.
+- **Lesson:** a component that keeps its own copy of a prop for editing must also react to that prop changing later. Test prefilled forms with the data arriving after the first render, not only with data present at mount.
+
 ## 2026-10-04 · Shared birthday fields didn't type-check with the editor's setter
 - **Symptom:** `tsc` failed after moving the birthday fields into `BirthdayFields`: the editor's `set` (generic over every `Draft` key) wasn't assignable to the component's `onChange` (generic over the three birthday keys).
 - **Cause:** for a generic key `K`, TypeScript can't prove that `BirthdayValue[K]` equals `Draft[K]`, even though they match for each of the three keys. The old inline code also called `set` twice when a month change cleared a day that no longer fit.

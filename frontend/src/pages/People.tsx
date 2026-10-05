@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError, type Me, type Person } from '../api'
-import type { City } from '../cities'
+import { savedCity, type City } from '../cities'
 import { BirthdayFields, isFeb29, type BirthdayValue } from '../components/BirthdayFields'
 import { CityPicker } from '../components/CityPicker'
 import { birthdayLabel, cityName, countdown, deliveryMoment } from '../format'
@@ -121,6 +121,9 @@ export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
                     </div>
                   ) : (
                     <div className="person-actions">
+                      <Link to={`/capsules/new?person=${encodeURIComponent(p.id)}`} className="btn">
+                        Make a capsule
+                      </Link>
                       <button type="button" className="btn btn-quiet" onClick={() => setEditing(p.id)}>
                         Edit
                       </button>
@@ -161,13 +164,7 @@ function PersonEditor({ person, onCancel, onSaved }: { person: Person; onCancel:
     birth_day: person.birth_day,
     feb29_pref: person.feb29_pref,
   })
-  const [city, setCity] = useState<City | null>({
-    name: cityName(person.city_label),
-    region: '',
-    country: '',
-    tz: person.tz,
-    label: person.city_label,
-  })
+  const [city, setCity] = useState<City | null>(savedCity(person.city_label, person.tz))
   const [errors, setErrors] = useState<Errors>({})
   const [saving, setSaving] = useState(false)
 

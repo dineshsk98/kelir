@@ -130,13 +130,13 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Write a short message in two languages you can read, check the fonts in Preview and in the opening, and read the email's subject in the console output.
   Commit: `Add message languages with script-specific handwritten fonts`
 
-- [ ] **13. Your regular people are saved and easy to reuse**
+- [x] **13. Your regular people are saved and easy to reuse**
   Becomes usable: Every capsule you send saves (or updates) that person: name, email, birthday and city. A People page lists them by next birthday ("Aiko · in 12 days · 00:00 in Tokyo") with Make a capsule, Edit and Remove; the Who step offers "Someone you've sent to before" to fill everything in one tap.
   Why now: A convenience for one sender (not multi-user), so it comes after the capsule's content is complete. It needs capsules and the city/time-zone data from earlier slices.
   PRD ref: `prd.md > Regular recipients`
   Spec ref: `spec.md > Data Model` (`people`), `spec.md > Components > People API`
   Build: `people` migration (per sender, unique email), upsert on capsule create, `capsules.person_id`, `GET/PATCH/DELETE /v1/people` with next-birthday computed by the midnight engine; People page; Who-step picker.
-  Built in two parts: **13a** (done, 2026-10-04) the table and backfill, upsert on create and on scheduled edits, the People API, and the People page with Edit and Remove; **13b** Make a capsule from a person (`/capsules/new?person=`) and the Who-step picker.
+  Built in two parts: **13a** (done, 2026-10-04) the table and backfill, upsert on create and on scheduled edits, the People API, and the People page with Edit and Remove; **13b** (done, 2026-10-04) Make a capsule from a person (`/capsules/new?person=`) and the Who-step picker.
   Verify (mechanical): `pytest` passes, including upsert by email (case-insensitive), next-birthday order across time zones and Feb 29, owner-only access, and removing a person keeps their capsules. `npm run build` passes; in the browser pane, a second capsule for the same person is made from the People page with the form prefilled.
   Learner check: Send to two people, open People, check the order and countdowns, then make a new capsule for one of them from there.
   Commit: `Add saved people with next-birthday list`

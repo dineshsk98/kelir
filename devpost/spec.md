@@ -182,7 +182,8 @@ Implements `prd.md > Regular recipients (People)`.
 - `GET /v1/people`: the sender's people with `next_delivery` from the midnight engine (`now` if their birthday has already begun where they live), soonest first; ties by name.
 - `PATCH /v1/people/{id}` (name, birthday, city; the email is who they are, so it isn't editable) and `DELETE /v1/people/{id}` (past capsules keep their own copies of the details; `person_id` becomes null). Another sender's person answers 404 `PERSON_NOT_FOUND`.
 - Migration `0008` fills `people` from existing capsules (each recipient's latest capsule) and links them.
-- People page (`/people`, linked from History): name and countdown ("in 12 days", counted in their time zone), when a capsule would arrive in their city and the sender's time, birthday and email; Edit inline (sharing `BirthdayFields` with the editor's Who step) and Remove with a confirmation.
+- People page (`/people`, linked from History): name and countdown ("in 12 days", counted in their time zone), when a capsule would arrive in their city and the sender's time, birthday and email; Make a capsule, Edit inline (sharing `BirthdayFields` with the editor's Who step) and Remove with a confirmation.
+- Who step, new capsules only: "Someone you've sent to before" (shown when there are people) fills in name, email, birthday and city; "Someone new" clears them. It shows a person as picked only while the email is theirs. `/capsules/new?person=<id>` (from Make a capsule) fills the same way and stays on Who so the details can be checked. Editing a capsule has no picker.
 
 ### Message languages and fonts (`frontend/src/languages.ts`, `backend/app/delivery/email_copy.py`)
 Implements `prd.md > Message languages`.

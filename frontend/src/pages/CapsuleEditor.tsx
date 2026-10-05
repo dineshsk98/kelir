@@ -1,5 +1,5 @@
 import { cloneElement, useEffect, useId, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
   api,
   ApiError,
@@ -9,16 +9,17 @@ import {
   type Feb29Pref,
   type GiftKind,
   type Me,
+  type Person,
   type SendMode,
 } from '../api'
-import type { City } from '../cities'
+import { savedCity, type City } from '../cities'
 import { BirthdayFields, isFeb29 } from '../components/BirthdayFields'
 import { CityPicker } from '../components/CityPicker'
 import { MediaGallery } from '../components/MediaGallery'
 import { MediaPicker, type PickedMedia } from '../components/MediaPicker'
 import { StepNav } from '../components/StepNav'
 import { isValidEmail, suggestEmail } from '../email'
-import { cityName, deliveryMoment } from '../format'
+import { deliveryMoment } from '../format'
 import { EMAIL_SUBJECT, MESSAGE_LANGS, MESSAGE_PLACEHOLDER, useMessageLang, type MessageLang } from '../languages'
 import './CapsuleEditor.css'
 
@@ -69,7 +70,7 @@ function draftFrom(c: Capsule): Draft {
     birth_month: c.birth_month,
     birth_day: c.birth_day,
     feb29_pref: c.feb29_pref,
-    city: { name: cityName(c.city_label), region: '', country: '', tz: c.tz, label: c.city_label },
+    city: savedCity(c.city_label, c.tz),
     message_text: c.message_text ?? '',
     message_lang: c.message_lang,
     gift_kind: c.gift_kind,
@@ -77,6 +78,26 @@ function draftFrom(c: Capsule): Draft {
     gift_note: c.gift_note ?? '',
     send_mode: c.send_mode,
   }
+}
+
+/** The Who step filled in with a saved person's details */
+const whoFrom = (p: Person): Partial<Draft> => ({
+  recipient_name: p.name,
+  recipient_email: p.email,
+  birth_month: p.birth_month,
+  birth_day: p.birth_day,
+  feb29_pref: p.feb29_pref,
+  city: savedCity(p.city_label, p.tz),
+})
+
+/** "Someone new": the Who step's fields cleared */
+const NEW_PERSON: Partial<Draft> = {
+  recipient_name: '',
+  recipient_email: '',
+  birth_month: null,
+  birth_day: null,
+  feb29_pref: null,
+  city: null,
 }
 
 const MEDIA_LABEL = { image: 'Photo', audio: 'Audio', video: 'Video' } as const
@@ -175,6 +196,29 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
     setDraft((d) => ({ ...d, ...change }))
     setErrors((e) => ({ ...e, ...Object.fromEntries(Object.keys(change).map((k) => [k, undefined])) }))
   }
+
+  // New capsules can start from someone saved: the picker, or ?person= from the People page
+  const [searchParams] = useSearchParams()
+  const personParam = searchParams.get('person')
+  const [people, setPeople] = useState<Person[]>([])
+  useEffect(() => {
+    if (initial) return
+    let cancelled = false
+    api
+      .listPeople()
+      .then((list) => {
+        if (cancelled) return
+        setPeople(list)
+        const chosen = list.find((p) => p.id === personParam)
+        if (chosen) setAll(whoFrom(chosen))
+      })
+      .catch(() => {}) // only a shortcut: the form works without it
+    return () => {
+      cancelled = true
+    }
+  }, [initial, personParam])
+  // Shown as picked only while the email is theirs, so it never names the wrong person
+  const pickedId = people.find((p) => p.email === draft.recipient_email.trim().toLowerCase())?.id ?? ''
 
   const stepIndex = STEPS.findIndex((s) => s.id === step)
   /** The next (or previous) step that isn't locked */
@@ -289,6 +333,26 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
         {step === 'who' && (
           <>
             <h2>Who is it for?</h2>
+            {people.length > 0 && (
+              <Field label="Someone you've sent to before">
+                <select
+                  className="input"
+                  value={pickedId}
+                  onChange={(e) => {
+                    const person = people.find((p) => p.id === e.target.value)
+                    setAll(person ? whoFrom(person) : NEW_PERSON)
+                    setEmailTouched(false)
+                  }}
+                >
+                  <option value="">Someone new</option>
+                  {people.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} · {p.email}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
             <Field label="Their name" error={errors.recipient_name}>
               <input
                 className="input"

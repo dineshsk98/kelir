@@ -12,6 +12,15 @@ export type City = {
   label: string
 }
 
+/** A city already saved with a capsule or person: only its label and time zone are stored */
+export const savedCity = (label: string, tz: string): City => ({
+  name: label.split(',')[0],
+  region: '',
+  country: '',
+  tz,
+  label,
+})
+
 type Indexed = City & { key: string; nameKey: string; population: number }
 
 const countryNames = new Intl.DisplayNames(['en'], { type: 'region' })

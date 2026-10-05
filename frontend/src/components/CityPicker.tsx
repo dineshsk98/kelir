@@ -1,4 +1,4 @@
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { searchCities, type City } from '../cities'
 import './CityPicker.css'
 
@@ -22,6 +22,16 @@ export function CityPicker({
   const [open, setOpen] = useState(false)
   const [active, setActive] = useState(0)
   const [loadError, setLoadError] = useState(false)
+
+  // A city set or cleared outside the box (a saved person picked in the editor) shows in it.
+  // Typing also clears `value`, but then the box already holds what was typed: left alone.
+  const shown = useRef(value)
+  useEffect(() => {
+    const before = shown.current
+    shown.current = value
+    if (value) setQuery(value.label)
+    else if (before && query === before.label) setQuery('')
+  }, [value])
 
   useEffect(() => {
     if (value && query === value.label) return
