@@ -1,11 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { api, type Capsule, type Me } from '../api'
+import { api, type Capsule, type CapsuleStatus, type Me } from '../api'
 import { AppHeader } from '../components/AppHeader'
 import { StatusBadge } from '../components/StatusBadge'
 import { ACCOUNT_CONFIRMED } from '../account'
 import { deliveryLine } from '../format'
 import './History.css'
+
+const FILTERS: { key: CapsuleStatus; label: string }[] = [
+  { key: 'scheduled', label: 'Scheduled' },
+  { key: 'delivered', label: 'Delivered' },
+  { key: 'opened', label: 'Opened' },
+  { key: 'cancelled', label: 'Cancelled' },
+]
 
 export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
   const firstName = me.name.split(' ')[0]
@@ -13,6 +20,7 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
   const [error, setError] = useState(false)
   const [demoMode, setDemoMode] = useState(false)
   const [simulating, setSimulating] = useState<string | null>(null)
+  const [filter, setFilter] = useState<CapsuleStatus | 'all'>('all')
 
   const load = useCallback(() => {
     api
@@ -48,6 +56,11 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
     }
   }
 
+  const counts = (status: CapsuleStatus) => capsules?.filter((c) => c.status === status).length ?? 0
+  // A filter that has emptied out (the last scheduled one just went out) falls back to All
+  const active = filter !== 'all' && counts(filter) === 0 ? 'all' : filter
+  const shown = capsules?.filter((c) => active === 'all' || c.status === active) ?? []
+
   return (
     <main className="page">
       <AppHeader me={me} onSignOut={onSignOut} />
@@ -80,8 +93,26 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       )}
 
       {capsules && capsules.length > 0 && (
+        <div className="capsule-filters" role="group" aria-label="Filter by status">
+          {[{ key: 'all' as const, label: 'All', count: capsules.length }, ...FILTERS.map((f) => ({ ...f, count: counts(f.key) }))]
+            .filter((f) => f.key === 'all' || f.count > 0)
+            .map((f) => (
+              <button
+                key={f.key}
+                type="button"
+                className="filter-chip"
+                aria-pressed={active === f.key}
+                onClick={() => setFilter(f.key)}
+              >
+                {f.label} <span className="filter-count">{f.count}</span>
+              </button>
+            ))}
+        </div>
+      )}
+
+      {capsules && capsules.length > 0 && (
         <ul className="capsule-list">
-          {capsules.map((c) => (
+          {shown.map((c) => (
             <li key={c.id} className="capsule-row">
               <div className="capsule-row-main">
                 <p className="capsule-to">

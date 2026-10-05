@@ -180,10 +180,10 @@ Refinements Dinesh asked for during slice 3's learner check (2026-09-30), to do 
 - [x] Message: accept the placeholder text with Tab (like inline text prediction). Keep the handwritten font and the placeholder wording.
 - [ ] Recipient email: tighten validation; showing the error when Next is pressed stays as is. Built early, in slice 3: stricter format (browser and API), "Did you mean …?" typo hint, and a server-side MX lookup on Next and on save. Awaiting Dinesh's retry.
 - [x] City search shortcuts and aliases: abbreviations such as "nyc" → New York City and "la" → Los Angeles, and alternate/former names such as "bangalore" ↔ Bengaluru (GeoNames has alternate names that can feed this).
-- [ ] Better thank-you preset wording (still birthday-focused).
+- [x] Better thank-you preset wording (still birthday-focused). Done 2026-10-05: all four reworded to mention the birthday and a fifth added ("first to wish me"), in 10 languages (`backend/app/replies.py`); awaiting Dinesh's read of the wording.
 - [ ] UI/UX polish across every screen with the look chosen in slice 6; less text on screen.
 - [ ] Mobile/portrait layout across every screen. The welcome page is now a desktop split (sign-in left, about right, built 2026-10-05) and is not yet designed for portrait; its stacked fallback below 800px is only a stopgap. Address together with the polish pass.
-- [ ] History list redesign: scrollable container and filters (e.g. by status).
+- [x] History list redesign: scrollable container and filters (e.g. by status). Done 2026-10-05 (`History.tsx`, `History.css`): status chips with counts, empty ones hidden, the list scrolls inside its own box.
 - [x] City picker inline completion: as each character is typed, the top prefix match fills in ahead of the cursor as ghost text with a short animation (trie-style prefix search), accepted with Tab.
 
 - [ ] Final review complete — feedback resolved and learner confirms ready to ship
