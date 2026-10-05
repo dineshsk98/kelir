@@ -10,3 +10,20 @@
   text-align: center;
   max-width: 480px;
 }
+
+/* Back to the Received list, over the opening (top centre, clear of mute and Skip) */
+.received-back {
+  position: fixed;
+  z-index: 20;
+  top: calc(env(safe-area-inset-top) + 14px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgb(14 15 26 / 0.55);
+  border: 1px solid rgb(244 239 230 / 0.18);
+  color: #f4efe6;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+}

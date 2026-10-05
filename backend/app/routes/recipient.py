@@ -1,5 +1,7 @@
-"""The recipient's private link (prd.md > The opening moment). No account: the link's
-secret is the only key, looked up by its hash."""
+"""The recipient's link (prd.md > The opening moment, Proving it's them). The link's secret
+finds the capsule (looked up by its hash); opening it also takes being signed in as the
+recipient's email (Google or an emailed code, routes/auth.py). So a forwarded or leaked link
+shows nothing inside, and a gift code can't be taken from it."""
 
 import re
 import uuid
@@ -11,6 +13,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import MaybeSignedIn
 from app.clock import Now
 from app.config import Settings, get_settings
 from app.db import get_session
@@ -18,7 +21,7 @@ from app.links import hash_link_secret
 from app.media import SERVE_HEADERS, media_file
 from app.models import Capsule, Reply, Sender
 from app.replies import REPLY_PRESETS
-from app.schemas import MediaOut, OpenedOut, RecipientCapsuleOut, ReplyIn, ReplyOut, ReplyPreset
+from app.schemas import AccessOut, MediaOut, OpenedOut, RecipientCapsuleOut, ReplyIn, ReplyOut, ReplyPreset
 
 router = APIRouter(prefix="/v1/c")
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -52,6 +55,37 @@ async def _find(session: AsyncSession, secret: str) -> tuple[Capsule, Sender]:
     return capsule, sender
 
 
+def _is_recipient(viewer: Sender | None, capsule: Capsule) -> bool:
+    return viewer is not None and viewer.email == capsule.recipient_email.lower()
+
+
+async def _find_for(session: AsyncSession, secret: str, viewer: Sender | None) -> tuple[Capsule, Sender]:
+    """The capsule, only for its recipient: 401 if not signed in, 403 if signed in as someone
+    else. Either way nothing inside is sent."""
+    capsule, sender = await _find(session, secret)
+    if not _is_recipient(viewer, capsule):
+        if viewer is not None:
+            raise HTTPException(403, detail={"code": "WRONG_ACCOUNT"}, headers=PRIVATE_HEADERS)
+        raise HTTPException(401, detail={"code": "RECIPIENT_NOT_VERIFIED"}, headers=PRIVATE_HEADERS)
+    return capsule, sender
+
+
+def mask_email(email: str) -> str:
+    """aiko@gmail.com → a•••@gmail.com: enough to know which account, not the address."""
+    local, _, domain = email.partition("@")
+    return f"{local[:1]}•••@{domain}"
+
+
+def _access(capsule: Capsule, sender: Sender, viewer: Sender | None) -> AccessOut:
+    return AccessOut(
+        sender_first_name=sender.name.split(" ")[0],
+        recipient_hint=mask_email(capsule.recipient_email),
+        message_lang=capsule.message_lang,
+        allowed=_is_recipient(viewer, capsule),
+        signed_in_as=viewer.email if viewer is not None else None,
+    )
+
+
 async def _mark_opened(session: AsyncSession, capsule: Capsule, now) -> None:
     """Reaching the open box (or replying) marks it Opened; the condition makes this happen
     once, so `opened_at` is the first time."""
@@ -62,12 +96,19 @@ async def _mark_opened(session: AsyncSession, capsule: Capsule, now) -> None:
     )
 
 
-@router.get("/{secret}")
-async def open_capsule(secret: str, session: Session, response: Response) -> RecipientCapsuleOut:
-    """What the link shows. Loading it changes nothing: an interrupted first visit still gets
-    the whole opening next time. `opened_at` tells the page whether to play it."""
+@router.get("/{secret}/access")
+async def access(secret: str, session: Session, viewer: MaybeSignedIn, response: Response) -> AccessOut:
+    """What the link may say before it's opened: who sent it and whose email opens it (masked),
+    and whether the person looking has proved that email."""
     capsule, sender = await _find(session, secret)
     response.headers.update(PRIVATE_HEADERS)
+    return _access(capsule, sender, viewer)
+
+
+# --- What the recipient can do, shared by the link and Received (routes/received.py) ---
+
+
+def capsule_out(capsule: Capsule, sender: Sender) -> RecipientCapsuleOut:
     return RecipientCapsuleOut(
         sender_name=sender.name,
         recipient_name=capsule.recipient_name,
@@ -83,53 +124,85 @@ async def open_capsule(secret: str, session: Session, response: Response) -> Rec
     )
 
 
-@router.post("/{secret}/opened")
-async def mark_opened(secret: str, session: Session, now: Now, response: Response) -> OpenedOut:
-    """She has reached the open box (or skipped to it): from now on the link shows the
-    contents without the opening. Repeating it is harmless and keeps the first time."""
-    capsule, _ = await _find(session, secret)
+async def opened(session: AsyncSession, capsule: Capsule, now) -> OpenedOut:
     await _mark_opened(session, capsule, now)
     await session.commit()
-    opened_at = await session.scalar(select(Capsule.opened_at).where(Capsule.id == capsule.id))
-    response.headers.update(PRIVATE_HEADERS)
-    return OpenedOut(opened_at=opened_at)
+    return OpenedOut(opened_at=await session.scalar(select(Capsule.opened_at).where(Capsule.id == capsule.id)))
 
 
-@router.get("/{secret}/media/{media_id}")
-async def stream_media(
-    secret: str, media_id: uuid.UUID, session: Session, settings: Annotated[Settings, Depends(get_settings)]
-) -> FileResponse:
-    """One of this capsule's photos/audio/video, for the recipient (range requests for seeking)."""
-    capsule, _ = await _find(session, secret)
+def media_response(capsule: Capsule, media_id: uuid.UUID, settings: Settings) -> FileResponse:
     item = next((m for m in capsule.media if m.id == media_id), None)
     if item is None:
         raise HTTPException(404, detail={"code": "MEDIA_NOT_FOUND"}, headers=PRIVATE_HEADERS)
     return FileResponse(
         media_file(item, settings.uploads_dir),
         media_type=item.mime,
-        headers=SERVE_HEADERS | PRIVATE_HEADERS | {"Cache-Control": "private, max-age=3600"},
+        # Not kept in the browser's cache, so whoever uses this device next can't find it there
+        headers=SERVE_HEADERS | PRIVATE_HEADERS,
     )
 
 
-@router.post("/{secret}/reply", status_code=201)
-async def send_reply(
-    secret: str, body: ReplyIn, session: Session, now: Now, response: Response
-) -> ReplyOut:
-    """The recipient's thank-you: one per capsule, no account needed."""
-    capsule, _ = await _find(session, secret)
+async def reply(session: AsyncSession, capsule: Capsule, body: ReplyIn, now) -> ReplyOut:
+    """The recipient's thank-you: one per capsule (it also counts as opening it)."""
     already_replied = HTTPException(409, detail={"code": "REPLY_EXISTS"}, headers=PRIVATE_HEADERS)
     if capsule.reply is not None:
         raise already_replied
-    reply = Reply(
+    row = Reply(
         capsule_id=capsule.id, preset_key=body.preset_key, text=body.text, lang=body.lang, created_at=now
     )
     try:
-        session.add(reply)
+        session.add(row)
         # The INSERT is flushed by this next statement (autoflush), so it belongs inside the try
         await _mark_opened(session, capsule, now)
         await session.commit()
     except IntegrityError:  # a double-tap raced us: the unique capsule_id kept it to one
         await session.rollback()
         raise already_replied
+    return ReplyOut.from_model(row)
+
+
+# --- The link ----------------------------------------------------------------------
+
+
+@router.get("/{secret}")
+async def open_capsule(
+    secret: str, session: Session, viewer: MaybeSignedIn, response: Response
+) -> RecipientCapsuleOut:
+    """What's inside, for the recipient. Loading it changes nothing: an interrupted first visit
+    still gets the whole opening next time. `opened_at` tells the page whether to play it."""
+    capsule, sender = await _find_for(session, secret, viewer)
     response.headers.update(PRIVATE_HEADERS)
-    return ReplyOut.from_model(reply)
+    return capsule_out(capsule, sender)
+
+
+@router.post("/{secret}/opened")
+async def mark_opened(
+    secret: str, session: Session, viewer: MaybeSignedIn, now: Now, response: Response
+) -> OpenedOut:
+    """She has reached the open box (or skipped to it): from now on the capsule shows its
+    contents without the opening. Repeating it is harmless and keeps the first time."""
+    capsule, _ = await _find_for(session, secret, viewer)
+    response.headers.update(PRIVATE_HEADERS)
+    return await opened(session, capsule, now)
+
+
+@router.get("/{secret}/media/{media_id}")
+async def stream_media(
+    secret: str,
+    media_id: uuid.UUID,
+    session: Session,
+    viewer: MaybeSignedIn,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> FileResponse:
+    """One of this capsule's photos/audio/video, for the recipient (range requests for seeking)."""
+    capsule, _ = await _find_for(session, secret, viewer)
+    return media_response(capsule, media_id, settings)
+
+
+@router.post("/{secret}/reply", status_code=201)
+async def send_reply(
+    secret: str, body: ReplyIn, session: Session, viewer: MaybeSignedIn, now: Now, response: Response
+) -> ReplyOut:
+    capsule, _ = await _find_for(session, secret, viewer)
+    response.headers.update(PRIVATE_HEADERS)
+    return await reply(session, capsule, body, now)

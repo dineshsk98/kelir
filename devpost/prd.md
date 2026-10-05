@@ -43,8 +43,10 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 ## Features and Behavior
 
 ### Sign-in and history
-- As a sender, I sign in with Google so that my capsules are tied to a real, verified identity and are waiting for me when I come back.
-  - [ ] "Sign in with Google" on the welcome page leads to the history page.
+- As a sender or a recipient, I sign in with Google, or with a code emailed to me (like Claude's email sign-in), so that my capsules are tied to a verified email and are waiting for me when I come back. (Email codes added 2026-10-05.)
+  - [ ] The welcome page offers "Continue with Google" and "Continue with email". With email, I type my address, get a 6-digit code, and type it in. The code works for 10 minutes and allows 5 tries; a new one can be sent after a minute, at most 5 an hour.
+  - [ ] Either way it's the same account for the same email; the first sign-in creates it.
+  - [ ] I can change my name, since recipients see it.
   - [ ] After signing out and back in, the same capsules are listed.
   - [ ] Each row shows:
     - the recipient's name and city
@@ -106,11 +108,28 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
   - [ ] **Opens once** (changed 2026-10-05; it used to replay): a gift can't be unwrapped twice. Once they reach the open box (or skip to it), the link always opens straight to it: the photocard, the contents note and the thank-you, with no cake or ribbon. This applies on every device.
   - [ ] Reaching the open box changes the sender's status to Opened (so do sending a thank-you). Only loading the page doesn't count, so an interrupted first visit still gets the whole opening. Later visits don't change anything.
 
+### Proving it's them (added 2026-10-05)
+- As a recipient, only I can open what was sent to me, even if the link is forwarded or seen by someone else, because a gift code inside could be stolen. Dinesh, 2026-10-05: "when gifts like codes are sent, any unauthorized access to the link will lead to the code getting stolen."
+  - [ ] The link alone shows nothing inside: no message, media or gift. Before I prove it's me, it says only who sent it and which email opens it, masked (a•••@gmail.com).
+  - [ ] I prove it by signing in as that email: with Google, or with a code emailed to it (see Sign-in and history).
+  - [ ] It happens at the cake, before the candles are blown, without leaving the opening: the scene and the music carry on while I confirm.
+  - [ ] Signed in as another account, I'm told the capsule is for a different email.
+  - [ ] Once proved on this browser, the opening is exactly as before.
+
 ### Thank-you reply
-- As a recipient, I can say thank you without making an account.
+- As a recipient, I can say thank you once I've proved it's me.
   - [ ] I can choose a preset thank-you or write my own text, then send.
   - [ ] The sender sees it on that capsule in their history.
   - [ ] After sending, the capsule page shows "Your thank-you was sent."
+
+### Received (added 2026-10-05)
+- As a recipient, I can find my capsules again in the app, because links can be lost or destroyed (Dinesh, 2026-10-05).
+  - [ ] Signed in, a Received tab lists the capsules sent to my email, newest first: who it's from, when it arrived, and New or Opened (and whether I said thank you). Nothing from inside them is in the list.
+  - [ ] Capsules not yet delivered don't appear (they're still a surprise), nor do cancelled ones.
+  - [ ] Opening one plays the opening once, like the link; opening it in either place opens it in both. The thank-you works the same way.
+  - [ ] The birthday email says: to open it, sign in with this email address; you can always find it again under Received.
+  - [ ] Sent, Received and People are tabs in one header.
+  - [ ] Like unread mail, the Received tab shows how many capsules are waiting to be opened, and so does the browser tab's title ("(2) Birthday Capsule"). Opening one takes it off the count. (Added 2026-10-05.)
 
 ### Regular recipients (People)
 - As a sender, the people I send to are remembered so the next birthday is quick. (Added 2026-10-02.)
@@ -137,12 +156,12 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - **Invalid or unknown link:** a friendly "We couldn't find this capsule" page.
 - **Cancelled capsule:** its link shows "This capsule is no longer available."
 - **Before delivery:** the recipient has no link, so nothing can be opened early. Only the sender can preview.
-- **Privacy boundary:** only the signed-in sender sees their history. Anyone holding the private link can open that one capsule, so the link must be hard to guess (see `spec.md > Decisions and Open Issues`).
+- **Privacy boundary:** only the signed-in sender sees their history. A capsule opens only for its recipient: the private link finds it, and the recipient's proved email (Google or an emailed code) opens it, so a leaked link shows nothing inside.
 - **What persists:** senders, capsules, media, statuses and thank-you replies.
 
 ## Product Decisions
-- **Recipients never need an account.** "A person who doesn't know such a thing exists cannot receive anything." They get a private link.
-- **Sign in with Google only.** Senders are authenticated by a reliable entity, which makes the sender's identity trustworthy to the recipient.
+- **Recipients prove it's them, but don't need to sign up.** (Changed 2026-10-05; it used to be link-only.) "A person who doesn't know such a thing exists cannot receive anything", so a recipient with any email can open their capsule: with Google if they have it, otherwise with a code emailed to them. The app now has two roles, sender and recipient.
+- **Sign in with Google or an emailed code.** (Changed 2026-10-05; it was Google only.) Either proves the email, so a sender's identity is a verified email, and recipients without Google can still get in.
 - **City picker, not a time-zone list.** It's friendlier for the sender.
 - **Final once opened, not once sent.** The sender can edit or cancel until the recipient opens it.
 - **Birthday already started:** deliver immediately; it's still their day.
@@ -166,14 +185,13 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
 - The "Simulate their midnight" demo control.
 
 ## Deferred From the POC
-- **Sent and received (multi-user):** a signed-in person also seeing the capsules sent to their Google email under a Received tab. The hackathon submission is the single-sender product; the private link already lets anyone open what was sent to them. (Planned 2026-10-02, deferred the same day.)
 - **Audio and video thank-you replies:** a second recorder on the recipient's side; text proves the loop.
 - **Other sign-in providers:** Google alone proves trusted identity.
 - **Multiple recipients per capsule, or reusing a capsule:** one person at a time proves the kernel. (Reusing a *person* is now in scope, see People.)
 - **Translating the sender's pages:** the email and the recipient's whole opening follow the capsule's language; the sender's own buttons and labels stay English for now.
 
 ## Non-Goals
-- **Required recipient accounts:** against the core principle.
+- **Making recipients sign up:** proving the email (Google or a code) is enough; there's no separate account or password.
 - **Buying gifts or taking payments:** no time in a hackathon build, and risky to handle.
 
 ## Open Questions

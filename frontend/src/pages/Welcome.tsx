@@ -1,31 +1,11 @@
-import { useEffect, useState } from 'react'
-import { api, ApiError, type Me } from '../api'
-import { GoogleButton } from '../components/GoogleButton'
+import { useState } from 'react'
+import { api, type Me, type SignedIn } from '../api'
+import { SignInChoice } from '../components/SignIn'
 import './Welcome.css'
 
 export function Welcome({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
-  const [clientId, setClientId] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    api
-      .config()
-      .then((c) => setClientId(c.google_client_id))
-      .catch(() => setError("We couldn't reach the server. Is the API running?"))
-  }, [])
-
-  const signIn = async (credential: string) => {
-    setError(null)
-    try {
-      onSignedIn(await api.signInWithGoogle(credential))
-    } catch (e) {
-      setError(
-        e instanceof ApiError && e.status === 401
-          ? "Google couldn't confirm that sign-in. Please try again."
-          : 'Sign-in failed. Please try again in a moment.',
-      )
-    }
-  }
+  // A new account made by email code: ask what recipients should call them first
+  const [naming, setNaming] = useState<SignedIn | null>(null)
 
   return (
     <main className="page welcome">
@@ -44,12 +24,14 @@ export function Welcome({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
         </p>
 
         <div className="welcome-signin">
-          {clientId ? (
-            <GoogleButton clientId={clientId} onCredential={signIn} />
-          ) : clientId === '' ? (
-            <p className="error">Sign-in isn't set up yet: add GOOGLE_CLIENT_ID to .env and restart the API.</p>
-          ) : null}
-          {error && <p className="error">{error}</p>}
+          {naming ? (
+            <NameStep me={naming} onDone={onSignedIn} />
+          ) : (
+            <>
+              <SignInChoice onSignedIn={(me) => (me.created ? setNaming(me) : onSignedIn(me))} />
+              <p className="muted small welcome-received">Got a capsule? Sign in with the email it was sent to.</p>
+            </>
+          )}
         </div>
       </section>
 
@@ -65,5 +47,49 @@ export function Welcome({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
         </li>
       </ol>
     </main>
+  )
+}
+
+/** "What should we call you?": recipients see this name in the birthday email */
+function NameStep({ me, onDone }: { me: Me; onDone: (me: Me) => void }) {
+  const [name, setName] = useState(me.name)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <form
+      className="welcome-name"
+      onSubmit={async (e) => {
+        e.preventDefault()
+        if (!name.trim()) return setError('Enter your name')
+        setSaving(true)
+        try {
+          onDone(await api.updateMe(name.trim()))
+        } catch {
+          setError("We couldn't save that. Please try again.")
+          setSaving(false)
+        }
+      }}
+    >
+      <label className="field-label" htmlFor="welcome-name">
+        What should we call you?
+        <span className="muted field-hint"> · Recipients see this name in their birthday email</span>
+      </label>
+      <input
+        id="welcome-name"
+        className="input"
+        value={name}
+        maxLength={120}
+        autoFocus
+        onChange={(e) => {
+          setName(e.target.value)
+          setError(null)
+        }}
+      />
+      {error && <p className="error">{error}</p>}
+      <button type="submit" className="btn" disabled={saving}>
+        {saving ? 'Saving…' : 'Continue'}
+      </button>
+    </form>
   )
 }

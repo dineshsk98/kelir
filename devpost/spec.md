@@ -127,8 +127,13 @@ Pure sync functions, no framework imports. They implement `prd.md > Delivery at 
 
 ### Sign-in and sessions (`backend/app/auth.py`, `routes/auth.py`)
 Implements `prd.md > Sign-in and history`.
-- `POST /v1/auth/google {credential}`: verifies the Google ID token (audience = our client ID), upserts the sender by Google `sub`, and sets a signed, httpOnly, SameSite=Lax session cookie.
-- `POST /v1/auth/logout` and `GET /v1/me`.
+- An account (`senders`) is one verified email. Google sign-in and an emailed one-time code both sign into it, and either can send capsules and open the ones sent to it (changed 2026-10-05; it was Google only).
+- `POST /v1/auth/google {credential}`: verifies the Google ID token (audience = our client ID). It finds the account by Google `sub`; failing that by the (Google-verified) email, which links an account made with a code to Google; failing that it makes one. If the Google address changes it follows, unless another account has that email. Sets a signed, httpOnly, SameSite=Lax session cookie.
+- `POST /v1/auth/email/code {email, lang}`: emails a 6-digit sign-in code (from the app, no link in it, in `lang`, which a capsule link sets to the capsule's language). The same answer whether or not the email has an account. Refuses a domain that can't receive mail (422). At most one a minute (429 `CODE_TOO_SOON` with `retry_after`) and five an hour (429 `CODE_LIMIT`) per email; a code that couldn't be emailed is removed and doesn't count (503 `CODE_NOT_SENT`).
+- `POST /v1/auth/email/verify {email, code}`: checks the newest code for that email only (a new code replaces the last): 10 minutes, 5 tries (400 `CODE_WRONG` with `tries_left`, then `CODE_EXPIRED`), used once. The right code signs in, making the account the first time with a starting name from the address ("aiko.tanaka@…" → "Aiko Tanaka").
+- `email_codes` stores an HMAC of each code (keyed with the session secret), so a copied database can't simply be checked against the million possible codes.
+- `POST /v1/auth/logout`, `GET /v1/me`, and `PATCH /v1/me {name}` (the name recipients see; Google sign-in sets it from the Google profile).
+- `current_sender` (401 if not signed in) for sender pages; `MaybeSignedIn` for capsule links, which anyone may reach.
 
 ### Capsules API (`routes/capsules.py`)
 Implements `prd.md > Creating a capsule` and `prd.md > Editing and cancelling (until opened)`.
@@ -158,24 +163,25 @@ Implements `prd.md > Delivery at the recipient's midnight` and `prd.md > The bir
   - no URL shorteners, no tracking pixels, no attachments
 
 ### Recipient API (`routes/recipient.py`)
-Implements `prd.md > The opening moment` and `prd.md > Thank-you reply`.
-- `GET /v1/c/{secret}`: looks up by hash.
-  - unknown → 404
-  - cancelled → 410
-  - otherwise → the capsule (sender name, recipient name, message, media kind, gift, reply, `opened_at`)
+Implements `prd.md > The opening moment`, `prd.md > Proving it's them` and `prd.md > Thank-you reply`.
+- The secret finds the capsule (by hash): unknown → 404, cancelled → 410. Everything that shows or changes what's inside (the capsule, its media, opened, reply) also needs the viewer to be signed in as the recipient's email (Google or an emailed code, see Sign-in and sessions): not signed in → 401 `RECIPIENT_NOT_VERIFIED`, another account → 403 `WRONG_ACCOUNT`. Nothing inside is in those responses.
+- `GET /v1/c/{secret}/access`: what the locked link may say: the sender's first name, the recipient's email masked (`a•••@gmail.com`), the capsule's language, whether the viewer may open it, and who they're signed in as.
+- What this protects: a forwarded, shared or leaked link. A sign-in code goes to the same inbox as the link, so it doesn't protect against someone who controls that inbox.
+- `GET /v1/c/{secret}`: the capsule (sender name, recipient name, message, media kind, gift, reply, `opened_at`), for the recipient only.
   - Loading changes nothing, so an interrupted first visit still gets the whole opening next time.
 - `POST /v1/c/{secret}/opened`: sent when she reaches the open box or skips to it. It sets `opened_at` and status `opened` once (a conditional update on `status = 'delivered'`), and repeating it returns the first time. Unknown → 404, cancelled → 410. A reply also marks the capsule opened.
-- Opening once (`prd.md > The opening moment`): when `opened_at` is set, `Reveal3D` starts at the open box (`alreadyOpened`), with the photocard, the contents note and the thank-you, and no cake, ribbon or Skip. With no recipient accounts, the lock is per capsule, so every device shows the contents once it has been opened anywhere.
-- `GET /v1/c/{secret}/media/{item_id}`: streams one of that capsule's media items and supports seeking (range requests).
+- The link page (`RecipientCapsule`) asks `/access` first. If the viewer isn't the recipient, the cake still plays (titled "A gift for you", from the sender's first name), Skip is hidden, and at the candles `Reveal3D`'s `lockedPanel` shows "Make a wish first: confirm it's you" with `SignInChoice` in the capsule's language (and "You're signed in as …, but this capsule is for a•••@…" for another account). After sign-in the contents load into the same opening, which carries on from the candles; a capsule already opened elsewhere jumps to the open box.
+- Opening once (`prd.md > The opening moment`): when `opened_at` is set, `Reveal3D` starts at the open box (`alreadyOpened`), with the photocard, the contents note and the thank-you, and no cake, ribbon or Skip. The lock is per capsule, so every device shows the contents once it has been opened anywhere.
+- `GET /v1/c/{secret}/media/{item_id}`: streams one of that capsule's media items and supports seeking (range requests). `no-store`, so it isn't left in the browser's cache for the next person on the device.
 - `POST /v1/c/{secret}/reply {preset|text}`: one reply per capsule; text up to 500 characters.
 - The page sends `noindex`, and API responses aren't cached.
 
-### Received API (`routes/received.py`), deferred
-Not in the POC (`prd.md > Deferred From the POC`, sent and received); kept here as the design for later.
-- `GET /v1/received`: capsules whose `lower(recipient_email)` equals the signed-in sender's Google-verified email, status `delivered` or `opened`, newest delivery first.
-- `GET /v1/received/{id}`: the same content as the link (`RecipientCapsuleOut`); marks it opened exactly once.
-- `POST /v1/received/{id}/reply` and `GET /v1/received/{id}/media/{media_id}`: as the link's, authorized by the email match instead of the secret.
-- Anything else (another person's capsule, scheduled, cancelled) answers 404, so nothing can be probed.
+### Received API (`routes/received.py`)
+Implements `prd.md > Received`.
+- `GET /v1/received`: capsules whose `recipient_email` is the signed-in account's (verified) email, status `delivered` or `opened`, newest delivery first: id, sender's name, `delivered_at`, `opened_at`, language, `replied`. Nothing from inside them.
+- `GET /v1/received/{id}`, `POST …/opened`, `GET …/media/{media_id}`, `POST …/reply`: the link's own handlers (`capsule_out`, `opened`, `media_response`, `reply` in `routes/recipient.py`), found by id and the email instead of the secret, so opening or replying in either place counts in both.
+- `GET /v1/received/unread`: `{unread}`, the delivered capsules sent to you not yet opened (declared before `/{id}`, so "unread" isn't read as an id).
+- Anything else (another person's capsule, the sender's own, scheduled, cancelled, unknown) answers 404, so nothing can be probed. Signed out → 401.
 
 ### People API (`routes/people.py`)
 Implements `prd.md > Regular recipients (People)`.
@@ -190,6 +196,7 @@ Implements `prd.md > Regular recipients (People)`.
 ### Message languages and fonts (`frontend/src/languages.ts`, `backend/app/delivery/email_copy.py`)
 Implements `prd.md > Message languages`.
 - `capsules.message_lang`: one of `en ko zh ja es ta hi fr it de` (default `en`).
+- The backend's one list is `MESSAGE_LANGS` in `backend/app/languages.py`: the API's `MessageLang`, the database checks (`lang_check`) and each language's `<html lang>` (`html_lang`, `zh-Hans` for Chinese) come from it, and a test checks that every translated table (birthday email, code email, reply presets) covers exactly those languages. Both emails share one page shell (`_html_page` in `email_templates.py`).
 - Handwritten fonts, all SIL Open Font License via Fontsource, bundled and credited in `ATTRIBUTION.md`: Caveat (en, es, fr, it, de), Nanum Pen Script (ko), Ma Shan Zheng (zh), Yomogi (ja), Kavivanar (ta), Kalam (hi). Fontsource splits large fonts by Unicode range, so browsers download only the characters used.
 - The message element gets `lang` (correct line breaking, screen-reader pronunciation; `zh-Hans` for Chinese) and the font for that language, in the editor, Preview, the capsule's detail page and both openings. `useMessageLang` loads the font's CSS on first use (a separate chunk per script: the Korean, Chinese and Japanese ones are 60 to 150 KB of CSS each), and `[data-msg-lang]` redefines `--font-hand` on the element. Latin languages keep Caveat.
 - The Message step has a "Written in" picker; the message box's placeholder and Preview's email line follow it.
@@ -205,7 +212,8 @@ Implements `prd.md > Delivery at the recipient's midnight` (demo).
 
 ### Web app: sender screens (`frontend/src/pages/`)
 Implements `prd.md > Screens and Layout` (sender side).
-- `Welcome`: the pitch plus the Google button.
+- `Welcome`: the pitch, then `SignInChoice` (Google, or "Continue with email": email → 6-digit code, which signs in by itself once six digits are typed or pasted; a new email account is then asked "What should we call you?", `PATCH /v1/me`). A line for recipients: "Got a capsule? Sign in with the email it was sent to."
+- `SignInChoice` (`components/SignIn.tsx`) and its words in 10 languages (`signInCopy.ts`): the welcome page uses English; a capsule link uses the capsule's language, including Google's own button (`locale`, though Google may still choose its own language for its button).
 - `History`:
   - empty state: "Make your first capsule"
   - each row: recipient name and city, delivery in their time and the sender's (via `Intl`), status badge, and reply
@@ -213,6 +221,10 @@ Implements `prd.md > Screens and Layout` (sender side).
   - Steps: Who (with `CityPicker` and the Feb 29 choice) → Message (text plus `Recorder` or upload) → Gift (link or code plus note) → When → Preview.
   - It also handles editing.
 - `CapsuleDetail`: the preview, status and reply, plus Edit, Cancel and the Demo button.
+- `AppHeader`: Sent (`History`), Received and People as tabs, with who's signed in. The Received tab shows the unread count (a badge, and "(n) Birthday Capsule" as the window title), fetched with every page and on `ACCOUNT_CONFIRMED`.
+- `Received` (`/received`) lists the capsules sent to you; `/received/:id` opens one with the same opening as the link (`CapsuleOpening` in `RecipientCapsule.tsx`, given a `CapsuleTarget` of `{link}` or `{received}`), with a "← Received" link over it.
+- Account switches (`account.ts`): sign-in belongs to the browser (one cookie for every tab), so when a tab comes back into view it asks `/v1/me`. Another account → reload into it; nobody → the welcome page; the same → `ACCOUNT_CONFIRMED`, the only event on which pages refresh their lists.
+- The email sign-in checks the format and offers "Did you mean …?" for likely typos (`email.ts`, as the editor), in the page's language; native browser validation is off so the translated message shows.
 
 ### Web app: `Recorder` and `CityPicker` (`frontend/src/components/`)
 - `Recorder`:
@@ -298,8 +310,8 @@ PostgreSQL, created by Alembic migrations.
 
 **`senders`**
 - `id` (uuid, primary key)
-- `google_sub` (unique), `email`, `name`, `created_at`
-- Created on first sign-in; they persist.
+- `google_sub` (unique; null until the account uses Google), `email` (unique, lowercased), `name`, `created_at`
+- An account, whether it sends or receives. Created on first sign-in (Google or code); they persist.
 
 **`capsules`**
 - `id` (uuid, primary key), `sender_id` (foreign key → senders)
@@ -331,13 +343,16 @@ PostgreSQL, created by Alembic migrations.
 - `id`, `sender_id`, `name`, `email` (unique per sender, case-insensitive), `birth_month`, `birth_day`, `feb29_pref`, `city_label`, `tz`, `created_at`, `updated_at`
 - `capsules.person_id` (nullable, set null if the person is removed); `capsules.message_lang`
 
+**`email_codes`** (one-time sign-in codes)
+- `id`, `email`, `code_hash` (HMAC-SHA256), `attempts`, `expires_at`, `used_at`, `created_at`; indexed by `(email, created_at)`. The newest row for an email is the only valid code.
+
 **`replies`**
 - `id`, `capsule_id` (unique, so one reply per capsule), `preset_key` (nullable), `text` (nullable), `lang` (default `en`), `created_at`
 
 **Where things live:**
 - Media files go in `uploads/` on disk; the database holds only their paths.
 - The session is a signed cookie. Sound mute is in `localStorage`.
-- Leaving and coming back: everything is in the database, so signing back in shows the same history, and the recipient's link keeps working (replay).
+- Leaving and coming back: everything is in the database, so signing back in shows the same history, and the recipient's link keeps working (after proving it's them again once the session ends).
 
 ## File Structure
 ```

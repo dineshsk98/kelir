@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, type Capsule, type Me } from '../api'
+import { AppHeader } from '../components/AppHeader'
 import { StatusBadge } from '../components/StatusBadge'
+import { ACCOUNT_CONFIRMED } from '../account'
 import { deliveryLine } from '../format'
 import './History.css'
 
@@ -28,9 +30,10 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       .config()
       .then((c) => setDemoMode(c.demo_mode))
       .catch(() => {})
-    // Statuses change elsewhere (their midnight, their first open): refresh when the tab regains focus
-    window.addEventListener('focus', load)
-    return () => window.removeEventListener('focus', load)
+    // Statuses change elsewhere (their midnight, their first open): refresh when the tab comes
+    // back, once the app has confirmed it's still the same account (App.tsx)
+    window.addEventListener(ACCOUNT_CONFIRMED, load)
+    return () => window.removeEventListener(ACCOUNT_CONFIRMED, load)
   }, [load])
 
   const simulate = async (id: string) => {
@@ -47,15 +50,7 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
   return (
     <main className="page">
-      <header className="topbar">
-        <span className="brand">Birthday Capsule</span>
-        <span>
-          <span className="muted">{me.email}</span>
-          <button className="btn btn-quiet" onClick={onSignOut}>
-            Sign out
-          </button>
-        </span>
-      </header>
+      <AppHeader me={me} onSignOut={onSignOut} />
 
       <div className="history-head">
         <div>
@@ -63,14 +58,9 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
           <p className="muted">Your capsules</p>
         </div>
         {capsules && capsules.length > 0 && (
-          <span className="history-actions">
-            <Link to="/people" className="btn btn-quiet">
-              Your people
-            </Link>
-            <Link to="/capsules/new" className="btn">
-              New capsule
-            </Link>
-          </span>
+          <Link to="/capsules/new" className="btn">
+            New capsule
+          </Link>
         )}
       </div>
 

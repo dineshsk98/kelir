@@ -6,6 +6,42 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-05 · The second account's email over the first account's capsules
+- **Symptom:** Dinesh, testing 15b with two accounts: History showed the **second** account's email in the header with the **first** account's sent capsules. After restarting and doing the same steps again, each account saw only its own; he couldn't make it happen again.
+- **Cause:** sign-in belongs to the browser: one session cookie for every tab (and every port of `localhost`). Each page asked who was signed in only once, when it loaded, but History refetched its list whenever its tab regained focus, using whichever account was signed in **at that moment**. A tab opened as one account, after a sign-in as the other somewhere else in the browser (another tab, or a capsule link's sign-in at the cake), refetched the other account's capsules under its old header. The server returned only the signed-in account's capsules throughout; the page mixed two moments. It depends on the order of sign-ins and tab switches, which is why it didn't happen again. I first told him it must have been the first account's header, contradicting what he saw; that was wrong of me.
+- **Fix:** `frontend/src/account.ts` (`useAccountWatch`, used by `App.tsx`): when a tab comes back into view it asks `/v1/me` first. Another account → full reload into it; nobody → the welcome page; the same → `ACCOUNT_CONFIRMED`, which is now the only thing History, People and Received refresh on (`History.tsx`, `People.tsx`, `Received.tsx`).
+- **Lesson:** anything a page shows about "who" and "what" must come from the same moment. Refreshing data without re-checking the identity it belongs to is a bug waiting for a second account. And when someone reports what they saw, take it as fact and look for the mechanism that produces it.
+
+## 2026-10-05 · The browser blocked our translated "check your email" message
+- **Symptom:** on email sign-in, submitting "not-an-email" showed nothing from the app; the form just didn't submit.
+- **Cause:** the field is `type="email"`, so the browser's own validation stopped the submit (with its own popup, in the browser's language) before our check ran.
+- **Fix:** `noValidate` on the email form in `frontend/src/components/SignIn.tsx`, as the capsule editor already had, so the app's translated message shows.
+- **Lesson:** a form with its own (translated) validation needs `noValidate`; otherwise the browser's validation runs first and ours never shows.
+
+## 2026-10-05 · An edit script named app.py shadowed the backend package
+- **Symptom:** a cleanup script run from the temp folder failed with `FileNotFoundError: 'App.tsx'` while importing `app.db`.
+- **Cause:** an earlier edit script was saved as `/tmp/app.py`. Python puts the running script's folder first on the import path, so `import app` found that file instead of the backend's `app` package.
+- **Fix:** deleted `/tmp/app.py` and ran helper scripts from the session's scratch folder. No project change.
+- **Lesson:** never name a helper script after a package it might import (`app.py`, `tests.py`); keep helper scripts in their own folder.
+
+## 2026-10-05 · Korean emails failed to "send" in console mode
+- **Symptom:** asking for a sign-in code from a Korean capsule's link said "We couldn't send the code" (503 `CODE_NOT_SENT`). The API log showed `UnicodeEncodeError: 'charmap' codec can't encode characters` from the console mailer.
+- **Cause:** with `MAILER=console`, the dev mailer prints each email instead of sending it. On this Windows machine the API's console uses the cp1252 code page, which has no Korean characters, so `print` raised and the "send" failed. Every email in a non-Latin language (Korean, Chinese, Japanese, Tamil, Hindi) would have failed the same way in development, birthday emails included. Tests didn't catch it because they replace the mailer with a fake one.
+- **Fix:** `ConsoleMailer` in `backend/app/delivery/mailer.py` falls back to printing those characters as escapes (the code's digits stay readable) instead of failing. Test: `test_console_mailer_survives_a_console_without_the_script` in `backend/tests/test_email_template.py`.
+- **Lesson:** anything that prints user text in development (logs, console mailers) must survive the console's encoding, on Windows especially. When adding a language, run its emails once through the real dev mailer, not only the fake one in tests.
+
+## 2026-10-05 · Tests ran against an old version of a rewritten migration
+- **Symptom:** after rewriting migration 0009 (codes moved from capsules to sign-in), 20 tests failed with `column email_codes.email does not exist`, and Google sign-in crashed with `'NoneType' object has no attribute 'google_sub'`.
+- **Cause:** the first version of 0009 had already been applied to the **test** database. The tests only run `alembic upgrade head`, and Alembic saw that database already at 0009, so the rewritten migration never ran there: the old `email_codes` table and the required `google_sub` stayed. Making an account without Google then hit the not-null column, and the account lookup came back empty. The dev database was fine because it had been downgraded before the rewrite.
+- **Fix:** dropped the old `email_codes` table in the test database and set its Alembic version back to 0008, so the tests applied the new 0009. No code change.
+- **Lesson:** when rewriting a migration that has already run (fine while it's uncommitted), downgrade **every** database it ran on, including the test database, before running it again. Otherwise give the change a new revision.
+
+## 2026-10-05 · A scripted edit broke Python strings and shell quoting
+- **Symptom:** while adding the code email, `import app.main` failed with `SyntaxError: unterminated string literal` in `backend/app/delivery/email_templates.py`. A later multi-file edit was rejected by the shell (an unmatched-quote error) before it ran.
+- **Cause:** the edits were Python scripts passed inline through a shell heredoc. Inside the script's own string, the newline escapes meant for the new file were turned into real line breaks, which split an f-string across lines. Another script held quote combinations the shell wrapper couldn't parse.
+- **Fix:** the broken line in `email_templates.py` was put back to newline escapes, `backend/app/routes/recipient.py` was written as a whole file, and later scripted edits ran from a file rather than inline.
+- **Lesson:** after any scripted edit, import or type-check before moving on. Write whole files or use exact-string edits, and run larger edit scripts from a file rather than inline, so escapes and quotes reach the target unchanged.
+
 ## 2026-10-05 · A reopened capsule showed the box but not what was inside
 - **Symptom:** loading an already-opened capsule (which now starts at the open box) showed the title and the 3D box, but no contents note, thumbnails or thank-you button.
 - **Cause:** `Reveal3D` rendered the contents only when `rootRef.current` was set, since the contents draw their viewers into that element. A ref is filled after the first render and setting it doesn't cause another render. Before, the page always passed through several stages before reaching the open box, so by then a later render had found the ref. Starting at the open box, nothing re-rendered, so the contents never appeared.

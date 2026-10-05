@@ -39,9 +39,14 @@ function loadGsi(): Promise<void> {
 export function GoogleButton({
   clientId,
   onCredential,
+  locale = 'en',
+  text = 'signin_with',
 }: {
   clientId: string
   onCredential: (credential: string) => void
+  /** The language of Google's own button text, e.g. "ko" or "zh_CN" */
+  locale?: string
+  text?: 'signin_with' | 'continue_with'
 }) {
   const el = useRef<HTMLDivElement>(null)
   const callback = useRef(onCredential)
@@ -61,14 +66,15 @@ export function GoogleButton({
           theme: 'filled_black',
           size: 'large',
           shape: 'pill',
-          text: 'signin_with',
+          text,
+          locale,
         })
       })
       .catch(() => !cancelled && setFailed(true))
     return () => {
       cancelled = true
     }
-  }, [clientId])
+  }, [clientId, locale, text])
 
   if (failed) return <p className="error">Google sign-in couldn't load. Check your connection and reload.</p>
   return <div ref={el} style={{ minHeight: 44 }} />

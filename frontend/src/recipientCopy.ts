@@ -9,6 +9,8 @@ import type { MessageLang } from './languages'
  */
 export type RecipientCopy = {
   giftFor: (name: string) => string
+  /** Before she has signed in, her name isn't known */
+  giftForYou: string
   happyBirthday: (name: string) => string
   from: (sender: string) => string
   /** The scene's accessible name */
@@ -71,6 +73,7 @@ const EN_COUNTS = ['', 'a little surprise', 'two little surprises', 'three littl
 export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   en: {
     giftFor: (n) => `A gift for ${n}`,
+    giftForYou: 'A gift for you',
     happyBirthday: (n) => `Happy birthday, ${n}`,
     from: (s) => `from ${s}`,
     giftFromTo: (n, s) => `A gift for ${n} from ${s}`,
@@ -120,6 +123,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   ko: {
     giftFor: (n) => `${n}님을 위한 선물`,
+    giftForYou: '당신을 위한 선물',
     happyBirthday: (n) => `생일 축하해요, ${n}님`,
     from: (s) => `${s}님으로부터`,
     giftFromTo: (n, s) => `${s}님이 ${n}님에게 보낸 선물`,
@@ -169,6 +173,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   zh: {
     giftFor: (n) => `给${n}的礼物`,
+    giftForYou: '给你的礼物',
     happyBirthday: (n) => `${n}，生日快乐`,
     from: (s) => `来自 ${s}`,
     giftFromTo: (n, s) => `${s} 送给 ${n} 的礼物`,
@@ -218,6 +223,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   ja: {
     giftFor: (n) => `${n}さんへの贈り物`,
+    giftForYou: 'あなたへの贈り物',
     happyBirthday: (n) => `${n}さん、お誕生日おめでとう`,
     from: (s) => `${s}さんより`,
     giftFromTo: (n, s) => `${s}さんから${n}さんへの贈り物`,
@@ -267,6 +273,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   es: {
     giftFor: (n) => `Un regalo para ${n}`,
+    giftForYou: 'Un regalo para ti',
     happyBirthday: (n) => `Feliz cumpleaños, ${n}`,
     from: (s) => `de ${s}`,
     giftFromTo: (n, s) => `Un regalo para ${n} de ${s}`,
@@ -317,6 +324,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   ta: {
     giftFor: (n) => `${n}-க்கு ஒரு பரிசு`,
+    giftForYou: 'உங்களுக்காக ஒரு பரிசு',
     happyBirthday: (n) => `இனிய பிறந்தநாள் வாழ்த்துகள், ${n}`,
     from: (s) => `அனுப்பியவர்: ${s}`,
     giftFromTo: (n, s) => `${s} அனுப்பிய பரிசு, ${n}-க்கு`,
@@ -369,6 +377,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   hi: {
     giftFor: (n) => `${n} के लिए एक तोहफ़ा`,
+    giftForYou: 'आपके लिए एक तोहफ़ा',
     happyBirthday: (n) => `जन्मदिन मुबारक हो, ${n}`,
     from: (s) => `${s} की ओर से`,
     giftFromTo: (n, s) => `${s} की ओर से ${n} के लिए एक तोहफ़ा`,
@@ -421,6 +430,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   fr: {
     giftFor: (n) => `Un cadeau pour ${n}`,
+    giftForYou: 'Un cadeau pour toi',
     happyBirthday: (n) => `Joyeux anniversaire, ${n}`,
     from: (s) => `de la part de ${s}`,
     giftFromTo: (n, s) => `Un cadeau pour ${n} de la part de ${s}`,
@@ -471,6 +481,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   it: {
     giftFor: (n) => `Un regalo per ${n}`,
+    giftForYou: 'Un regalo per te',
     happyBirthday: (n) => `Buon compleanno, ${n}`,
     from: (s) => `da ${s}`,
     giftFromTo: (n, s) => `Un regalo per ${n} da ${s}`,
@@ -521,6 +532,7 @@ export const RECIPIENT_COPY: Record<MessageLang, RecipientCopy> = {
   },
   de: {
     giftFor: (n) => `Ein Geschenk für ${n}`,
+    giftForYou: 'Ein Geschenk für dich',
     happyBirthday: (n) => `Alles Gute zum Geburtstag, ${n}`,
     from: (s) => `von ${s}`,
     giftFromTo: (n, s) => `Ein Geschenk für ${n} von ${s}`,

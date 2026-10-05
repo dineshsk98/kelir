@@ -1,4 +1,8 @@
-"""Google ID-token check, signed session cookie, and the current_sender dependency."""
+"""Google ID-token check, signed session cookie, and the current_sender dependency.
+
+An account is one verified email. Google sign-in and an emailed one-time code
+(`routes/auth.py`) both sign into it; either can send capsules and open the ones sent to it.
+"""
 
 import uuid
 from typing import Annotated
@@ -7,7 +11,7 @@ from fastapi import Cookie, Depends, HTTPException, Response
 from fastapi.concurrency import run_in_threadpool
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token
-from itsdangerous import BadSignature, URLSafeTimedSerializer
+from itsdangerous import BadData, URLSafeTimedSerializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import Settings, get_settings
@@ -48,7 +52,7 @@ def _serializer(settings: Settings) -> URLSafeTimedSerializer:
 
 def set_session_cookie(response: Response, sender_id: uuid.UUID, settings: Settings) -> None:
     """A browser-session cookie (no Max-Age: cleared when the browser closes). Browsers that
-    restore cookies on reopen are covered by the server-side limit in current_sender."""
+    restore cookies on reopen are covered by the server-side limit in _signed_in."""
     token = _serializer(settings).dumps({"sid": str(sender_id)})
     response.set_cookie(
         SESSION_COOKIE,
@@ -64,24 +68,29 @@ def clear_session_cookie(response: Response) -> None:
     response.delete_cookie(SESSION_COOKIE, path="/")
 
 
-async def current_sender(
+async def _signed_in(
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[AsyncSession, Depends(get_session)],
     capsule_session: Annotated[str | None, Cookie()] = None,
-) -> Sender:
-    not_signed_in = HTTPException(401, detail={"code": "NOT_SIGNED_IN"})
+) -> Sender | None:
+    """The signed-in account, or None (no cookie, tampered, too old, or account gone)."""
     if not capsule_session:
-        raise not_signed_in
+        return None
     try:
         # The signed token carries its sign-in time: older than session_hours means signed out
         data = _serializer(settings).loads(capsule_session, max_age=settings.session_hours * 3600)
         sender_id = uuid.UUID(data["sid"])
-    except (BadSignature, KeyError, ValueError, TypeError):
-        raise not_signed_in
-    sender = await session.get(Sender, sender_id)
+    except (BadData, KeyError, ValueError, TypeError):
+        return None
+    return await session.get(Sender, sender_id)
+
+
+async def current_sender(sender: Annotated[Sender | None, Depends(_signed_in)]) -> Sender:
     if sender is None:
-        raise not_signed_in
+        raise HTTPException(401, detail={"code": "NOT_SIGNED_IN"})
     return sender
 
 
 CurrentSender = Annotated[Sender, Depends(current_sender)]
+# For pages anyone may reach, like a capsule link, that show more to the right account
+MaybeSignedIn = Annotated[Sender | None, Depends(_signed_in)]

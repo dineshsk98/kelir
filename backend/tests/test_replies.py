@@ -2,14 +2,12 @@
 
 import asyncio
 from datetime import datetime, timezone
-from typing import get_args
 
 import pytest
 from sqlalchemy import func, select, update
 
 from app.models import Capsule, Reply
 from app.replies import REPLY_PRESETS
-from app.schemas import MessageLang
 from tests.test_recipient import delivered_link
 
 REPLIED_AT = datetime(2027, 3, 13, 23, 5, tzinfo=timezone.utc)
@@ -19,7 +17,7 @@ REPLIED_AT = datetime(2027, 3, 13, 23, 5, tzinfo=timezone.utc)
 async def link(client, sign_in, freeze_now, sessionmaker, mailer, settings):
     path, capsule = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
     freeze_now(REPLIED_AT)
-    return f"/v1{path}", capsule
+    return path, capsule
 
 
 async def test_presets_come_with_the_capsule(client, link):
@@ -28,9 +26,9 @@ async def test_presets_come_with_the_capsule(client, link):
     assert {p["key"]: p["texts"] for p in body["reply_presets"]} == REPLY_PRESETS
 
 
-def test_every_preset_is_in_every_language():
+def test_no_preset_is_empty_in_any_language():
+    # (that each covers every language is checked in test_message_lang.py)
     for texts in REPLY_PRESETS.values():
-        assert set(texts) == set(get_args(MessageLang))
         assert all(t.strip() for t in texts.values())
 
 

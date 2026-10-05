@@ -1,6 +1,5 @@
 """Preset thank-you messages (prd.md > Thank-you reply). Stored by key and language, shown as
-text. Each preset is offered in every message language (the same list as
-app.delivery.email_copy.MESSAGE_LANGS; a test keeps them in step)."""
+text. Each preset is offered in every message language (app.languages; a test checks it)."""
 
 REPLY_PRESETS: dict[str, dict[str, str]] = {
     "made_my_day": {

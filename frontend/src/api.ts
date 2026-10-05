@@ -3,6 +3,34 @@
 import type { MessageLang } from './languages'
 
 export type Me = { id: string; email: string; name: string }
+/** After an email-code sign-in: `created` is a new account (asked for a name) */
+export type SignedIn = Me & { created: boolean }
+
+/** A capsule as its recipient opens it: through the emailed link, or from Received */
+export type CapsuleTarget = { link: string } | { received: string }
+const capsulePath = (t: CapsuleTarget) =>
+  'link' in t ? `/v1/c/${encodeURIComponent(t.link)}` : `/v1/received/${encodeURIComponent(t.received)}`
+
+/** A row in Received: who it's from and whether it's opened (nothing from inside it) */
+export type ReceivedCapsule = {
+  id: string
+  sender_name: string
+  delivered_at: string
+  opened_at: string | null
+  message_lang: MessageLang
+  replied: boolean
+}
+
+/** What a capsule link may say before it's opened (nothing from inside it) */
+export type CapsuleAccess = {
+  sender_first_name: string
+  /** The recipient's email, masked: "a•••@gmail.com" */
+  recipient_hint: string
+  message_lang: MessageLang
+  /** The person looking is signed in as the recipient */
+  allowed: boolean
+  signed_in_as: string | null
+}
 export type PublicConfig = { google_client_id: string; demo_mode: boolean }
 
 export type Feb29Pref = 'FEB_28' | 'MAR_1'
@@ -80,6 +108,8 @@ export class ApiError extends Error {
     public code: string,
     /** Human-readable validation messages from a 422, if any */
     public messages: string[] = [],
+    /** The error's other fields, e.g. `tries_left` or `retry_after` */
+    public detail: Record<string, unknown> = {},
   ) {
     super(`${status} ${code}`)
   }
@@ -94,7 +124,8 @@ function errorFrom(status: number, body: unknown): ApiError {
   const messages = Array.isArray(detail)
     ? detail.map((d: { msg?: string }) => String(d.msg ?? '').replace(/^Value error, /, ''))
     : []
-  return new ApiError(status, code, messages)
+  const extra = detail && typeof detail === 'object' && !Array.isArray(detail) ? (detail as Record<string, unknown>) : {}
+  return new ApiError(status, code, messages, extra)
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -129,8 +160,7 @@ function uploadFile(file: File, onProgress: (fraction: number) => void, signal?:
 /** Where a media item can be fetched: the sender's own preview, or through a capsule link */
 export const mediaUrl = {
   own: (id: string) => `/v1/uploads/${encodeURIComponent(id)}`,
-  viaLink: (secret: string, id: string) =>
-    `/v1/c/${encodeURIComponent(secret)}/media/${encodeURIComponent(id)}`,
+  forRecipient: (target: CapsuleTarget, id: string) => `${capsulePath(target)}/media/${encodeURIComponent(id)}`,
 }
 
 const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) })
@@ -140,6 +170,10 @@ export const api = {
   me: () => request<Me>('/v1/me'),
   signInWithGoogle: (credential: string) => request<Me>('/v1/auth/google', post({ credential })),
   signOut: () => request<void>('/v1/auth/logout', { method: 'POST' }),
+  sendSignInCode: (email: string, lang: MessageLang = 'en') =>
+    request<{ sent_to: string; resend_after: number }>('/v1/auth/email/code', post({ email, lang })),
+  signInWithCode: (email: string, code: string) => request<SignedIn>('/v1/auth/email/verify', post({ email, code })),
+  updateMe: (name: string) => request<Me>('/v1/me', { method: 'PATCH', body: JSON.stringify({ name }) }),
 
   emailCheck: (email: string) =>
     request<{ valid_format: boolean; accepts_mail: boolean | null }>('/v1/email-check', post({ email })),
@@ -156,11 +190,14 @@ export const api = {
   simulateMidnight: (id: string) =>
     request<Capsule>(`/v1/demo/capsules/${encodeURIComponent(id)}/simulate-midnight`, { method: 'POST' }),
 
-  openCapsule: (secret: string) => request<RecipientCapsule>(`/v1/c/${encodeURIComponent(secret)}`),
-  markOpened: (secret: string) =>
-    request<{ opened_at: string }>(`/v1/c/${encodeURIComponent(secret)}/opened`, { method: 'POST' }),
-  sendReply: (secret: string, body: ({ preset_key: string } | { text: string }) & { lang: MessageLang }) =>
-    request<Reply>(`/v1/c/${encodeURIComponent(secret)}/reply`, post(body)),
+  capsuleAccess: (secret: string) => request<CapsuleAccess>(`/v1/c/${encodeURIComponent(secret)}/access`),
+  openCapsule: (target: CapsuleTarget) => request<RecipientCapsule>(capsulePath(target)),
+  markOpened: (target: CapsuleTarget) =>
+    request<{ opened_at: string }>(`${capsulePath(target)}/opened`, { method: 'POST' }),
+  sendReply: (target: CapsuleTarget, body: ({ preset_key: string } | { text: string }) & { lang: MessageLang }) =>
+    request<Reply>(`${capsulePath(target)}/reply`, post(body)),
+  listReceived: () => request<ReceivedCapsule[]>('/v1/received'),
+  unreadCount: () => request<{ unread: number }>('/v1/received/unread'),
 
   listPeople: () => request<Person[]>('/v1/people'),
   updatePerson: (id: string, body: PersonUpdate) =>

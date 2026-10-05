@@ -4,27 +4,26 @@ from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import update
 
-from app.delivery.scheduler import run_tick
 from app.links import new_link_secret
 from app.models import Capsule
-from tests.test_delivery import DUE, schedule
+from tests.test_delivery import deliver, schedule
 
 
 async def delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings, **overrides) -> tuple[str, dict]:
+    """A delivered capsule's link (as its API path), with the client signed in as its recipient."""
     await sign_in(name="Sam Sender")
     c = await schedule(client, freeze_now, **overrides)
-    await run_tick(sessionmaker, mailer, settings, DUE)
-    (link,) = mailer.links()
-    client.cookies.clear()  # the recipient has no account
-    return link.removeprefix("http://testserver"), c
+    path = await deliver(sessionmaker, mailer, settings)
+    await sign_in(overrides.get("recipient_email", "aiko@gmail.com"), "Aiko Tanaka")
+    return path, c
 
 
-async def test_link_opens_the_capsule_without_an_account(client, sign_in, freeze_now, sessionmaker, mailer, settings):
+async def test_the_recipient_sees_what_is_inside(client, sign_in, freeze_now, sessionmaker, mailer, settings):
     path, _ = await delivered_link(
         client, sign_in, freeze_now, sessionmaker, mailer, settings,
         gift_kind="code", gift_value="ABCD-1234", gift_note="For Steam",
     )
-    r = await client.get(f"/v1{path}")
+    r = await client.get(f"{path}")
     assert r.status_code == 200
     body = r.json()
     assert body.pop("reply") is None and len(body.pop("reply_presets")) > 0  # see test_replies.py
@@ -48,7 +47,7 @@ async def test_loading_the_link_does_not_open_it(client, sign_in, freeze_now, se
     # She may close the page before the cake: the next visit still gets the whole opening
     path, c = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
     for _ in range(2):
-        assert (await client.get(f"/v1{path}")).json()["opened_at"] is None
+        assert (await client.get(f"{path}")).json()["opened_at"] is None
     async with sessionmaker() as s:
         assert (await s.get(Capsule, c["id"])).status == "delivered"
 
@@ -59,15 +58,15 @@ async def test_reaching_the_open_box_marks_it_opened_once(
     path, c = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
     first = datetime(2027, 3, 13, 23, 0, tzinfo=timezone.utc)
     freeze_now(first)
-    r = await client.post(f"/v1{path}/opened")
+    r = await client.post(f"{path}/opened")
     assert r.status_code == 200 and r.headers["cache-control"] == "no-store"
     assert datetime.fromisoformat(r.json()["opened_at"]) == first
 
     # Again (another device, a reload): harmless, and the first time stays
     freeze_now(first + timedelta(days=2))
-    again = await client.post(f"/v1{path}/opened")
+    again = await client.post(f"{path}/opened")
     assert datetime.fromisoformat(again.json()["opened_at"]) == first
-    shown = await client.get(f"/v1{path}")
+    shown = await client.get(f"{path}")
     assert shown.status_code == 200  # the contents stay available
     assert datetime.fromisoformat(shown.json()["opened_at"]) == first
 
@@ -82,18 +81,20 @@ async def test_only_real_live_links_can_be_opened(client, sign_in, freeze_now, s
     path, c = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
     async with sessionmaker() as s, s.begin():
         await s.execute(update(Capsule).where(Capsule.id == c["id"]).values(status="cancelled"))
-    assert (await client.post(f"/v1{path}/opened")).status_code == 410
+    assert (await client.post(f"{path}/opened")).status_code == 410
 
 
-async def test_sender_sees_opened_in_history(client, sign_in, freeze_now, sessionmaker, mailer, settings):
+async def test_sender_sees_opened_in_history(
+    client, sign_in, act_as, freeze_now, sessionmaker, mailer, settings
+):
     sender = await sign_in(name="Sam Sender")
     c = await schedule(client, freeze_now)
-    await run_tick(sessionmaker, mailer, settings, DUE)
-    (link,) = mailer.links()
-    await client.post("/v1" + link.removeprefix("http://testserver") + "/opened")
+    link = await deliver(sessionmaker, mailer, settings)
+    await sign_in("aiko@gmail.com", "Aiko Tanaka")  # the recipient opens it
+    await client.post(f"{link}/opened")
+    act_as(sender.id)
     listed = (await client.get("/v1/capsules")).json()
     assert [x["status"] for x in listed] == ["opened"] and listed[0]["id"] == c["id"]
-    assert sender  # opening didn't need the sender's session, but listing does
 
 
 async def test_unknown_and_malformed_links_are_not_found(client):
@@ -108,7 +109,7 @@ async def test_cancelled_capsule_link_is_gone(client, sign_in, freeze_now, sessi
     path, c = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
     async with sessionmaker() as s, s.begin():
         await s.execute(update(Capsule).where(Capsule.id == c["id"]).values(status="cancelled"))
-    r = await client.get(f"/v1{path}")
+    r = await client.get(f"{path}")
     assert r.status_code == 410
     assert r.json()["detail"]["code"] == "CAPSULE_CANCELLED"
 

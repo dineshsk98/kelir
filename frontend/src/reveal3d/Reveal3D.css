@@ -801,3 +801,37 @@
   from { opacity: 0.4; }
   to { opacity: 1; }
 }
+
+/* "Confirm it's you" at the cake: where the candle buttons will be once she has signed in */
+.r3d-signin {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 380px;
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid rgb(244 239 230 / 0.18);
+  background: rgb(14 15 26 / 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--r3d-ivory);
+  text-align: center;
+  pointer-events: auto;
+}
+
+.r3d-signin h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.r3d-signin-for {
+  margin: 0 0 4px;
+  font-size: 0.9rem;
+  opacity: 0.85;
+  overflow-wrap: anywhere;
+}
+
+.r3d-signin .error {
+  color: #ffb4a8;
+}

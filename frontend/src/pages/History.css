@@ -5,13 +5,6 @@
   gap: 12px;
 }
 
-.history-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
 .capsule-list {
   list-style: none;
   padding: 0;

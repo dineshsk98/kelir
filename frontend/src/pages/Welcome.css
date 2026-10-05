@@ -30,6 +30,24 @@
 
 .welcome-signin {
   margin-top: 28px;
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+}
+
+.welcome-signin .signin-choice {
+  justify-items: start;
+}
+
+.welcome-received {
+  margin: 0;
+}
+
+.welcome-name {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  max-width: 340px;
 }
 
 .welcome-steps {

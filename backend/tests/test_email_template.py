@@ -46,3 +46,22 @@ def test_names_cannot_inject_html_or_headers():
     assert "<script>" not in html and "&lt;script&gt;" in html
     raw = msg.as_string()
     assert "\nBcc:" not in raw
+
+
+async def test_console_mailer_survives_a_console_without_the_script(monkeypatch):
+    """Windows consoles often use cp1252, which has no Korean: printing the email must not
+    fail the send (it did, for a Korean sign-in code)."""
+    import io
+    import sys
+
+    from app.delivery.email_templates import code_email
+    from app.delivery.mailer import ConsoleMailer
+
+    console = io.TextIOWrapper(io.BytesIO(), encoding="cp1252")
+    monkeypatch.setattr(sys, "stdout", console)
+    mailer = ConsoleMailer()
+    message = code_email(code="123456", to="mira@gmail.com", app_name="Birthday Capsule", from_address="", lang="ko")
+    await mailer.send(message)
+    console.flush()
+    shown = console.buffer.getvalue().decode("cp1252")
+    assert mailer.sent == [message] and "123456" in shown

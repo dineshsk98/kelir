@@ -6,11 +6,10 @@ import pytest
 from sqlalchemy import func, select, update
 
 from app import media as media_module
-from app.delivery.scheduler import run_tick
 from app.media import MB, remove_stale_uploads, sniff
 from app.models import Capsule, CapsuleMedia
 from app.routes import capsules as capsules_routes
-from tests.test_delivery import DUE, NOW, capsule_body
+from tests.test_delivery import NOW, capsule_body, deliver
 
 # Minimal real file headers (the server decides the type from these bytes, not the name)
 JPEG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00" + b"\x00" * 2000
@@ -213,10 +212,8 @@ async def test_recipient_streams_the_capsule_media(
     unrelated = (await upload(client, PNG)).json()["id"]
     freeze_now(NOW)
     c = (await client.post("/v1/capsules", json=capsule_body(upload_ids=[photo, clip]))).json()
-    await run_tick(sessionmaker, mailer, settings, DUE)
-    (link,) = mailer.links()
-    base = "/v1" + link.removeprefix("http://testserver")
-    client.cookies.clear()  # the recipient has no account
+    base = await deliver(sessionmaker, mailer, settings)
+    await sign_in("aiko@gmail.com", "Aiko Tanaka")  # the recipient
 
     opened = (await client.get(base)).json()
     assert [(m["id"], m["kind"]) for m in opened["media"]] == [(photo, "image"), (clip, "video")]

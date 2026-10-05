@@ -362,7 +362,7 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
                 onChange={(e) => set('recipient_name', e.target.value)}
               />
             </Field>
-            <Field label="Their email" hint="Where the capsule arrives" error={errors.recipient_email}>
+            <Field label="Their email" hint="They sign in as this email to open it" error={errors.recipient_email}>
               <input
                 className="input"
                 type="email"

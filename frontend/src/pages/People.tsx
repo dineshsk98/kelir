@@ -2,6 +2,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { api, ApiError, type Me, type Person } from '../api'
 import { savedCity, type City } from '../cities'
+import { ACCOUNT_CONFIRMED } from '../account'
+import { AppHeader } from '../components/AppHeader'
 import { BirthdayFields, isFeb29, type BirthdayValue } from '../components/BirthdayFields'
 import { CityPicker } from '../components/CityPicker'
 import { birthdayLabel, cityName, countdown, deliveryMoment } from '../format'
@@ -27,9 +29,10 @@ export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
   useEffect(() => {
     load()
-    // Countdowns move on: refresh when the tab regains focus
-    window.addEventListener('focus', load)
-    return () => window.removeEventListener('focus', load)
+    // Countdowns move on: refresh when the tab comes back, once it's confirmed to be the same
+    // account (App.tsx)
+    window.addEventListener(ACCOUNT_CONFIRMED, load)
+    return () => window.removeEventListener(ACCOUNT_CONFIRMED, load)
   }, [load])
 
   const remove = async (id: string) => {
@@ -45,26 +48,13 @@ export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
   return (
     <main className="page">
-      <header className="topbar">
-        <Link to="/history" className="brand">
-          Birthday Capsule
-        </Link>
-        <span>
-          <span className="muted">{me.email}</span>
-          <button className="btn btn-quiet" onClick={onSignOut}>
-            Sign out
-          </button>
-        </span>
-      </header>
+      <AppHeader me={me} onSignOut={onSignOut} />
 
       <div className="people-head">
         <div>
           <h1>Your people</h1>
           <p className="muted">Everyone you've sent a capsule to, soonest birthday first</p>
         </div>
-        <Link to="/history" className="btn btn-quiet">
-          Your capsules
-        </Link>
       </div>
 
       {error && <p className="error">We couldn't load your people. Please reload the page.</p>}

@@ -1,14 +1,16 @@
 """Message languages: stored and returned as written, and the email in the capsule's language
 (prd.md > Message languages)."""
 
+from html import escape
 from typing import get_args
 
 import pytest
 
-from app.delivery.email_copy import EMAIL_COPY, MESSAGE_LANGS
-from app.delivery.scheduler import run_tick
+from app.delivery.email_copy import CODE_COPY, EMAIL_COPY
+from app.languages import MESSAGE_LANGS, html_lang
+from app.replies import REPLY_PRESETS
 from app.schemas import MessageLang
-from tests.test_delivery import DUE, capsule_body, schedule
+from tests.test_delivery import capsule_body, deliver, schedule
 from tests.test_email_template import LINK, make
 
 # What a recipient should see in each language: (subject with "Sam Sender", button)
@@ -27,8 +29,10 @@ EXPECTED = {
 
 
 def test_the_api_and_the_email_know_the_same_ten_languages():
-    assert set(MESSAGE_LANGS) == set(get_args(MessageLang)) == set(EXPECTED)
-    assert len(MESSAGE_LANGS) == 10
+    assert len(MESSAGE_LANGS) == 10 and get_args(MessageLang) == MESSAGE_LANGS
+    # Every translated table covers exactly the same languages
+    for table in (EMAIL_COPY, CODE_COPY, EXPECTED, *REPLY_PRESETS.values()):
+        assert set(table) == set(MESSAGE_LANGS)
 
 
 @pytest.mark.parametrize("lang", sorted(EXPECTED))
@@ -39,8 +43,11 @@ def test_email_subject_and_button_in_each_language(lang):
     text = msg.get_body(("plain",)).get_content()
     assert msg["Subject"] == subject
     assert f">{button}</a>" in html and html.count("href=") == 1
-    assert f'<html lang="{EMAIL_COPY[lang]["html_lang"]}">' in html
+    assert f'<html lang="{html_lang(lang)}">' in html
     assert "Aiko" in text and LINK in text and button in text
+    # Opening takes signing in as this email, and Received keeps it (prd.md > Received)
+    sign_in_line = EMAIL_COPY[lang]["sign_in"]
+    assert sign_in_line in text and escape(sign_in_line) in html and "Received" in sign_in_line
 
 
 async def test_language_and_non_latin_text_are_stored_and_returned_as_written(client, sign_in):
@@ -73,10 +80,10 @@ async def test_tamil_capsule_emails_in_tamil_and_opens_with_its_language(
     await sign_in(name="Sam Sender")
     words = "இனிய பிறந்தநாள் வாழ்த்துகள், ஆய்கோ!"
     await schedule(client, freeze_now, message_text=words, message_lang="ta")
-    await run_tick(sessionmaker, mailer, settings, DUE)
+    link = await deliver(sessionmaker, mailer, settings)
 
     (email,) = mailer.sent
     assert email["Subject"] == EXPECTED["ta"][0]
-    (link,) = mailer.links()
-    opened = (await client.get("/v1" + link.removeprefix("http://testserver"))).json()
+    await sign_in("aiko@gmail.com", "Aiko Tanaka")  # the recipient
+    opened = (await client.get(link)).json()
     assert (opened["message_text"], opened["message_lang"]) == (words, "ta")

@@ -18,6 +18,7 @@ from pydantic import (
 )
 
 from app.email_check import is_valid_format
+from app.languages import MESSAGE_LANGS
 from app.engine.schedule import validate_birthday
 from app.replies import REPLY_MAX_LENGTH, REPLY_PRESETS, reply_text
 
@@ -30,6 +31,10 @@ class Me(BaseModel):
     id: uuid.UUID
     email: str
     name: str
+
+
+class SignedIn(Me):
+    created: bool  # a new account: the page asks what recipients should call them
 
 
 class PublicConfig(BaseModel):
@@ -73,8 +78,7 @@ CityLabel = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1
 Feb29Pref = Literal["FEB_28", "MAR_1"]
 SendMode = Literal["birthday", "now"]
 GiftKind = Literal["link", "code"]
-# The same list as app.delivery.email_copy.MESSAGE_LANGS (a test keeps them in step)
-MessageLang = Literal["en", "ko", "zh", "ja", "es", "ta", "hi", "fr", "it", "de"]
+MessageLang = Literal[MESSAGE_LANGS]  # Literal["en", "ko", …]: one of app.languages
 
 
 class Birthday(BaseModel):
@@ -290,3 +294,59 @@ class RecipientCapsuleOut(BaseModel):
 
 class OpenedOut(BaseModel):
     opened_at: datetime
+
+
+class UnreadOut(BaseModel):
+    unread: int  # delivered to you, not opened yet
+
+
+class ReceivedOut(BaseModel):
+    """A capsule in the recipient's Received list: who it's from and whether it's opened,
+    nothing from inside it (that's for opening it)."""
+
+    id: uuid.UUID
+    sender_name: str
+    delivered_at: datetime
+    opened_at: datetime | None
+    message_lang: MessageLang
+    replied: bool
+
+
+class AccessOut(BaseModel):
+    """What a capsule link may say before it's opened (nothing from inside it)."""
+
+    sender_first_name: str
+    recipient_hint: str  # the recipient's email, masked: "a•••@gmail.com"
+    message_lang: MessageLang  # so the locked page speaks the capsule's language
+    allowed: bool  # the person looking has proved the recipient's email
+    signed_in_as: str | None
+
+
+# --- Email sign-in --------------------------------------------------------------
+
+Code = Annotated[str, StringConstraints(strip_whitespace=True, pattern=r"^[0-9]{6}$")]
+
+
+class EmailCodeIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: Email
+    lang: MessageLang = "en"  # the code email's language: the page's (a capsule link's is the capsule's)
+
+
+class EmailVerifyIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: Email
+    code: Code
+
+
+class CodeSentOut(BaseModel):
+    sent_to: str
+    resend_after: int  # seconds
+
+
+class MeUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: Name

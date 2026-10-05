@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { api, ApiError, type Reply, type ReplyPreset } from '../api'
+import { api, ApiError, type CapsuleTarget, type Reply, type ReplyPreset } from '../api'
 import { MESSAGE_LANGS, useMessageLang, type MessageLang } from '../languages'
 import { useRecipientCopy, useRecipientLang } from '../recipientCopy'
 import './ReplyPanel.css'
@@ -11,12 +11,12 @@ const MAX = 500
  *  Its words are in the capsule's language; the thank-you itself starts in that language too,
  *  and she can pick another one. */
 export function ReplyPanel({
-  secret,
+  target,
   senderName,
   presets,
   initialReply,
 }: {
-  secret: string
+  target: CapsuleTarget
   senderName: string
   presets: ReplyPreset[]
   initialReply: Reply | null
@@ -51,11 +51,11 @@ export function ReplyPanel({
     setSending(true)
     setError(null)
     try {
-      setReply(await api.sendReply(secret, preset ? { preset_key: preset, lang } : { text: own, lang }))
+      setReply(await api.sendReply(target, preset ? { preset_key: preset, lang } : { text: own, lang }))
     } catch (e) {
       if (e instanceof ApiError && e.code === 'REPLY_EXISTS') {
         // Sent from another tab or a double tap: reload to show what was sent
-        const fresh = await api.openCapsule(secret).catch(() => null)
+        const fresh = await api.openCapsule(target).catch(() => null)
         setReply(fresh?.reply ?? { text: t.alreadySent, lang: capsuleLang, created_at: '' })
       } else {
         setError(t.sendFailed)

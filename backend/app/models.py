@@ -18,17 +18,24 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from app.languages import lang_check
+
 
 class Base(DeclarativeBase):
     pass
 
 
 class Sender(Base):
+    """An account: one verified email, signed into with Google or with an emailed code. It
+    sends capsules and opens the ones sent to its email."""
+
     __tablename__ = "senders"
+    __table_args__ = (CheckConstraint("email = lower(email)", name="sender_email_lowercase"),)
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    google_sub: Mapped[str] = mapped_column(String(255), unique=True)
-    email: Mapped[str] = mapped_column(String(320))
+    # Set once the account has signed in with Google (accounts made by email code have none yet)
+    google_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
+    email: Mapped[str] = mapped_column(String(320), unique=True)
     name: Mapped[str] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
@@ -76,7 +83,7 @@ class Capsule(Base):
         CheckConstraint("gift_kind IN ('link', 'code')", name="gift_kind_valid"),
         CheckConstraint("send_mode IN ('birthday', 'now')", name="send_mode_valid"),
         CheckConstraint(
-            "message_lang IN ('en', 'ko', 'zh', 'ja', 'es', 'ta', 'hi', 'fr', 'it', 'de')",
+            lang_check("message_lang"),
             name="message_lang_valid",
         ),
         CheckConstraint(
@@ -154,7 +161,7 @@ class Reply(Base):
     __table_args__ = (
         CheckConstraint("(preset_key IS NULL) <> (text IS NULL)", name="preset_or_text"),
         CheckConstraint(
-            "lang IN ('en', 'ko', 'zh', 'ja', 'es', 'ta', 'hi', 'fr', 'it', 'de')",
+            lang_check("lang"),
             name="reply_lang_valid",
         ),
     )
@@ -195,6 +202,27 @@ class CapsuleMedia(Base):
     mime: Mapped[str] = mapped_column(String(100))
     size_bytes: Mapped[int] = mapped_column(Integer)
     path: Mapped[str] = mapped_column(String(500))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class EmailCode(Base):
+    """A one-time sign-in code emailed to an address (spec.md > Sign-in and sessions). Only a
+    keyed hash of the code is stored; the newest code for an email replaces the ones before."""
+
+    __tablename__ = "email_codes"
+    __table_args__ = (
+        Index("ix_email_codes_email_created", "email", "created_at"),
+        CheckConstraint("attempts >= 0", name="email_code_attempts_positive"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    email: Mapped[str] = mapped_column(String(320))
+    code_hash: Mapped[str] = mapped_column(String(64))
+    attempts: Mapped[int] = mapped_column(SmallInteger, default=0)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

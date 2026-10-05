@@ -173,6 +173,21 @@ def act_as(client, settings):
 
 
 @pytest.fixture
+def as_recipient(sign_in, act_as):
+    """Make `client` the recipient's Google account (aiko@gmail.com unless given), signing it
+    in the first time and switching back to it after that."""
+    made = {}
+
+    async def _as(email: str = "aiko@gmail.com", name: str = "Aiko Tanaka") -> None:
+        if email in made:
+            act_as(made[email])
+        else:
+            made[email] = (await sign_in(email, name)).id
+
+    return _as
+
+
+@pytest.fixture
 def freeze_now():
     """Pin the API's clock: `freeze_now(datetime)`."""
 

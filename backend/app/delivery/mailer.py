@@ -25,13 +25,18 @@ class ConsoleMailer:
         self.sent.append(message)
         body = message.get_body(("plain",))
         text = body.get_content() if body else ""
-        print(
+        shown = (
             "\n----- email (MAILER=console, not sent) -----\n"
             f"From: {message['From']}\nReply-To: {message['Reply-To']}\n"
             f"To: {message['To']}\nSubject: {message['Subject']}\n\n{text}"
-            "--------------------------------------------\n",
-            flush=True,
+            "--------------------------------------------\n"
         )
+        try:
+            print(shown, flush=True)
+        except UnicodeEncodeError:
+            # A console that can't show the script (Windows' cp1252 and Korean, say) must not
+            # fail the "send": those characters are shown as escapes (the digits stay readable)
+            print(shown.encode("ascii", "backslashreplace").decode("ascii"), flush=True)
 
 
 class SmtpMailer:

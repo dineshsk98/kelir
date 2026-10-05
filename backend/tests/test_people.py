@@ -7,8 +7,8 @@ import pytest
 
 from app.models import Capsule, Person
 from tests.test_capsules_api import utc
-from tests.test_delivery import DUE, NOW, capsule_body, capsule_row
-from tests.test_edit_cancel import deliver, make, patch
+from tests.test_delivery import DUE, NOW, capsule_body, capsule_row, deliver, schedule
+from tests.test_edit_cancel import patch
 
 
 async def people(client) -> list[dict]:
@@ -38,7 +38,7 @@ async def test_people_require_sign_in(client):
 
 async def test_sending_a_capsule_saves_the_person(client, sign_in, freeze_now, sessionmaker):
     await sign_in()
-    c = await make(client, freeze_now)
+    c = await schedule(client, freeze_now)
     (person,) = await people(client)
     assert person == {
         "id": person["id"],
@@ -57,8 +57,8 @@ async def test_sending_a_capsule_saves_the_person(client, sign_in, freeze_now, s
 
 async def test_the_same_email_in_any_case_is_one_person(client, sign_in, freeze_now, sessionmaker):
     await sign_in()
-    first = await make(client, freeze_now, recipient_email="Aiko@Gmail.com")
-    second = await make(
+    first = await schedule(client, freeze_now, recipient_email="Aiko@Gmail.com")
+    second = await schedule(
         client, freeze_now, recipient_email="aiko@gmail.com", recipient_name="Aiko T.",
         city_label="Chennai, Tamil Nadu, India", tz="Asia/Kolkata",
     )
@@ -83,7 +83,7 @@ async def test_soonest_birthday_first_by_each_persons_midnight(client, sign_in, 
         ("Kiri", 1, 11, "Pacific/Kiritimati", None),  # already 11 Jan there: today
         ("Ana", 1, 11, "Pacific/Kiritimati", None),  # the same moment as Kiri: by name
     ]:
-        await make(
+        await schedule(
             client, freeze_now, recipient_name=name, recipient_email=f"{name.lower()}@gmail.com",
             birth_month=month, birth_day=day, tz=tz, city_label=tz, feb29_pref=pref,
         )
@@ -100,7 +100,7 @@ async def test_soonest_birthday_first_by_each_persons_midnight(client, sign_in, 
 
 async def test_edit_a_person(client, sign_in, freeze_now, sessionmaker):
     await sign_in()
-    c = await make(client, freeze_now)
+    c = await schedule(client, freeze_now)
     (person,) = await people(client)
     r = await client.patch(
         f"/v1/people/{person['id']}",
@@ -130,7 +130,7 @@ async def test_edit_a_person(client, sign_in, freeze_now, sessionmaker):
 )
 async def test_invalid_person_edits_are_rejected(client, sign_in, freeze_now, changes):
     await sign_in()
-    await make(client, freeze_now)
+    await schedule(client, freeze_now)
     (person,) = await people(client)
     r = await client.patch(f"/v1/people/{person['id']}", json=person_body(**changes))
     assert r.status_code == 422, changes
@@ -138,7 +138,7 @@ async def test_invalid_person_edits_are_rejected(client, sign_in, freeze_now, ch
 
 async def test_only_the_sender_sees_and_changes_their_people(client, sign_in, freeze_now):
     await sign_in("sam@example.com")
-    await make(client, freeze_now)
+    await schedule(client, freeze_now)
     (person,) = await people(client)
 
     await sign_in("other@example.com")
@@ -151,7 +151,7 @@ async def test_only_the_sender_sees_and_changes_their_people(client, sign_in, fr
 
 async def test_removing_a_person_keeps_their_capsules(client, sign_in, freeze_now, sessionmaker):
     await sign_in()
-    c = await make(client, freeze_now)
+    c = await schedule(client, freeze_now)
     (person,) = await people(client)
     assert (await client.delete(f"/v1/people/{person['id']}")).status_code == 204
     assert await people(client) == []
@@ -160,13 +160,13 @@ async def test_removing_a_person_keeps_their_capsules(client, sign_in, freeze_no
     assert [x["id"] for x in (await client.get("/v1/capsules")).json()] == [c["id"]]
 
     # Sending to them again saves them again
-    await make(client, freeze_now)
+    await schedule(client, freeze_now)
     assert [p["email"] for p in await people(client)] == ["aiko@gmail.com"]
 
 
 async def test_editing_a_scheduled_capsule_updates_its_person(client, sign_in, freeze_now, sessionmaker):
     await sign_in()
-    c = await make(client, freeze_now)
+    c = await schedule(client, freeze_now)
     r = await patch(client, c, city_label="Chennai, Tamil Nadu, India", tz="Asia/Kolkata")
     assert r.status_code == 200, r.text
     (person,) = await people(client)
@@ -185,8 +185,8 @@ async def test_editing_a_delivered_capsule_keeps_people_page_edits(
     client, sign_in, freeze_now, sessionmaker, mailer, settings
 ):
     sender = await sign_in()
-    c = await make(client, freeze_now)
-    await deliver(client, sessionmaker, mailer, settings)
+    c = await schedule(client, freeze_now)
+    await deliver(sessionmaker, mailer, settings)
     (person,) = await people(client)
     await client.patch(f"/v1/people/{person['id']}", json=person_body(name="Aiko-chan"))
 
@@ -200,8 +200,8 @@ async def test_editing_a_delivered_capsule_keeps_people_page_edits(
 
 async def test_capsules_for_two_people_link_to_each(client, sign_in, freeze_now, sessionmaker):
     await sign_in()
-    a = await make(client, freeze_now)
-    b = await make(client, freeze_now, **capsule_body(recipient_name="Ben", recipient_email="ben@gmail.com"))
+    a = await schedule(client, freeze_now)
+    b = await schedule(client, freeze_now, **capsule_body(recipient_name="Ben", recipient_email="ben@gmail.com"))
     by_email = {p["email"]: p["id"] for p in await people(client)}
     assert str((await capsule_row(sessionmaker, a["id"])).person_id) == by_email["aiko@gmail.com"]
     assert str((await capsule_row(sessionmaker, b["id"])).person_id) == by_email["ben@gmail.com"]

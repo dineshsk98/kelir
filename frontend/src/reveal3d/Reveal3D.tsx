@@ -54,6 +54,9 @@ type Reveal3DProps = {
   backdrop?: BackdropPhoto
   /** Already opened once: start at the open box with its contents, no cake or ribbon */
   alreadyOpened?: boolean
+  /** Not signed in as the recipient yet: shown at the cake instead of the candle buttons,
+   *  and Skip is hidden, so nothing goes further until she has signed in */
+  lockedPanel?: ReactNode
 }
 
 /**
@@ -78,6 +81,7 @@ function Opening({
   reducedMotion,
   backdrop = 'colour',
   alreadyOpened = false,
+  lockedPanel,
 }: Reveal3DProps) {
   const prefersReduced = usePrefersReducedMotion()
   const reduced = reducedMotion ?? prefersReduced
@@ -112,6 +116,11 @@ function Opening({
   const langProps = useMessageLang(lang) // the handwriting (titles, letter, record label) follows it
 
   stageRef.current = stage
+
+  // Signing in can reveal that it was already opened (on another device): straight to the box
+  useEffect(() => {
+    if (alreadyOpened && !reached(stageRef.current, 'explore')) setStage('explore')
+  }, [alreadyOpened])
 
   // Created in an effect (not during render) so React's dev double-mount gets a fresh one
   useEffect(() => {
@@ -302,7 +311,7 @@ function Opening({
     >
       <section
         className="r3d-stage"
-        aria-label={t.giftFromTo(firstName, capsule.senderName)}
+        aria-label={firstName ? t.giftFromTo(firstName, capsule.senderName) : t.giftForYou}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -329,7 +338,7 @@ function Opening({
         <div className="r3d-flash" aria-hidden="true" />
 
         <header className={`r3d-title${titleShown ? '' : ' hidden'}`}>
-          <h1>{open ? t.happyBirthday(firstName) : t.giftFor(firstName)}</h1>
+          <h1>{open ? t.happyBirthday(firstName) : firstName ? t.giftFor(firstName) : t.giftForYou}</h1>
           <p>{t.from(capsule.senderName)}</p>
         </header>
 
@@ -355,7 +364,7 @@ function Opening({
               )}
             </svg>
           </button>
-          {!open && (
+          {!open && !lockedPanel && (
             <button type="button" className="r3d-pill" onClick={skip}>
               {t.skip}
             </button>
@@ -378,7 +387,8 @@ function Opening({
               {t.pullRibbon}
             </button>
           )}
-          {stage === 'blow' && (
+          {stage === 'blow' && lockedPanel}
+          {stage === 'blow' && !lockedPanel && (
             <div className="r3d-blow">
               <button type="button" className="r3d-pull" onClick={blowCandle}>
                 {t.blowCandles}

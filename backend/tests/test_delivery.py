@@ -35,6 +35,13 @@ async def schedule(client, freeze_now, **overrides) -> dict:
     return r.json()
 
 
+async def deliver(sessionmaker, mailer, settings) -> str:
+    """Their midnight arrives: deliver what's due, and return the newest emailed link as its
+    API path ("/v1/c/<secret>")."""
+    await run_tick(sessionmaker, mailer, settings, DUE)
+    return "/v1" + mailer.links()[-1].removeprefix("http://testserver")
+
+
 async def capsule_row(sessionmaker, capsule_id) -> Capsule:
     async with sessionmaker() as s:
         return await s.get(Capsule, capsule_id)
@@ -65,6 +72,7 @@ async def test_delivers_and_emails_at_their_midnight(client, sign_in, freeze_now
     (link,) = mailer.links()
     assert row.link_token_hash not in link  # the URL carries the secret, never the hash
     # The email links to the web page /c/<secret>; the page loads the capsule from /v1/c/<secret>
+    await sign_in("aiko@gmail.com", "Aiko Tanaka")  # as the recipient
     opened = await client.get("/v1" + link.removeprefix("http://testserver"))
     assert opened.status_code == 200 and opened.json()["message_text"] == "Happy birthday!"
 

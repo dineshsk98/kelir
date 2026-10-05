@@ -151,12 +151,16 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Open a capsule, reload the link, and open it on a second device.
   Commit: `Open the gift once, then show its contents`
 
-- [ ] **15. Recipients can find their capsules again (Received)**
+- [x] **15. Recipients can find their capsules again (Received)**
   Becomes usable: A recipient signs in with Google and sees every capsule sent to that email, opening each the same way (once, then its contents). Links can be lost; the account is the lasting place.
   Why now: Dinesh, 2026-10-05: "The receiver tab becomes necessary with this slice. A receiver should be able to view their capsules later. Links can be lost or destroyed." This reverses the 2026-10-02 deferral of received capsules.
-  PRD ref: `prd.md > Deferred From the POC` (to be moved into scope)
-  Spec ref: `spec.md > Components > Received API`
-  Build: to be planned with Dinesh.
+  PRD ref: `prd.md > Proving it's them` (and the Received tab, to be written in 15c)
+  Spec ref: `spec.md > Components > Recipient API`, `Received API`
+  Dinesh, 2026-10-05: the link must also be authorized by email (a stolen link would give away a gift code); Google for Google accounts, otherwise a one-time code emailed to them, done seamlessly before the candles are blown. The app becomes two roles, sender and recipient. Exact email match. The locked page shows the sender's first name and the masked email. Only Google sign-ins can send.
+  Built in three parts:
+  - **15a** (done, 2026-10-05) the backend. Every link endpoint that shows or changes what's inside requires being signed in as the recipient's email, and `GET …/access` serves the locked page. Email sign-in like Claude's (Dinesh, 2026-10-05: "log in with email that gets the one time code … moves the one time code from opening the capsule to logging in"): `POST /v1/auth/email/code` and `/verify`, one account per email shared with Google, and email accounts can send too (his call). Migration 0009: emails unique and lowercased, `google_sub` optional, `email_codes`. The code email is in 10 languages, and there's `PATCH /v1/me` for the name. Until 15b, the link page can't open capsules (its API now answers 401) and the welcome page has no email sign-in yet.
+  - **15b** (done, 2026-10-05) sign-in screens: "Continue with email" (code) on the welcome page with a name step for new accounts, and the same sign-in at the cake on the link page in the capsule's language, after which the opening carries on from the candles.
+  - **15c** (done, 2026-10-05) Received (list, open by id with the shared once-only opening, reply and media); Sent, Received and People as tabs; the birthday email's sign-in line in 10 languages; the Who-step hint; the typo check on email sign-in; and the account-switch fix: tabs follow a sign-in or sign-out made elsewhere (Dinesh saw the second account's email over the first account's capsules). Then, at his request, an unread counter on the Received tab and in the window title.
 
 ## Hands-on Checkpoints
 
