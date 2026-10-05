@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { searchCities, type City } from '../cities'
+import { fold, searchCities, type City } from '../cities'
 import './CityPicker.css'
 
 /** Type-ahead city search; choosing a city sets the recipient's time zone. */
@@ -59,7 +59,11 @@ export function CityPicker({
     // Enter here means "pick a city", never "submit the form" (e.g. before the list has loaded)
     if (e.key === 'Enter' && !value) e.preventDefault()
     if (!open || results.length === 0) return
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'Tab' && ghost) {
+      // Tab accepts the ghost text; without one it moves on as usual
+      e.preventDefault()
+      choose(results[active])
+    } else if (e.key === 'ArrowDown') {
       e.preventDefault()
       setActive((a) => (a + 1) % results.length)
     } else if (e.key === 'ArrowUp') {
@@ -75,31 +79,48 @@ export function CityPicker({
 
   const showList = open && results.length > 0
 
+  // Ghost text: the highlighted city, if it starts with what's typed, fills in ahead of the cursor
+  const top = showList ? results[active] : undefined
+  const ghost =
+    !value && top && query.trim() && fold(top.label.slice(0, query.length)) === fold(query)
+      ? top.label.slice(query.length)
+      : ''
+
   return (
     <div className="city-picker">
-      <input
-        id={id}
-        aria-describedby={describedBy}
-        className="input"
-        type="text"
-        role="combobox"
-        aria-expanded={showList}
-        aria-controls={listId}
-        aria-autocomplete="list"
-        aria-activedescendant={showList ? `${listId}-${active}` : undefined}
-        aria-invalid={invalid || undefined}
-        placeholder="Start typing a city, e.g. Tokyo"
-        autoComplete="off"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value)
-          setOpen(true)
-          if (value) onChange(null)
-        }}
-        onFocus={() => setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 120)}
-        onKeyDown={onKeyDown}
-      />
+      <div className="city-input-wrap">
+        <input
+          id={id}
+          aria-describedby={describedBy}
+          className="input"
+          type="text"
+          role="combobox"
+          aria-expanded={showList}
+          aria-controls={listId}
+          aria-autocomplete="list"
+          aria-activedescendant={showList ? `${listId}-${active}` : undefined}
+          aria-invalid={invalid || undefined}
+          placeholder="Start typing a city, e.g. Tokyo"
+          autoComplete="off"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value)
+            setOpen(true)
+            if (value) onChange(null)
+          }}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 120)}
+          onKeyDown={onKeyDown}
+        />
+        {ghost && (
+          <span className="city-ghost" aria-hidden="true">
+            <span className="city-ghost-typed">{query}</span>
+            <span key={query.length} className="city-ghost-rest">
+              {ghost}
+            </span>
+          </span>
+        )}
+      </div>
       {showList && (
         <ul className="city-list" id={listId} role="listbox">
           {results.map((c, i) => (

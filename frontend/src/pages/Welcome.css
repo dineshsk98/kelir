@@ -1,5 +1,52 @@
-.welcome-hero {
-  padding: 24px 0 40px;
+/* Split screen: sign in on the left, what the app is on the right */
+.welcome-split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 100vh;
+}
+
+.welcome-left,
+.welcome-right {
+  display: grid;
+  place-items: center;
+  padding: 40px 32px;
+}
+
+.welcome-right {
+  background: var(--color-accent-soft);
+}
+
+/* Logo dead centre of the half; sign-in pinned low, ~10% of the screen up from the bottom */
+.welcome-left {
+  position: relative;
+}
+
+.welcome-left-inner {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: calc(100vh - 80px);
+  text-align: center;
+}
+
+.welcome-mark {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+}
+
+.welcome-logo {
+  width: 280px;
+  height: 280px;
+}
+
+.welcome-mark .brand {
+  font-size: 2.8rem;
+}
+
+.welcome-right-inner {
+  max-width: 30em;
 }
 
 .welcome-kicker {
@@ -11,8 +58,8 @@
   margin: 0 0 12px;
 }
 
-.welcome-hero h1 {
-  font-size: clamp(2rem, 6vw, 3rem);
+.welcome-right h1 {
+  font-size: clamp(2rem, 3.4vw, 3rem);
   font-weight: 800;
 }
 
@@ -20,23 +67,56 @@
   font-family: var(--font-hand);
   color: var(--color-accent);
   font-size: 1.15em;
-  white-space: nowrap;
 }
 
 .welcome-lede {
   font-size: 1.1rem;
-  max-width: 34em;
+  color: var(--color-text-muted);
+  margin: 0 0 28px;
 }
 
 .welcome-signin {
-  margin-top: 28px;
   display: grid;
-  justify-items: start;
+  justify-items: center;
   gap: 12px;
+  width: 100%;
+  max-width: 340px;
+  margin-top: 16px;
 }
 
-.welcome-signin .signin-choice {
-  justify-items: start;
+/* Pinned low only when the window is tall enough for it not to meet the logo */
+@media (min-width: 801px) and (min-height: 760px) {
+  .welcome-signin {
+    position: absolute;
+    left: 50%;
+    bottom: 10vh;
+    transform: translateX(-50%);
+    width: calc(100% - 64px);
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 800px) {
+  .welcome-split {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+
+  .welcome-left,
+  .welcome-right {
+    padding: 32px 16px;
+  }
+
+  .welcome-left-inner {
+    min-height: 0;
+    gap: 24px;
+  }
+
+  .welcome-logo {
+    width: 160px;
+    height: 160px;
+  }
+
 }
 
 .welcome-received {
@@ -48,6 +128,7 @@
   gap: 8px;
   width: 100%;
   max-width: 340px;
+  text-align: left;
 }
 
 .welcome-steps {

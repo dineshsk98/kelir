@@ -1,0 +1,47 @@
+/* Birthday as two small grids: pick the month, then the day */
+.birthday-months {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.birthday-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.birthday-chip {
+  min-height: 38px;
+  padding: 0 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.birthday-chip:hover {
+  border-color: var(--color-accent);
+}
+
+.birthday-chip:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: var(--glow-accent);
+}
+
+.birthday-chip[aria-pressed='true'] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+@media (max-width: 480px) {
+  .birthday-months {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}

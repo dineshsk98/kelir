@@ -6,6 +6,12 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-05 · The welcome sign-in overlapped the logo in a short window
+- **Symptom:** in a short browser pane (about 450px tall) the welcome page's name step and sign-in buttons were drawn on top of the logo and wordmark.
+- **Cause:** the sign-in block was pinned with `position: absolute; bottom: 10vh` so it sits low on tall screens, but nothing kept it clear of the logo when the window is short; both then occupy the same pixels. It looked right on Dinesh's screen only because that screen is tall.
+- **Fix:** `frontend/src/pages/Welcome.css`: the block flows normally under the logo by default, and is pinned low only at `min-height: 760px` (and above the 800px stacking breakpoint).
+- **Lesson:** an element placed by distance from the viewport's edge needs a height condition; check a short window as well as the usual one before calling a layout done.
+
 ## 2026-10-05 · The second account's email over the first account's capsules
 - **Symptom:** Dinesh, testing 15b with two accounts: History showed the **second** account's email in the header with the **first** account's sent capsules. After restarting and doing the same steps again, each account saw only its own; he couldn't make it happen again.
 - **Cause:** sign-in belongs to the browser: one session cookie for every tab (and every port of `localhost`). Each page asked who was signed in only once, when it loaded, but History refetched its list whenever its tab regained focus, using whichever account was signed in **at that moment**. A tab opened as one account, after a sign-in as the other somewhere else in the browser (another tab, or a capsule link's sign-in at the cake), refetched the other account's capsules under its old header. The server returned only the signed-in account's capsules throughout; the page mixed two moments. It depends on the order of sign-ins and tab switches, which is why it didn't happen again. I first told him it must have been the first account's header, contradicting what he saw; that was wrong of me.

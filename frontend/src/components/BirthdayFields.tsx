@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import type { Feb29Pref } from '../api'
 import { daysInMonth, monthNames } from '../format'
+import './BirthdayFields.css'
 
 export type BirthdayValue = {
   birth_month: number | null
@@ -28,35 +29,35 @@ export function BirthdayFields({
     <>
       <fieldset className="field">
         <legend>Their birthday</legend>
-        <div className="row">
-          <select
-            className="input"
-            aria-label="Day"
-            value={value.birth_day ?? ''}
-            onChange={(e) => onChange({ birth_day: Number(e.target.value) || null })}
-          >
-            <option value="">Day</option>
-            {Array.from({ length: daysInMonth(value.birth_month ?? 1) }, (_, i) => (
-              <option key={i + 1}>{i + 1}</option>
-            ))}
-          </select>
-          <select
-            className="input"
-            aria-label="Month"
-            value={value.birth_month ?? ''}
-            onChange={(e) => {
-              const m = Number(e.target.value) || null
-              const dayFits = !m || !value.birth_day || value.birth_day <= daysInMonth(m)
-              onChange(dayFits ? { birth_month: m } : { birth_month: m, birth_day: null })
-            }}
-          >
-            <option value="">Month</option>
-            {monthNames.map((name, i) => (
-              <option key={name} value={i + 1}>
-                {name}
-              </option>
-            ))}
-          </select>
+        <div className="birthday-months" role="group" aria-label="Month">
+          {monthNames.map((name, i) => (
+            <button
+              key={name}
+              type="button"
+              className="birthday-chip"
+              aria-pressed={value.birth_month === i + 1}
+              onClick={() => {
+                const m = i + 1
+                const dayFits = !value.birth_day || value.birth_day <= daysInMonth(m)
+                onChange(dayFits ? { birth_month: m } : { birth_month: m, birth_day: null })
+              }}
+            >
+              {name.slice(0, 3)}
+            </button>
+          ))}
+        </div>
+        <div className="birthday-days" role="group" aria-label="Day">
+          {Array.from({ length: daysInMonth(value.birth_month ?? 1) }, (_, i) => (
+            <button
+              key={i + 1}
+              type="button"
+              className="birthday-chip"
+              aria-pressed={value.birth_day === i + 1}
+              onClick={() => onChange({ birth_day: i + 1 })}
+            >
+              {i + 1}
+            </button>
+          ))}
         </div>
         {dayError && <p className="error">{dayError}</p>}
       </fieldset>

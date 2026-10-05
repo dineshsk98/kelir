@@ -425,6 +425,13 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
                 placeholder={MESSAGE_PLACEHOLDER[draft.message_lang](firstName)}
                 value={draft.message_text}
                 onChange={(e) => set('message_text', e.target.value)}
+                onKeyDown={(e) => {
+                  // Like inline text prediction: Tab on an empty box takes the suggested wording
+                  if (e.key === 'Tab' && !e.shiftKey && !draft.message_text) {
+                    e.preventDefault()
+                    set('message_text', MESSAGE_PLACEHOLDER[draft.message_lang](firstName))
+                  }
+                }}
                 {...messageLang}
               />
             </Field>
