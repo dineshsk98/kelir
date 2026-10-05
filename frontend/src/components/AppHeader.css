@@ -47,3 +47,55 @@
   font-weight: 800;
   vertical-align: 1px;
 }
+
+.topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.topbar-email {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Phones: the name stays on one line, the tabs share the width */
+@media (max-width: 520px) {
+  .app-header .brand {
+    font-size: 1.6rem;
+    white-space: nowrap;
+  }
+
+  /* Name and Sign out on one line, the signed-in email small underneath */
+  .app-header .topbar {
+    flex-wrap: wrap;
+    row-gap: 0;
+  }
+
+  .topbar-user {
+    display: contents;
+  }
+
+  .topbar-user .btn {
+    order: 2;
+  }
+
+  .topbar-email {
+    order: 3;
+    flex-basis: 100%;
+    font-size: 0.85rem;
+  }
+
+  .app-tabs {
+    gap: 0;
+  }
+
+  .app-tab {
+    flex: 1;
+    text-align: center;
+    padding: 10px 6px;
+  }
+}

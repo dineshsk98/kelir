@@ -40,8 +40,8 @@ export function AppHeader({ me, onSignOut }: { me: Me; onSignOut: () => void }) 
         <NavLink to="/history" className="brand">
           Birthday Capsule
         </NavLink>
-        <span>
-          <span className="muted">{me.email}</span>
+        <span className="topbar-user">
+          <span className="muted topbar-email">{me.email}</span>
           <button className="btn btn-quiet" onClick={onSignOut}>
             Sign out
           </button>

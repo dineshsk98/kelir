@@ -6,6 +6,18 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-05 · "6 October" broke mid-word on the phone cards
+- **Symptom:** on the People cards at phone width, the birthday read "6 Octobe" with the "r" alone on the next line.
+- **Cause:** the stat's label and value sat side by side in a card about 130px wide, and the value had `overflow-wrap: anywhere`, which lets a word break at any letter and so shrinks the space a word asks for; the label took what it wanted and the value was cut wherever it ran out.
+- **Fix:** `frontend/src/pages/People.css`: values break only at word boundaries (`break-word`), and on phones the label sits above its value instead of beside it.
+- **Lesson:** `overflow-wrap: anywhere` is for long strings like emails; for short words, stack the label and value on a narrow card instead of letting letters break.
+
+## 2026-10-05 · The app wrapped awkwardly on a phone
+- **Symptom:** at 375px wide, found by looking at every screen in a phone-sized window: the "Birthday Capsule" name broke over two lines and pushed the email and Sign out around; the editor's step bar wrapped, leaving "5 Preview" alone on a second line; on People, the three row buttons wrapped into a ragged staircase. The tabs and the cards were fine.
+- **Cause:** every page was laid out at desktop width; the only responsive rules were on the welcome page and the 3D opening. Text in a flex row can wrap, and nothing said the name, the step labels or the buttons should hold their shape.
+- **Fix:** `frontend/src/styles/global.css` (the name never wraps, smaller on phones), `components/AppHeader.css` and `AppHeader.tsx` (name and Sign out on one line, the email small underneath, tabs share the width), `components/StepNav.tsx` and `pages/CapsuleEditor.css` (phones show a name only on the current step), `pages/People.css` (the main button gets its own full-width line).
+- **Lesson:** look at every screen at phone width before calling a layout done, not only the one being built; wrapping text in a row is the usual way a desktop layout breaks.
+
 ## 2026-10-05 · The welcome sign-in overlapped the logo in a short window
 - **Symptom:** in a short browser pane (about 450px tall) the welcome page's name step and sign-in buttons were drawn on top of the logo and wordmark.
 - **Cause:** the sign-in block was pinned with `position: absolute; bottom: 10vh` so it sits low on tall screens, but nothing kept it clear of the logo when the window is short; both then occupy the same pixels. It looked right on Dinesh's screen only because that screen is tall.

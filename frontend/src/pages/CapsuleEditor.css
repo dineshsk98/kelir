@@ -115,3 +115,15 @@
   color: var(--color-accent);
   font-weight: 700;
 }
+
+/* Phones: one line of steps; only the current step shows its name */
+@media (max-width: 520px) {
+  .steps {
+    flex-wrap: nowrap;
+    justify-content: space-between;
+  }
+
+  .step:not(.current) .step-label {
+    display: none;
+  }
+}

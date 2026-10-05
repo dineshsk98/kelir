@@ -21,11 +21,12 @@ export function StepNav<T extends string>({
             type="button"
             className={s.id === current ? 'step current' : 'step'}
             aria-current={s.id === current ? 'step' : undefined}
+            aria-label={`${i + 1} ${s.label}`}
             disabled={i > reached || locked.includes(s.id)}
             title={locked.includes(s.id) ? 'Already delivered: this can no longer change' : undefined}
             onClick={() => onGo(s.id)}
           >
-            <span className="step-num">{i + 1}</span> {s.label}
+            <span className="step-num">{i + 1}</span> <span className="step-label">{s.label}</span>
             {locked.includes(s.id) && <span aria-hidden="true"> 🔒</span>}
           </button>
         </li>

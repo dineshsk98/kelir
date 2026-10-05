@@ -53,10 +53,15 @@ function localDay(at: Date, tz: string): number {
   return Date.parse(ymd.format(at)) / 86_400_000
 }
 
+/** Whole days until their birthday, counted in their time zone (0 = today) */
+export function daysUntil(nextDelivery: string, tz: string, now = new Date()): number {
+  const at = new Date(nextDelivery)
+  return at <= now ? 0 : Math.round(localDay(at, tz) - localDay(now, tz))
+}
+
 /** "today", "tomorrow" or "in 12 days" until their birthday, counted in their time zone */
 export function countdown(nextDelivery: string, tz: string, now = new Date()): string {
-  const at = new Date(nextDelivery)
-  const days = at <= now ? 0 : Math.round(localDay(at, tz) - localDay(now, tz))
+  const days = daysUntil(nextDelivery, tz, now)
   return days === 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`
 }
 

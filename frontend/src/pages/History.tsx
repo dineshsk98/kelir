@@ -66,10 +66,7 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       <AppHeader me={me} onSignOut={onSignOut} />
 
       <div className="history-head">
-        <div>
-          <h1>Hi {firstName}</h1>
-          <p className="muted">Your capsules</p>
-        </div>
+        <h1>Hi {firstName}</h1>
         {capsules && capsules.length > 0 && (
           <Link to="/capsules/new" className="btn">
             New capsule

@@ -35,7 +35,6 @@ export function Received({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
     <main className="page">
       <AppHeader me={me} onSignOut={onSignOut} />
       <h1>Received</h1>
-      <p className="muted">Capsules sent to {me.email}, newest first</p>
 
       {error && <p className="error">We couldn't load your capsules. Please reload the page.</p>}
 
@@ -45,7 +44,7 @@ export function Received({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
             🎁
           </p>
           <h2>Nothing here yet</h2>
-          <p className="muted">When someone sends a capsule to {me.email}, it appears here on your birthday.</p>
+          <p className="muted">Capsules sent to you appear here.</p>
         </section>
       )}
 

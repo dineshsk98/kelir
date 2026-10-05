@@ -4,9 +4,10 @@ import { api, ApiError, type Me, type Person } from '../api'
 import { savedCity, type City } from '../cities'
 import { ACCOUNT_CONFIRMED } from '../account'
 import { AppHeader } from '../components/AppHeader'
+import { Avatar, hue } from '../components/Avatar'
 import { BirthdayFields, isFeb29, type BirthdayValue } from '../components/BirthdayFields'
 import { CityPicker } from '../components/CityPicker'
-import { birthdayLabel, cityName, countdown, deliveryMoment } from '../format'
+import { birthdayLabel, cityName, countdown, daysUntil, monthNames } from '../format'
 import './People.css'
 
 /** Everyone the sender has sent to, soonest birthday first (prd.md > Regular recipients). */
@@ -51,10 +52,7 @@ export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       <AppHeader me={me} onSignOut={onSignOut} />
 
       <div className="people-head">
-        <div>
-          <h1>Your people</h1>
-          <p className="muted">Everyone you've sent a capsule to, soonest birthday first</p>
-        </div>
+        <h1>Your people</h1>
       </div>
 
       {error && <p className="error">We couldn't load your people. Please reload the page.</p>}
@@ -62,7 +60,7 @@ export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       {people && people.length === 0 && (
         <section className="card people-empty">
           <h2>No one here yet</h2>
-          <p className="muted">Everyone you send a capsule to is saved here, so their next birthday is quick.</p>
+          <p className="muted">People you send to are saved here.</p>
           <Link to="/capsules/new" className="btn">
             New capsule
           </Link>
@@ -70,79 +68,108 @@ export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       )}
 
       {people && people.length > 0 && (
-        <ul className="people-list">
-          {people.map((p) => (
-            <li key={p.id} className="person-row">
-              {editing === p.id ? (
-                <PersonEditor
-                  person={p}
-                  onCancel={() => setEditing(null)}
-                  onSaved={() => {
-                    setEditing(null)
-                    load() // a new birthday or city can change the order
-                  }}
-                />
-              ) : (
-                <>
-                  <div className="person-main">
-                    <p>
-                      <strong>{p.name}</strong>{' '}
-                      <span className="person-when">· {countdown(p.next_delivery, p.tz)}</span>
-                    </p>
-                    <p className="muted small">{arrives(p)}</p>
-                    <p className="muted small">
-                      {birthdayLabel(p.birth_month, p.birth_day)} · {p.email}
-                    </p>
-                  </div>
-                  {removing === p.id ? (
-                    <div className="person-confirm" role="group" aria-label={`Remove ${p.name}?`}>
-                      <p className="small">
-                        Remove {p.name.split(' ')[0]}? Capsules you've sent them stay as they are.
-                      </p>
-                      {removeError && <p className="error small">We couldn't remove them. Please try again.</p>}
-                      <div className="person-actions">
-                        <button type="button" className="btn btn-quiet" onClick={() => setRemoving(null)}>
-                          Keep
+        <ul className="people-grid">
+          {people.map((p, i) => {
+            const days = daysUntil(p.next_delivery, p.tz)
+            const month = monthNames[p.birth_month - 1].slice(0, 3)
+            return (
+              <li
+                key={p.id}
+                className={editing === p.id ? 'person-card editing' : 'person-card'}
+                style={{ '--hue': hue(p.email.toLowerCase()) } as React.CSSProperties}
+              >
+                {editing === p.id ? (
+                  <PersonEditor
+                    person={p}
+                    onCancel={() => setEditing(null)}
+                    onSaved={() => {
+                      setEditing(null)
+                      load() // a new birthday or city can change the order
+                    }}
+                  />
+                ) : (
+                  <>
+                    <article className={i === 0 ? 'tcg next' : 'tcg'}>
+                      {/* Top-left gem: how many days to go */}
+                      <span className="tcg-gem" title={countdown(p.next_delivery, p.tz)}>
+                        <span className="tcg-gem-text">
+                          <b>{days === 0 ? '🎉' : days}</b>
+                          <small>{days === 0 ? 'today' : days === 1 ? 'day' : 'days'}</small>
+                        </span>
+                      </span>
+                      {i === 0 && <span className="tcg-next-tag">Next up</span>}
+                      <div className="tcg-inner">
+                        {/* The picture window; a photo will fill it */}
+                        <div className="tcg-art">
+                          <Avatar name={p.name} seed={p.email} size={92} />
+                        </div>
+                        <h2 className="tcg-name">
+                          <span>{p.name}</span>
+                        </h2>
+                        <div className="tcg-panel">
+                          {removing === p.id ? (
+                            <div className="person-confirm" role="group" aria-label={`Remove ${p.name}?`}>
+                              <p className="small">
+                                Remove {p.name.split(' ')[0]}? Capsules you've sent them stay as they are.
+                              </p>
+                              {removeError && <p className="error small">We couldn't remove them. Please try again.</p>}
+                              <div className="person-minor">
+                                <button type="button" className="btn btn-quiet" onClick={() => setRemoving(null)}>
+                                  Keep
+                                </button>
+                                <button type="button" className="btn btn-danger" onClick={() => remove(p.id)}>
+                                  Remove
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="tcg-line">
+                                {cityName(p.city_label)} <span className="tcg-when">· {countdown(p.next_delivery, p.tz)}</span>
+                              </p>
+                              <Link to={`/capsules/new?person=${encodeURIComponent(p.id)}`} className="btn tcg-make">
+                                Make a capsule
+                              </Link>
+                            </>
+                          )}
+                        </div>
+                        {/* Stat orbs: the birthday, and the collector number */}
+                        <span className="tcg-orb left" aria-label={birthdayLabel(p.birth_month, p.birth_day)}>
+                          <b>{p.birth_day}</b>
+                          <small>{month}</small>
+                        </span>
+                        <span className="tcg-orb right" aria-hidden="true">
+                          <b>{String(i + 1).padStart(2, '0')}</b>
+                          <small>/{String(people.length).padStart(2, '0')}</small>
+                        </span>
+                      </div>
+                    </article>
+                    {removing !== p.id && (
+                      <div className="tcg-tools person-minor">
+                        <button type="button" className="btn btn-quiet" onClick={() => setEditing(p.id)}>
+                          Edit
                         </button>
-                        <button type="button" className="btn btn-danger" onClick={() => remove(p.id)}>
+                        <button
+                          type="button"
+                          className="btn btn-quiet"
+                          onClick={() => {
+                            setRemoveError(false)
+                            setRemoving(p.id)
+                          }}
+                        >
                           Remove
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="person-actions">
-                      <Link to={`/capsules/new?person=${encodeURIComponent(p.id)}`} className="btn">
-                        Make a capsule
-                      </Link>
-                      <button type="button" className="btn btn-quiet" onClick={() => setEditing(p.id)}>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-quiet"
-                        onClick={() => {
-                          setRemoveError(false)
-                          setRemoving(p.id)
-                        }}
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </li>
-          ))}
+                    )}
+                  </>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </main>
   )
-}
-
-/** When a capsule for them would arrive: "00:00, 14 Mar in Tokyo (20:30, 13 Mar your time)" */
-function arrives(p: Person): string {
-  if (new Date(p.next_delivery) <= new Date()) return `It's already their birthday in ${cityName(p.city_label)}`
-  return deliveryMoment(p.next_delivery, p.tz, p.city_label)
 }
 
 type Errors = { name?: string; birth_day?: string; feb29_pref?: string; city?: string; save?: string }

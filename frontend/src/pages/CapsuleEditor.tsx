@@ -403,7 +403,7 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
         {step === 'message' && (
           <>
             <h2>What do you want to tell {firstName}?</h2>
-            <Field label="Written in" hint="Sets the handwriting and the language of their email">
+            <Field label="Written in" hint="Also the language of their email">
               <select
                 className="input"
                 value={draft.message_lang}
@@ -449,7 +449,7 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
         {step === 'gift' && (
           <>
             <h2>Add a little gift?</h2>
-            <p className="muted">Optional. A link to something you bought, or a code they can redeem.</p>
+            <p className="muted">Optional: a link, or a code they can redeem.</p>
             <div className="row" role="radiogroup" aria-label="Gift">
               {([null, 'link', 'code'] as const).map((kind) => (
                 <label key={kind ?? 'none'} className="choice">
@@ -552,7 +552,6 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
                 </div>
               )}
             </div>
-            <p className="muted small">They'll see this as a gift opening when they tap the link.</p>
             {saveError && <p className="error">{saveError}</p>}
           </>
         )}

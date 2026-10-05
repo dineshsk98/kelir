@@ -45,6 +45,17 @@ h2 {
   font-weight: 700;
   color: var(--color-accent);
   text-decoration: none;
+  white-space: nowrap;
+}
+
+.topbar > :not(.brand) {
+  white-space: nowrap;
+}
+
+@media (max-width: 520px) {
+  .brand {
+    font-size: 1.6rem;
+  }
 }
 
 .muted {

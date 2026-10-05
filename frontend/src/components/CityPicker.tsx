@@ -146,7 +146,7 @@ export function CityPicker({
           {value.name} · <strong>{value.tz}</strong>
         </p>
       ) : (
-        <p className="hint muted">Can't find their town? Pick a nearby city in the same time zone.</p>
+        <p className="hint muted">Not listed? Pick a nearby city.</p>
       )}
       {loadError && <p className="error">The city list didn't load. Check your connection and try again.</p>}
     </div>

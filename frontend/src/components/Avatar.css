@@ -1,0 +1,17 @@
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  background: linear-gradient(145deg, hsl(var(--hue) 85% 90%), hsl(var(--hue) 70% 78%));
+  color: hsl(var(--hue) 45% 28%);
+  font-family: var(--font-hand);
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+
+[data-theme='midnight'] .avatar {
+  background: linear-gradient(145deg, hsl(var(--hue) 40% 38%), hsl(var(--hue) 45% 26%));
+  color: hsl(var(--hue) 80% 90%);
+}
