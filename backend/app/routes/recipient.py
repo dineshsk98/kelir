@@ -18,7 +18,7 @@ from app.links import hash_link_secret
 from app.media import SERVE_HEADERS, media_file
 from app.models import Capsule, Reply, Sender
 from app.replies import REPLY_PRESETS
-from app.schemas import MediaOut, RecipientCapsuleOut, ReplyIn, ReplyOut, ReplyPreset
+from app.schemas import MediaOut, OpenedOut, RecipientCapsuleOut, ReplyIn, ReplyOut, ReplyPreset
 
 router = APIRouter(prefix="/v1/c")
 Session = Annotated[AsyncSession, Depends(get_session)]
@@ -53,7 +53,8 @@ async def _find(session: AsyncSession, secret: str) -> tuple[Capsule, Sender]:
 
 
 async def _mark_opened(session: AsyncSession, capsule: Capsule, now) -> None:
-    """The first open (or a reply) marks it Opened; the condition makes this happen once."""
+    """Reaching the open box (or replying) marks it Opened; the condition makes this happen
+    once, so `opened_at` is the first time."""
     await session.execute(
         update(Capsule)
         .where(Capsule.id == capsule.id, Capsule.status == "delivered")
@@ -62,10 +63,10 @@ async def _mark_opened(session: AsyncSession, capsule: Capsule, now) -> None:
 
 
 @router.get("/{secret}")
-async def open_capsule(secret: str, session: Session, now: Now, response: Response) -> RecipientCapsuleOut:
+async def open_capsule(secret: str, session: Session, response: Response) -> RecipientCapsuleOut:
+    """What the link shows. Loading it changes nothing: an interrupted first visit still gets
+    the whole opening next time. `opened_at` tells the page whether to play it."""
     capsule, sender = await _find(session, secret)
-    await _mark_opened(session, capsule, now)
-    await session.commit()
     response.headers.update(PRIVATE_HEADERS)
     return RecipientCapsuleOut(
         sender_name=sender.name,
@@ -78,7 +79,20 @@ async def open_capsule(secret: str, session: Session, now: Now, response: Respon
         gift_note=capsule.gift_note,
         reply=ReplyOut.from_model(capsule.reply),
         reply_presets=[ReplyPreset(key=k, texts=t) for k, t in REPLY_PRESETS.items()],
+        opened_at=capsule.opened_at,
     )
+
+
+@router.post("/{secret}/opened")
+async def mark_opened(secret: str, session: Session, now: Now, response: Response) -> OpenedOut:
+    """She has reached the open box (or skipped to it): from now on the link shows the
+    contents without the opening. Repeating it is harmless and keeps the first time."""
+    capsule, _ = await _find(session, secret)
+    await _mark_opened(session, capsule, now)
+    await session.commit()
+    opened_at = await session.scalar(select(Capsule.opened_at).where(Capsule.id == capsule.id))
+    response.headers.update(PRIVATE_HEADERS)
+    return OpenedOut(opened_at=opened_at)
 
 
 @router.get("/{secret}/media/{media_id}")

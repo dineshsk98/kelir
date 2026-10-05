@@ -76,7 +76,7 @@ async def test_opened_capsules_are_final(client, sign_in, freeze_now, sessionmak
     await sign_in()
     c = await make(client, freeze_now)
     link = await deliver(client, sessionmaker, mailer, settings)
-    await client.get(link)  # the recipient opens it
+    await client.post(f"{link}/opened")  # the recipient opens it
     assert (await patch(client, c, message_text="Too late")).json()["detail"]["code"] == "CAPSULE_FINAL"
     cancel = await client.post(f"/v1/capsules/{c['id']}/cancel")
     assert cancel.status_code == 409 and cancel.json()["detail"]["code"] == "CAPSULE_FINAL"

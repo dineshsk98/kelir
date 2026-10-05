@@ -32,7 +32,7 @@ Sender side (signed in with Google):
 
 Recipient side (no account, private link only):
 - **Birthday email.** Subject line, the sender's name and a button to open the capsule.
-- **Capsule page.** The staged opening, then the message, the gift and the thank-you reply. The page can be replayed later from the same link.
+- **Capsule page.** The staged opening, then the message, the gift and the thank-you reply. The opening plays once; after that, the same link shows what was inside.
 
 ## Look and Feel
 Not decided yet (open question, doesn't block the spec). Established so far, from `scope.md > Inspiration & Identity`:
@@ -103,8 +103,8 @@ Not decided yet (open question, doesn't block the spec). Established so far, fro
   - [ ] A "Skip" control jumps straight to the reveal.
   - [ ] The microphone is never requested unless they tap "Blow for real", and it's released as soon as the candle is out.
   - [ ] If the device asks for reduced motion, there's no movement, flash or confetti, and nothing is revealed before they blow out the candle and pull the ribbon.
-  - [ ] **Replay:** opening the link again shows the opening again. The capsule stays viewable.
-  - [ ] The first open changes the sender's status to Opened. Later opens don't change anything.
+  - [ ] **Opens once** (changed 2026-10-05; it used to replay): a gift can't be unwrapped twice. Once they reach the open box (or skip to it), the link always opens straight to it: the photocard, the contents note and the thank-you, with no cake or ribbon. This applies on every device.
+  - [ ] Reaching the open box changes the sender's status to Opened (so do sending a thank-you). Only loading the page doesn't count, so an interrupted first visit still gets the whole opening. Later visits don't change anything.
 
 ### Thank-you reply
 - As a recipient, I can say thank you without making an account.

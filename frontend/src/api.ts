@@ -70,6 +70,8 @@ export type RecipientCapsule = {
   gift_note: string | null
   reply: Reply | null
   reply_presets: ReplyPreset[]
+  /** Set once she has opened the gift: the page then shows the contents, not the opening */
+  opened_at: string | null
 }
 
 export class ApiError extends Error {
@@ -155,6 +157,8 @@ export const api = {
     request<Capsule>(`/v1/demo/capsules/${encodeURIComponent(id)}/simulate-midnight`, { method: 'POST' }),
 
   openCapsule: (secret: string) => request<RecipientCapsule>(`/v1/c/${encodeURIComponent(secret)}`),
+  markOpened: (secret: string) =>
+    request<{ opened_at: string }>(`/v1/c/${encodeURIComponent(secret)}/opened`, { method: 'POST' }),
   sendReply: (secret: string, body: ({ preset_key: string } | { text: string }) & { lang: MessageLang }) =>
     request<Reply>(`/v1/c/${encodeURIComponent(secret)}/reply`, post(body)),
 

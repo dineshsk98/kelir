@@ -6,6 +6,12 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-05 · A reopened capsule showed the box but not what was inside
+- **Symptom:** loading an already-opened capsule (which now starts at the open box) showed the title and the 3D box, but no contents note, thumbnails or thank-you button.
+- **Cause:** `Reveal3D` rendered the contents only when `rootRef.current` was set, since the contents draw their viewers into that element. A ref is filled after the first render and setting it doesn't cause another render. Before, the page always passed through several stages before reaching the open box, so by then a later render had found the ref. Starting at the open box, nothing re-rendered, so the contents never appeared.
+- **Fix:** `frontend/src/reveal3d/Reveal3D.tsx` keeps the root element in state as well (a stable callback ref sets both), and the contents wait for that state.
+- **Lesson:** don't decide what to render from a ref's `.current`; it can't trigger a render. When rendering needs the element (a portal target, for instance), hold it in state through a callback ref. Test a component starting in its final state, not only after walking through the earlier ones.
+
 ## 2026-10-04 · A saved person's city didn't show in the editor
 - **Symptom:** making a capsule from the People page filled in the name, email and birthday, but the city box stayed empty, even though the form already held the city (Lisbon) and the hint under the box showed its time zone.
 - **Cause:** `CityPicker` copies its `value` into its own text state (`query`) only when it first renders. The person's details arrive after the editor has rendered (their list loads first), so the box never heard about the new city. Until now nothing set the city from outside the box after the first render.

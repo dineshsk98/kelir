@@ -141,6 +141,23 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
   Learner check: Send to two people, open People, check the order and countdowns, then make a new capsule for one of them from there.
   Commit: `Add saved people with next-birthday list`
 
+- [x] **14. The gift opens once**
+  Becomes usable: The opening plays once. When they reach the open box (or skip to it), the capsule is marked Opened; from then on the link opens straight to the box, photocard and contents, on any device. Loading the page alone no longer counts as opening.
+  Why now: Dinesh, 2026-10-05: an opened gift can't be reopened, and opening should happen once; it's core. It comes before the Received tab, which shows the same opened view.
+  PRD ref: `prd.md > The opening moment`
+  Spec ref: `spec.md > Components > Recipient API`
+  Build: `GET /v1/c/{secret}` stops marking opened and returns `opened_at`; `POST /v1/c/{secret}/opened` marks it once; `Reveal3D` gains `alreadyOpened` (starts at the open box); the recipient page reports the first reveal.
+  Verify (mechanical): `pytest` passes, including loading doesn't open, the opened call marks it once and is safe to repeat, and cancelled/unknown links are refused. `npm run build` passes; in the browser pane, a capsule opened once reloads straight to its contents.
+  Learner check: Open a capsule, reload the link, and open it on a second device.
+  Commit: `Open the gift once, then show its contents`
+
+- [ ] **15. Recipients can find their capsules again (Received)**
+  Becomes usable: A recipient signs in with Google and sees every capsule sent to that email, opening each the same way (once, then its contents). Links can be lost; the account is the lasting place.
+  Why now: Dinesh, 2026-10-05: "The receiver tab becomes necessary with this slice. A receiver should be able to view their capsules later. Links can be lost or destroyed." This reverses the 2026-10-02 deferral of received capsules.
+  PRD ref: `prd.md > Deferred From the POC` (to be moved into scope)
+  Spec ref: `spec.md > Components > Received API`
+  Build: to be planned with Dinesh.
+
 ## Hands-on Checkpoints
 
 - [x] Early usable behavior explored — after slice 4 (the full kernel: schedule → simulate midnight → real email → opens). Dinesh tried it on 2026-09-30: opening the capsule and seeing the message "gave me a rush"; no changes requested. The real-inbox email check still waits on SMTP setup.

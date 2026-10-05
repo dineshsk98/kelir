@@ -79,6 +79,9 @@ export function RecipientCapsule() {
     <main>
       <Reveal3D
         capsule={reveal}
+        // The gift opens once: after that the link shows what was inside (spec.md > Opening once)
+        alreadyOpened={c.opened_at !== null}
+        onFirstReveal={c.opened_at === null ? () => void api.markOpened(secret).catch(() => {}) : undefined}
         replyPanel={
           <ReplyPanel secret={secret} senderName={c.sender_name} presets={c.reply_presets} initialReply={c.reply} />
         }

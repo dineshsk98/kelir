@@ -284,3 +284,9 @@ class RecipientCapsuleOut(BaseModel):
     gift_note: str | None
     reply: ReplyOut | None
     reply_presets: list[ReplyPreset]
+    # Set once she has opened the gift: the page then shows the contents, not the opening
+    opened_at: datetime | None
+
+
+class OpenedOut(BaseModel):
+    opened_at: datetime

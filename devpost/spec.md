@@ -41,7 +41,7 @@ PRD ref: `prd.md > The Core Journey`.
    - The email comes from "<Sender> via <Name>", with replies going to the sender.
 6. **Opening.**
    - The recipient taps `…/c/<secret>`. The web app loads `GET /v1/c/<secret>` and plays the staged opening.
-   - The first open marks the capsule `opened`.
+   - Reaching the open box (or skipping to it) calls `POST /v1/c/<secret>/opened`, which marks the capsule `opened`. From then on the link shows only the open box and its contents.
 7. **Thank-you.** `POST /v1/c/<secret>/reply` stores the reply, and the sender sees it in their history.
 
 ## Stack
@@ -162,8 +162,10 @@ Implements `prd.md > The opening moment` and `prd.md > Thank-you reply`.
 - `GET /v1/c/{secret}`: looks up by hash.
   - unknown → 404
   - cancelled → 410
-  - otherwise → the capsule (sender name, recipient name, message, media kind, gift, reply)
-  - The first call sets `opened_at` and status `opened`.
+  - otherwise → the capsule (sender name, recipient name, message, media kind, gift, reply, `opened_at`)
+  - Loading changes nothing, so an interrupted first visit still gets the whole opening next time.
+- `POST /v1/c/{secret}/opened`: sent when she reaches the open box or skips to it. It sets `opened_at` and status `opened` once (a conditional update on `status = 'delivered'`), and repeating it returns the first time. Unknown → 404, cancelled → 410. A reply also marks the capsule opened.
+- Opening once (`prd.md > The opening moment`): when `opened_at` is set, `Reveal3D` starts at the open box (`alreadyOpened`), with the photocard, the contents note and the thank-you, and no cake, ribbon or Skip. With no recipient accounts, the lock is per capsule, so every device shows the contents once it has been opened anywhere.
 - `GET /v1/c/{secret}/media/{item_id}`: streams one of that capsule's media items and supports seeking (range requests).
 - `POST /v1/c/{secret}/reply {preset|text}`: one reply per capsule; text up to 500 characters.
 - The page sends `noindex`, and API responses aren't cached.
@@ -249,7 +251,7 @@ The 2D opening that slices 6–9 used on the recipient page:
 - Controls: Skip (jumps to reveal), mute (remembered in `localStorage`) and synthesized sound effects (`sfx.ts`).
 - `prefers-reduced-motion` gives a 400 ms fade with no shake, flash or confetti.
 - The gift code stays hidden until tapped, with a copy button. The thank-you panel comes last, in its own card separate from the capsule.
-- Replaying the link plays the opening again.
+- (The first opening replayed on every visit; the 3D opening now plays once, see the Recipient API.)
 
 ### City data (`scripts/build_cities.py` → `frontend/public/cities.json`)
 - Built once from GeoNames `cities15000`, filtered to larger cities (about 1–2k entries), keeping name, country and IANA zone.

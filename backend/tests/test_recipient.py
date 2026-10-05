@@ -1,4 +1,4 @@
-"""The recipient's private link: lookup by hash, first open, cancelled and unknown links."""
+"""The recipient's private link: lookup by hash, opening once, cancelled and unknown links."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -37,24 +37,52 @@ async def test_link_opens_the_capsule_without_an_account(client, sign_in, freeze
         "gift_kind": "code",
         "gift_value": "ABCD-1234",
         "gift_note": "For Steam",
+        "opened_at": None,
     }  # nothing about emails, delivery or the sender's account
     assert r.headers["cache-control"] == "no-store"
     assert "noindex" in r.headers["x-robots-tag"]
     assert r.headers["referrer-policy"] == "no-referrer"
 
 
-async def test_first_open_marks_opened_once(client, sign_in, freeze_now, sessionmaker, mailer, settings):
+async def test_loading_the_link_does_not_open_it(client, sign_in, freeze_now, sessionmaker, mailer, settings):
+    # She may close the page before the cake: the next visit still gets the whole opening
+    path, c = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
+    for _ in range(2):
+        assert (await client.get(f"/v1{path}")).json()["opened_at"] is None
+    async with sessionmaker() as s:
+        assert (await s.get(Capsule, c["id"])).status == "delivered"
+
+
+async def test_reaching_the_open_box_marks_it_opened_once(
+    client, sign_in, freeze_now, sessionmaker, mailer, settings
+):
     path, c = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
     first = datetime(2027, 3, 13, 23, 0, tzinfo=timezone.utc)
     freeze_now(first)
-    await client.get(f"/v1{path}")
+    r = await client.post(f"/v1{path}/opened")
+    assert r.status_code == 200 and r.headers["cache-control"] == "no-store"
+    assert datetime.fromisoformat(r.json()["opened_at"]) == first
+
+    # Again (another device, a reload): harmless, and the first time stays
     freeze_now(first + timedelta(days=2))
-    replay = await client.get(f"/v1{path}")
-    assert replay.status_code == 200  # replay keeps working
+    again = await client.post(f"/v1{path}/opened")
+    assert datetime.fromisoformat(again.json()["opened_at"]) == first
+    shown = await client.get(f"/v1{path}")
+    assert shown.status_code == 200  # the contents stay available
+    assert datetime.fromisoformat(shown.json()["opened_at"]) == first
 
     async with sessionmaker() as s:
         row = await s.get(Capsule, c["id"])
     assert row.status == "opened" and row.opened_at == first
+
+
+async def test_only_real_live_links_can_be_opened(client, sign_in, freeze_now, sessionmaker, mailer, settings):
+    secret, _ = new_link_secret()
+    assert (await client.post(f"/v1/c/{secret}/opened")).status_code == 404
+    path, c = await delivered_link(client, sign_in, freeze_now, sessionmaker, mailer, settings)
+    async with sessionmaker() as s, s.begin():
+        await s.execute(update(Capsule).where(Capsule.id == c["id"]).values(status="cancelled"))
+    assert (await client.post(f"/v1{path}/opened")).status_code == 410
 
 
 async def test_sender_sees_opened_in_history(client, sign_in, freeze_now, sessionmaker, mailer, settings):
@@ -62,7 +90,7 @@ async def test_sender_sees_opened_in_history(client, sign_in, freeze_now, sessio
     c = await schedule(client, freeze_now)
     await run_tick(sessionmaker, mailer, settings, DUE)
     (link,) = mailer.links()
-    await client.get("/v1" + link.removeprefix("http://testserver"))
+    await client.post("/v1" + link.removeprefix("http://testserver") + "/opened")
     listed = (await client.get("/v1/capsules")).json()
     assert [x["status"] for x in listed] == ["opened"] and listed[0]["id"] == c["id"]
     assert sender  # opening didn't need the sender's session, but listing does

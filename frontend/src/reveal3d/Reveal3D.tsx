@@ -52,6 +52,8 @@ type Reveal3DProps = {
   /** Force reduced motion on/off (the dev page); otherwise follows the device setting */
   reducedMotion?: boolean
   backdrop?: BackdropPhoto
+  /** Already opened once: start at the open box with its contents, no cake or ribbon */
+  alreadyOpened?: boolean
 }
 
 /**
@@ -69,10 +71,17 @@ export function Reveal3D(props: Reveal3DProps) {
   )
 }
 
-function Opening({ capsule, replyPanel, onFirstReveal, reducedMotion, backdrop = 'colour' }: Reveal3DProps) {
+function Opening({
+  capsule,
+  replyPanel,
+  onFirstReveal,
+  reducedMotion,
+  backdrop = 'colour',
+  alreadyOpened = false,
+}: Reveal3DProps) {
   const prefersReduced = usePrefersReducedMotion()
   const reduced = reducedMotion ?? prefersReduced
-  const [stage, setStage] = useState<Stage>('cake_arrive')
+  const [stage, setStage] = useState<Stage>(alreadyOpened ? 'explore' : 'cake_arrive')
   const [muted, setMuted] = useState(loadMuted)
   const [webgl, setWebgl] = useState(true)
   const [sceneReady, setSceneReady] = useState(false)
@@ -80,8 +89,15 @@ function Opening({ capsule, replyPanel, onFirstReveal, reducedMotion, backdrop =
   const [cakeReady, setCakeReady] = useState(false)
   const onCakeReady = useCallback(() => setCakeReady(true), [])
   const ready = cakeReady && (sceneReady || !webgl)
-  const stageRef = useRef<Stage>('cake_arrive')
-  const rootRef = useRef<HTMLDivElement>(null)
+  const stageRef = useRef<Stage>(stage)
+  const rootRef = useRef<HTMLDivElement | null>(null)
+  // The same element as state, so the contents (drawn into it) appear even when the page
+  // starts at the open box and nothing else re-renders after mounting
+  const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null)
+  const setRoot = useCallback((el: HTMLDivElement | null) => {
+    rootRef.current = el
+    setOverlayRoot(el)
+  }, [])
   const confettiRef = useRef<HTMLCanvasElement>(null)
   const sfx = useRef<GiftSfx | null>(null)
   const stopConfetti = useRef<() => void>(() => {})
@@ -279,7 +295,7 @@ function Opening({ capsule, replyPanel, onFirstReveal, reducedMotion, backdrop =
 
   return (
     <div
-      ref={rootRef}
+      ref={setRoot}
       className={`r3d r3d-at-${stage}${reduced ? ' reduced' : ''}`}
       style={{ ['--reduced-fade' as string]: `${REDUCED_FADE_MS}ms` }}
       {...langProps}
@@ -346,11 +362,11 @@ function Opening({ capsule, replyPanel, onFirstReveal, reducedMotion, backdrop =
           )}
         </div>
 
-        {open && rootRef.current && (
+        {open && overlayRoot && (
           <CapsuleContents
             capsule={capsule}
             replyPanel={replyPanel}
-            overlayRoot={rootRef.current}
+            overlayRoot={overlayRoot}
             reduced={reduced}
             onMediaPlaying={onMediaPlaying}
           />
