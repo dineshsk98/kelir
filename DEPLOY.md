@@ -29,6 +29,7 @@ git clone <your repo url> capsule && cd capsule
 # 3. Fill in the settings (see the comments inside)
 cp deploy.env.example deploy.env
 nano deploy.env
+ln -s deploy.env .env   # compose fills the ${...} values in docker-compose.yml only from .env
 
 # 4. Start everything
 docker compose up -d --build

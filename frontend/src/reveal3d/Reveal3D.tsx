@@ -110,6 +110,8 @@ function Opening({
   const touched = useRef(false)
   const tapTimer = useRef<number>()
   const revealedOnce = useRef(false)
+  /** The birthday tune has been started (by blowing, skipping, or a first tap on a re-opened gift) */
+  const tuneOn = useRef(false)
   const firstName = capsule.recipientName.split(' ')[0]
   const lang = useRecipientLang()
   const t = useRecipientCopy()
@@ -189,6 +191,7 @@ function Opening({
     firstTouch()
     // The candles go out: applause, then Happy Birthday on the piano for the rest of the opening
     sfx.current?.clap()
+    tuneOn.current = true
     sfx.current?.birthdayTune(1.2)
     setStage(reduced ? 'arrive' : 'cake_aside')
   }, [reduced])
@@ -206,7 +209,8 @@ function Opening({
     let frame = 0
 
     navigator.mediaDevices
-      .getUserMedia({ audio: true })
+      // Raw sound: the browser's noise suppression treats a puff of air as noise and removes it
+      .getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } })
       .then((s) => {
         // The answer can arrive after she has already tapped or skipped: let go at once
         if (cancelled) return s.getTracks().forEach((t) => t.stop())
@@ -279,6 +283,7 @@ function Opening({
 
   const skip = () => {
     sfx.current?.unlock()
+    tuneOn.current = true
     sfx.current?.birthdayTune() // skipping the candles still gets the song
     setStage('explore')
   }
@@ -300,6 +305,27 @@ function Opening({
   }, [])
 
   const open = reached(stage, 'explore')
+
+  // A gift opened again (or one whose 3D view failed) skips the candles, so nothing started the
+  // song. Browsers only allow sound after a tap, so it starts with the first tap or key press.
+  useEffect(() => {
+    if (!open || tuneOn.current) return
+    // The tap always runs unlock(), which resumes sound that was still blocked; the song itself
+    // only starts once (birthdayTune ignores a second call)
+    const start = () => {
+      tuneOn.current = true
+      sfx.current?.unlock()
+      sfx.current?.birthdayTune()
+    }
+    // Already tapped something on this page (the sign-in button, say): sound is allowed now
+    if (navigator.userActivation?.hasBeenActive) start()
+    window.addEventListener('pointerdown', start, { once: true })
+    window.addEventListener('keydown', start, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', start)
+      window.removeEventListener('keydown', start)
+    }
+  }, [open])
   const titleShown = !reached(stage, 'burst') || open
 
   return (

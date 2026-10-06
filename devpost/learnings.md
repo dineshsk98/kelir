@@ -6,6 +6,30 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-06 · A re-opened gift had no birthday song
+- **Symptom:** found on the live site: opening the link again after the gift had been opened showed the contents but no piano tune.
+- **Cause:** the song was started only in `blowCandle` and `skip` (`frontend/src/reveal3d/Reveal3D.tsx`). A gift already opened jumps straight to the last stage (`alreadyOpened`), so neither ran. The browser would not have played it anyway without a tap first.
+- **Fix:** `Reveal3D.tsx`: if the gift is open and the song hasn't started, the first tap or key press starts it (`tuneOn`, one-time listeners).
+- **Lesson:** a feature started by one step of a flow disappears when another path skips that step; start it from the state ("the gift is open") as well as from the step, and remember browsers need a tap before any sound.
+
+---
+
+## 2026-10-06 · "Blow at your phone", and the laptop microphone did not hear the puff
+- **Symptom:** opening the gift in a desktop browser with the microphone allowed: the text said "Listening… blow at your phone" and blowing did not put the candles out (the button still did).
+- **Cause:** two things. The text (in all nine languages, `frontend/src/recipientCopy.ts`) assumed a phone. And `getUserMedia({ audio: true })` leaves the browser's noise suppression, echo cancellation and auto gain on, which treat a puff of air as noise and remove it before the app measures it. The second is the likely reason, not yet confirmed on a laptop.
+- **Fix:** the text now says "microphone" ("micro", "マイク", ...); the microphone is requested with `echoCancellation`, `noiseSuppression` and `autoGainControl` off (`frontend/src/reveal3d/Reveal3D.tsx`). The threshold is unchanged: if blowing still doesn't register, tune it.
+- **Lesson:** anything that listens for a non-speech sound needs the raw microphone signal, and copy shouldn't name a device the page may not be on.
+
+---
+
+## 2026-10-06 · docker compose ignored deploy.env for its own placeholders
+- **Symptom:** first `docker compose up` on the VM: `The "POSTGRES_PASSWORD" variable is not set` and `required variable DOMAIN is missing a value`, although `deploy.env` was filled in.
+- **Cause:** `env_file: deploy.env` only passes variables into the container. The `${...}` placeholders inside `docker-compose.yml` are filled from a file named `.env` (or `--env-file`), never from `env_file`. The comment in `deploy.env.example` claimed otherwise, and the deploy files had never been run.
+- **Fix:** on the server, `ln -s deploy.env .env` (still one secrets file, gitignored and kept out of the image). `DEPLOY.md` and `deploy.env.example` now say so.
+- **Lesson:** `env_file` and compose's own variable substitution are two separate mechanisms. Run the compose file once before writing instructions for it.
+
+---
+
 ## 2026-10-06 · Suggested database password would have broken the connection URL
 - **Symptom:** found reading the deploy files before the first run, not hit yet: `deploy.env.example` told the deployer to make secrets with `openssl rand -base64 32`, and `docker-compose.yml` puts `POSTGRES_PASSWORD` straight into `DATABASE_URL` (`postgresql+asyncpg://capsule:<password>@db:5432/capsule`). Base64 can contain `+`, `/` and `=`, so the app would fail to connect, or connect to the wrong host, on some generated passwords.
 - **Cause:** one value used in two places with different rules: the Postgres server takes any characters, a URL does not, and the example's advice only considered the first.
