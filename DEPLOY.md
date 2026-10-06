@@ -11,8 +11,8 @@ free tier of most app platforms) would deliver late, so use a small always-on vi
 
 | Thing | Notes |
 |---|---|
-| A small Linux machine, always on | Free options: Oracle Cloud "Always Free" (needs a card to sign up, and a region with capacity), Google Cloud e2-micro (US regions). 1 GB of memory is enough. |
-| A domain name that points at it | Needed for HTTPS and for links in emails. A free subdomain works (for example from duckdns.org): point it at the machine's public IP. |
+| A small Linux machine, always on | Any provider, or a spare computer, that runs Docker. 1 GB of memory is enough if you add a swap file (building the image is the heaviest part). |
+| A domain name that points at it | Needed for HTTPS and for links in emails. A free subdomain from a dynamic-DNS service works: point it at the machine's public IP. |
 | Ports 80 and 443 open | In the cloud firewall (security list) and on the machine. Caddy needs 80 to get its certificate. |
 | A Gmail account for sending | Turn on 2-Step Verification, then make an App Password. About 500 emails a day. |
 | (Optional) Google sign-in | Add the domain as an Authorized JavaScript origin in the Google Cloud console. Without it, people sign in with an emailed code. |
@@ -69,10 +69,50 @@ them up before you delete a machine: `docker compose exec db pg_dump -U capsule 
   judged demo, off for real use.
 - `SESSION_SECRET` signs the session cookie: changing it signs everyone out.
 
-## Not tested yet
+## Automatic checks and updates (any CI service)
 
-The files here (`Dockerfile`, `docker-compose.yml`, `Caddyfile`, `deploy.env.example`) were
-written on a machine without Docker, so the image has not been built from them. What was
-checked: the web app's production build (`npm run build`) succeeds, and the API serves it.
-Expect to fix small things on the first `docker compose up`, and add them to
-`devpost/learnings.md`.
+Any CI service can do this, because it is only commands. On every push and pull request, run:
+
+1. **Backend tests** (Python 3.11, against a Postgres database; the tests create their own
+   `<name>_test` database): `pip install -r backend/requirements.txt`, then `python -m pytest -q`
+   from `backend/`, with `DATABASE_URL` (and `TEST_DATABASE_URL`) pointing at that Postgres.
+2. **Web app build**: `npm ci` then `npm run build` in `frontend/` (this also type-checks).
+3. **Image build**: `docker build .`
+
+Then, on a push to the main branch, update the server with one command:
+
+```bash
+cd ~/kelir && git pull --ff-only && docker compose up -d --build
+```
+
+Run it over SSH with a key made for this and limited to that one command, so a leaked key can do
+nothing else:
+
+```bash
+# on the server
+ssh-keygen -t ed25519 -C "ci" -f ~/.ssh/ci_key -N ""
+echo "command=\"cd ~/kelir && git pull --ff-only && docker compose up -d --build\",restrict $(cat ~/.ssh/ci_key.pub)" >> ~/.ssh/authorized_keys
+```
+
+Store four values as secrets in your CI service, never in the repository:
+- the private key (`cat ~/.ssh/ci_key` on the server; then `rm ~/.ssh/ci_key` so the only copy is
+  in the CI service),
+- the server's address and the user name (`whoami`),
+- the server's own host key, so a fake server can't take its place:
+  `echo "<address> $(cut -d' ' -f1,2 /etc/ssh/ssh_host_ed25519_key.pub)"` on the server.
+
+Connect with strict host-key checking against that host key. The server builds the image itself,
+which is slow on 1 GB of memory (the swap file helps); the site keeps serving the old version until
+the new one starts.
+
+**GitHub Actions:** `.github/workflows/ci.yml` does all of the above. Add the four values as
+repository secrets named `DEPLOY_SSH_KEY`, `DEPLOY_HOST`, `DEPLOY_USER` and `DEPLOY_KNOWN_HOSTS`,
+then set the repository variable `DEPLOY_ENABLED` to `true`. The deploy job stays off until you do.
+
+## What has been tried
+
+These files have been used to host Kelir on a small Ubuntu machine (1 GB of memory plus a 2 GB swap
+file) with a free subdomain: the site came up over HTTPS and the sign-in email arrived. Things that
+went wrong on the way are in `devpost/learnings.md`. Not covered here: Google sign-in needs your own
+OAuth client (see "What you need"), and capsule emails that link to a free subdomain can land in
+spam, so use a domain of your own for real use.
