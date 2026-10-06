@@ -1,0 +1,15 @@
+.git
+.env
+.env.*
+**/.env
+**/.env.*
+deploy.env
+**/node_modules
+**/dist
+**/.venv
+**/__pycache__
+**/.pytest_cache
+*.tsbuildinfo
+uploads
+devpost
+scripts/.cache

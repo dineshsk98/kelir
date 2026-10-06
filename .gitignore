@@ -27,3 +27,5 @@ dist/
 .agents/
 .claude/
 skills-lock.json
+# Server deployment secrets: never commit; deploy.env.example stays tracked
+/deploy.env

@@ -1,0 +1,18 @@
+# Caddy gets and renews the HTTPS certificate for $DOMAIN by itself.
+{$DOMAIN} {
+	encode gzip
+	header {
+		# HTTPS only, for a year (no includeSubDomains: the domain may be a shared one)
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		# "?" = only if the app has not set it: private capsule links send no-referrer themselves
+		?Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	# Uploads (photos, audio, video) can be large
+	request_body {
+		max_size 120MB
+	}
+	reverse_proxy app:8000
+}

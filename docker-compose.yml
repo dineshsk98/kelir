@@ -1,0 +1,62 @@
+# The whole app on one machine: Postgres, the app, and Caddy for HTTPS.
+# Fill in deploy.env (copy deploy.env.example), then: docker compose up -d --build
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: capsule
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy.env}
+      POSTGRES_DB: capsule
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U capsule"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: deploy.env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://capsule:${POSTGRES_PASSWORD}@db:5432/capsule
+      UPLOADS_DIR: /data/uploads
+    volumes:
+      - uploads:/data/uploads
+    expose:
+      - "8000"
+    # No new privileges, and none of the Linux capabilities a web app does not need
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN in deploy.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+      - caddyconfig:/config
+
+volumes:
+  dbdata:
+  uploads:
+  caddydata:
+  caddyconfig:

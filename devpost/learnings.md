@@ -6,6 +6,14 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-06 · Suggested database password would have broken the connection URL
+- **Symptom:** found reading the deploy files before the first run, not hit yet: `deploy.env.example` told the deployer to make secrets with `openssl rand -base64 32`, and `docker-compose.yml` puts `POSTGRES_PASSWORD` straight into `DATABASE_URL` (`postgresql+asyncpg://capsule:<password>@db:5432/capsule`). Base64 can contain `+`, `/` and `=`, so the app would fail to connect, or connect to the wrong host, on some generated passwords.
+- **Cause:** one value used in two places with different rules: the Postgres server takes any characters, a URL does not, and the example's advice only considered the first.
+- **Fix:** `deploy.env.example`: generate with `openssl rand -hex 24` (letters and digits only) and say why.
+- **Lesson:** when a secret is spliced into a URL, generate it from a URL-safe alphabet, or percent-encode it where it is used.
+
+---
+
 ## 2026-10-05 · "6 October" broke mid-word on the phone cards
 - **Symptom:** on the People cards at phone width, the birthday read "6 Octobe" with the "r" alone on the next line.
 - **Cause:** the stat's label and value sat side by side in a card about 130px wide, and the value had `overflow-wrap: anywhere`, which lets a word break at any letter and so shrinks the space a word asks for; the label took what it wanted and the value was cut wherever it ran out.
