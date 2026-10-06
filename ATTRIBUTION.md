@@ -23,3 +23,22 @@ All bundled through [Fontsource](https://fontsource.org/) npm packages and licen
 | Yomogi | Japanese messages | 2020 The Yomogi Project Authors |
 | Kavivanar | Tamil messages | 2015 Tharique Azeez |
 | Kalam | Hindi messages | 2014 Indian Type Foundry |
+
+## Logo
+
+The Tamil lettering in the Kelir logo (`frontend/public/brand/kelir-wordmark-3d.svg`, the header
+wordmark in `frontend/src/components/Wordmark.tsx`, and the favicon) is drawn from the outlines of
+**Baloo Thambi 2** ExtraBold, copyright 2019 The Baloo 2 Project Authors
+([github.com/EkType/Baloo2](https://github.com/EkType/Baloo2)), licensed under the
+[SIL Open Font License 1.1](https://openfontlicense.org/). The letter outlines were converted to
+vector paths and the thread, nodes and sparkle were added; the font itself is not bundled.
+
+## Photos
+
+The three photos in `frontend/public/reveal/` are public domain (CC0 1.0) from Wikimedia Commons.
+Credits for each are in [`frontend/public/reveal/CREDITS.md`](frontend/public/reveal/CREDITS.md).
+
+## Name and logo
+
+The code is licensed as stated in `LICENSE`. The name "Kelir" and its logo are not licensed for
+reuse: please don't use them to name or brand another product or service.
