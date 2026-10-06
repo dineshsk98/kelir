@@ -356,7 +356,7 @@ PostgreSQL, created by Alembic migrations.
 
 ## File Structure
 ```
-capsule-hackathon/
+kelir-hackathon/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py              # FastAPI app, lifespan starts the delivery loop, serves frontend/dist
