@@ -6,6 +6,14 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-24 · No "Continue with Google" on the deployed app
+- **Symptom:** the live site offered only the emailed code; `GET /v1/config` returned `"google_client_id":""`. Even after a redeploy that picked up the other new settings, it stayed empty.
+- **Cause:** `GOOGLE_CLIENT_ID` had been left empty in the server's `deploy.env` since the first deploy (the line from `deploy.env.example` was there, with no value), and the first attempt to fill it in on the server didn't land. The web app hides the Google button when the ID is empty, so nothing looked broken.
+- **Fix:** no code change: set `GOOGLE_CLIENT_ID` in the server's `deploy.env`, then recreate the app container (`docker compose up -d --force-recreate app && docker compose up -d`). Checked with the length of the line in the file, the length inside the container, and `/v1/config` on the live site.
+- **Lesson:** after deploying, compare the live `/v1/config` with what you expect, rather than assuming a setting arrived; a feature that hides itself when unconfigured fails silently. Check a secret-free setting's length in the file and in the running container, not by eye.
+
+---
+
 ## 2026-10-24 · A support email and other deployment facts were hard-coded in source
 - **Symptom:** the privacy page had the support email written into `Privacy.tsx` (found by the owner: "that is a config which is in code"). A scan then found the same kind of thing elsewhere: the SMTP host and port in `mailer.py`, and the hosting location in the privacy text.
 - **Cause:** the settings pattern (`config.py`) was used for secrets and the obvious URLs, but values written into new copy or into a client call were treated as "just text", so nobody asked "would another deployment need a different value?".
