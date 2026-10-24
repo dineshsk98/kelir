@@ -110,8 +110,6 @@ function Opening({
   const touched = useRef(false)
   const tapTimer = useRef<number>()
   const revealedOnce = useRef(false)
-  /** The birthday tune has been started (by blowing, skipping, or a first tap on a re-opened gift) */
-  const tuneOn = useRef(false)
   const firstName = capsule.recipientName.split(' ')[0]
   const lang = useRecipientLang()
   const t = useRecipientCopy()
@@ -124,10 +122,27 @@ function Opening({
     if (alreadyOpened && !reached(stageRef.current, 'explore')) setStage('explore')
   }, [alreadyOpened])
 
-  // Created in an effect (not during render) so React's dev double-mount gets a fresh one
+  // Created in an effect (not during render) so React's dev double-mount gets a fresh one.
+  // The birthday tune plays for as long as the page is open, however it was reached (first
+  // opening, opened again, link or Received), so it starts with the first gesture on the page.
+  // The listeners and the "already tapped" check live here, with the GiftSfx they start, so a
+  // remount (React's dev double-mount) starts the tune again on its own fresh GiftSfx.
   useEffect(() => {
-    sfx.current = new GiftSfx(loadMuted())
+    const s = new GiftSfx(loadMuted())
+    sfx.current = s
+    const gestures = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'] as const
+    const stop = () => gestures.forEach((g) => window.removeEventListener(g, start))
+    // Safe to repeat: unlock() resumes sound that is still blocked, birthdayTune() ignores a second call
+    const start = () => {
+      s.unlock()
+      s.birthdayTune()
+      if (s.running) stop()
+    }
+    // Already tapped something on this page (the Received card, the sign-in button): sound is allowed now
+    if (navigator.userActivation?.hasBeenActive) start()
+    gestures.forEach((g) => window.addEventListener(g, start))
     return () => {
+      stop()
       window.clearTimeout(tapTimer.current)
       stopConfetti.current()
       sfx.current?.close()
@@ -191,8 +206,7 @@ function Opening({
     firstTouch()
     // The candles go out: applause, then Happy Birthday on the piano for the rest of the opening
     sfx.current?.clap()
-    tuneOn.current = true
-    sfx.current?.birthdayTune(1.2)
+    sfx.current?.birthdayTune(1.2) // already playing since the first tap: ducked under the applause
     setStage(reduced ? 'arrive' : 'cake_aside')
   }, [reduced])
 
@@ -283,8 +297,7 @@ function Opening({
 
   const skip = () => {
     sfx.current?.unlock()
-    tuneOn.current = true
-    sfx.current?.birthdayTune() // skipping the candles still gets the song
+    sfx.current?.birthdayTune() // normally playing already; this covers a missed first gesture
     setStage('explore')
   }
 
@@ -306,26 +319,6 @@ function Opening({
 
   const open = reached(stage, 'explore')
 
-  // A gift opened again (or one whose 3D view failed) skips the candles, so nothing started the
-  // song. Browsers only allow sound after a tap, so it starts with the first tap or key press.
-  useEffect(() => {
-    if (!open || tuneOn.current) return
-    // The tap always runs unlock(), which resumes sound that was still blocked; the song itself
-    // only starts once (birthdayTune ignores a second call)
-    const start = () => {
-      tuneOn.current = true
-      sfx.current?.unlock()
-      sfx.current?.birthdayTune()
-    }
-    // Already tapped something on this page (the sign-in button, say): sound is allowed now
-    if (navigator.userActivation?.hasBeenActive) start()
-    window.addEventListener('pointerdown', start, { once: true })
-    window.addEventListener('keydown', start, { once: true })
-    return () => {
-      window.removeEventListener('pointerdown', start)
-      window.removeEventListener('keydown', start)
-    }
-  }, [open])
   const titleShown = !reached(stage, 'burst') || open
 
   return (

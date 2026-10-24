@@ -21,6 +21,11 @@ export class Sfx {
     }
   }
 
+  /** Sound is allowed and playing (a resume() after the tap takes a moment to land) */
+  get running() {
+    return this.ctx?.state === 'running'
+  }
+
   close() {
     void this.ctx?.close()
     this.ctx = null
