@@ -77,6 +77,7 @@ function NameEdit({ me, onSaved, onClose }: { me: Me; onSaved: (me: Me) => void;
           Cancel
         </button>
       </div>
+      <p className="muted small">A new name is used for capsules you make from now on. Ones already made keep the name they were made with.</p>
       {error && <p className="error">{error}</p>}
     </form>
   )

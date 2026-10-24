@@ -6,6 +6,30 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-24 · Renaming yourself rewrote the name on capsules already made
+- **Symptom:** after changing your name from the header, the Received tab, the capsule page, the "who is this from" step and the birthday email of capsules you had already made showed the new name.
+- **Cause:** every recipient-facing view read `senders.name` through the join, so the name was looked up fresh each time instead of being part of what was made. The first fix froze it at delivery, but a capsule can be edited until it is opened, so "when does the name stop changing" had to be decided with the owner: content stays editable, the name does not.
+- **Fix:** the name is frozen when the capsule is saved. Migration `0012` adds `capsules.sender_name` (backfilled for every capsule, then NOT NULL); `create_capsule` in `backend/app/routes/capsules.py` sets it from the sender, and no edit schema has the field, so `PATCH` cannot change it. The birthday email (`delivery/scheduler.py`), `routes/recipient.py` and `routes/received.py` read `capsule.sender_name`; `CapsuleOut` now returns it. The UI says so: a note in the header's name form (`components/AppHeader.tsx`) and in the capsule editor when editing (`pages/CapsuleEditor.tsx`, whose Preview also shows the frozen name). Tests: `backend/tests/test_sender_name_frozen.py`.
+- **Lesson:** when a name is part of something already handed to someone else, copy it onto the thing at a moment you can name, and ask which moment (save, delivery, opening) before building; a join shows the present, not what was made. Writing the test also hit two wrong expectations of mine (editing a capsule is `PATCH`, and the From name is on `addresses[0]`).
+
+---
+
+## 2026-10-24 · A capsule opened again from Received had no music
+- **Symptom:** opening a capsule from the Received tab after it had been opened once showed the contents but played no piano tune. The emailed link, opened again, did play it.
+- **Cause:** the 2026-10-06 fix started the tune from the first tap *or*, if the page had already had a tap (`navigator.userActivation.hasBeenActive`, true after clicking a Received card), straight away, and then set `tuneOn`. React's dev double-mount (StrictMode) ran the effect, closed that `GiftSfx` and made a fresh one, but `tuneOn` was still true, so the fresh one was never started. The link page had no earlier tap, so it only registered listeners and the remount re-registered them.
+- **Fix:** `frontend/src/reveal3d/Reveal3D.tsx`: the start (and its gesture listeners) now live in the same effect that creates the `GiftSfx`, with no separate "started" flag, so every new `GiftSfx` gets its own start. `frontend/src/reveal/sfx.ts`: a `running` getter so the listeners go away once sound is allowed.
+- **Lesson:** a "done already" flag kept in a ref outlives an effect's cleanup; keep it with the thing it describes, or derive it from that thing (`musicBus` already says whether the tune has started).
+
+---
+
+## 2026-10-24 · The music now plays on every visit, from the first tap
+- **Symptom:** the tune only began at the candles, or on the first tap *after* the gift was open, so the cake and sign-in step were silent and each path (first opening, opened again, link, Received) had its own start.
+- **Cause:** the start was tied to steps of the flow (`blowCandle`, `skip`, "gift is open") instead of to the page being open.
+- **Fix:** `frontend/src/reveal3d/Reveal3D.tsx`: the tune starts at the first gesture on the page (pointer, click, touch end or key; at once if the page has had one already) whatever the stage, and keeps playing. Starting twice is ignored, so there is one tune; it stops with the page (`GiftSfx.close()`). The applause, charge, burst, swell, ribbon sounds and her voice notes and videos already duck it, which a browser check confirmed (the level drops to 0.1 under the applause and swells back to 0.5).
+- **Lesson:** start ambient things from "the page is open" plus the first allowed gesture, not from a step; steps then only add to it.
+
+---
+
 ## 2026-10-24 · A personal detail in an unpublished learnings entry
 - **Symptom:** the pre-commit secret and privacy scan found the developer's own account name, made from his email address, quoted in the not-yet-committed entry below.
 - **Cause:** the entry described the bug with the real account that showed it, instead of a made-up example; this file is public.

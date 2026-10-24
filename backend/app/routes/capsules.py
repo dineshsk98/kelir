@@ -89,6 +89,7 @@ async def create_capsule(
     _set_photocard(media, body.photocard_id)
     capsule = Capsule(
         sender_id=sender.id,
+        sender_name=sender.name,  # frozen now; renaming later only affects new capsules
         person_id=await save_person(session, sender.id, body, now),
         **body.model_dump(exclude={"upload_ids", "photocard_id"}),
         deliver_at=deliver_at,

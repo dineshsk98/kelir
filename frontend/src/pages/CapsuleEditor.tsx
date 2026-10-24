@@ -181,6 +181,7 @@ export function EditCapsule({ me }: { me: Me }) {
 export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
   const navigate = useNavigate()
   const delivered = initial?.status === 'delivered'
+  const fromName = initial?.sender_name ?? me.name
   const locked: StepId[] = delivered ? ['who', 'when'] : []
   const [draft, setDraft] = useState<Draft>(() => (initial ? draftFrom(initial) : EMPTY))
   const [media, setMedia] = useState<PickedMedia[]>(() => (initial ? mediaFrom(initial) : []))
@@ -324,6 +325,7 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
       {delivered && (
         <p className="muted">Already delivered: you can still change the message, media and gift until they open it.</p>
       )}
+      {initial && <p className="muted">You can still change what's inside; it stays from {fromName}.</p>}
       <StepNav steps={STEPS} current={step} reached={reached} locked={locked} onGo={setStep} />
 
       <form
@@ -534,11 +536,11 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
             <div className="preview-email">
               <p className="muted small">Email to {draft.recipient_email.trim()}</p>
               <p>
-                <strong lang={messageLang.lang}>{EMAIL_SUBJECT[draft.message_lang](me.name)}</strong>
+                <strong lang={messageLang.lang}>{EMAIL_SUBJECT[draft.message_lang](fromName)}</strong>
               </p>
             </div>
             <div className="preview-card">
-              <p className="muted small">From {me.name}</p>
+              <p className="muted small">From {fromName}</p>
               {draft.message_text.trim() && (
                 <p className="preview-message" {...messageLang}>
                   {draft.message_text.trim()}

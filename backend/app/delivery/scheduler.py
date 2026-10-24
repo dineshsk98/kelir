@@ -98,7 +98,7 @@ async def _claim_emails(session: AsyncSession, now: datetime) -> list[_Outgoing]
         capsule.next_send_at = now + SEND_LEASE
         outgoing.append(
             _Outgoing(
-                capsule.id, secret, sender.name, sender.email,
+                capsule.id, secret, capsule.sender_name, sender.email,
                 capsule.recipient_name, capsule.recipient_email, capsule.message_lang,
             )
         )

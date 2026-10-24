@@ -257,6 +257,7 @@ class CapsuleOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
+    sender_name: str
     recipient_name: str
     recipient_email: str
     birth_month: int

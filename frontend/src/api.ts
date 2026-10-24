@@ -66,6 +66,8 @@ export type MediaItem = { id: string; kind: MediaKind; mime: string; size_bytes:
 
 export type Capsule = Omit<CapsuleCreate, 'upload_ids' | 'photocard_id'> & {
   id: string
+  /** The sender's name when it was made; it never changes after that */
+  sender_name: string
   media: MediaItem[]
   deliver_at: string
   status: CapsuleStatus

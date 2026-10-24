@@ -130,6 +130,9 @@ class Capsule(Base):
     deliver_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     status: Mapped[str] = mapped_column(String(9), default="scheduled")
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # The sender's name as it was when this was saved. Editing the capsule later never changes it,
+    # and renaming yourself only applies to capsules made afterwards.
+    sender_name: Mapped[str] = mapped_column(String(255))
     opened_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     link_token_hash: Mapped[str | None] = mapped_column(String(64), unique=True)
     # Email sending (at least once, after the exactly-once delivery transition)

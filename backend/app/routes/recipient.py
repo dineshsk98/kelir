@@ -78,7 +78,7 @@ def mask_email(email: str) -> str:
 
 def _access(capsule: Capsule, sender: Sender, viewer: Sender | None) -> AccessOut:
     return AccessOut(
-        sender_first_name=sender.name.split(" ")[0],
+        sender_first_name=capsule.sender_name.split(" ")[0],
         recipient_hint=mask_email(capsule.recipient_email),
         message_lang=capsule.message_lang,
         allowed=_is_recipient(viewer, capsule),
@@ -110,7 +110,7 @@ async def access(secret: str, session: Session, viewer: MaybeSignedIn, response:
 
 def capsule_out(capsule: Capsule, sender: Sender) -> RecipientCapsuleOut:
     return RecipientCapsuleOut(
-        sender_name=sender.name,
+        sender_name=capsule.sender_name,
         recipient_name=capsule.recipient_name,
         message_text=capsule.message_text,
         message_lang=capsule.message_lang,

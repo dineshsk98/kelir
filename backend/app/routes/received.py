@@ -31,23 +31,20 @@ def _mine(me: Sender):
 
 @router.get("")
 async def list_received(me: CurrentSender, session: Session, response: Response) -> list[ReceivedOut]:
-    rows = await session.execute(
-        select(Capsule, Sender)
-        .join(Sender, Sender.id == Capsule.sender_id)
-        .where(*_mine(me))
-        .order_by(Capsule.delivered_at.desc(), Capsule.id)
+    rows = await session.scalars(
+        select(Capsule).where(*_mine(me)).order_by(Capsule.delivered_at.desc(), Capsule.id)
     )
     response.headers.update(PRIVATE_HEADERS)
     return [
         ReceivedOut(
             id=c.id,
-            sender_name=s.name,
+            sender_name=c.sender_name,
             delivered_at=c.delivered_at,
             opened_at=c.opened_at,
             message_lang=c.message_lang,
             replied=c.reply is not None,
         )
-        for c, s in rows
+        for c in rows
     ]
 
 
