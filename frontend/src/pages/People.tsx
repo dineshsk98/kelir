@@ -11,7 +11,15 @@ import { birthdayLabel, cityName, countdown, daysUntil, monthNames } from '../fo
 import './People.css'
 
 /** Everyone the sender has sent to, soonest birthday first (prd.md > Regular recipients). */
-export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
+export function People({
+  me,
+  onSignOut,
+  onMeChange,
+}: {
+  me: Me
+  onSignOut: () => void
+  onMeChange: (me: Me) => void
+}) {
   const [people, setPeople] = useState<Person[] | null>(null)
   const [error, setError] = useState(false)
   const [editing, setEditing] = useState<string | null>(null)
@@ -49,7 +57,7 @@ export function People({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
   return (
     <main className="page">
-      <AppHeader me={me} onSignOut={onSignOut} />
+      <AppHeader me={me} onSignOut={onSignOut} onMeChange={onMeChange} />
 
       <div className="people-head">
         <h1>Your people</h1>

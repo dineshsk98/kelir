@@ -14,7 +14,15 @@ const FILTERS: { key: CapsuleStatus; label: string }[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ]
 
-export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
+export function History({
+  me,
+  onSignOut,
+  onMeChange,
+}: {
+  me: Me
+  onSignOut: () => void
+  onMeChange: (me: Me) => void
+}) {
   const firstName = me.name.split(' ')[0]
   const [capsules, setCapsules] = useState<Capsule[] | null>(null)
   const [error, setError] = useState(false)
@@ -63,7 +71,7 @@ export function History({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
   return (
     <main className="page">
-      <AppHeader me={me} onSignOut={onSignOut} />
+      <AppHeader me={me} onSignOut={onSignOut} onMeChange={onMeChange} />
 
       <div className="history-head">
         <h1>Hi {firstName}</h1>

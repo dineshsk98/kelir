@@ -6,6 +6,22 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-24 · A personal detail in an unpublished learnings entry
+- **Symptom:** the pre-commit secret and privacy scan found the developer's own account name, made from his email address, quoted in the not-yet-committed entry below.
+- **Cause:** the entry described the bug with the real account that showed it, instead of a made-up example; this file is public.
+- **Fix:** `devpost/learnings.md`: the entry now describes the behavior without the name. No secrets were found in the files to commit or in any commit in the history.
+- **Lesson:** describe bugs with sample data ("Sam", "aiko@gmail.com"), never with the real accounts used while testing, and scan for personal details as well as secrets before each commit.
+
+---
+
+## 2026-10-06 · Google sign-in would have undone a name you changed
+- **Symptom:** found while adding "change your name" in the header: `sign_in_with_google` (`backend/app/routes/auth.py`) set `sender.name` from Google on **every** sign-in, so a name chosen in the app was replaced at the next Google sign-in. (An email-code account shows a name made from the email address until its owner changes it, which is what prompted the change.)
+- **Cause:** one field with two writers, and nothing recorded who wrote last: Google's profile name and the owner's own edit.
+- **Fix:** `senders.name_edited` (migration 0011), set by `PATCH /v1/me`; Google sign-in only fills the name while the owner hasn't chosen one. Test: `test_a_name_you_chose_is_kept_when_you_sign_in_with_google_again`.
+- **Lesson:** when a value can come from an outside service and from the user, store whether the user has touched it before letting the service refresh it.
+
+---
+
 ## 2026-10-06 · A re-opened gift had no birthday song
 - **Symptom:** found on the live site: opening the link again after the gift had been opened showed the contents but no piano tune.
 - **Cause:** the song was started only in `blowCandle` and `skip` (`frontend/src/reveal3d/Reveal3D.tsx`). A gift already opened jumps straight to the last stage (`alreadyOpened`), so neither ran. The browser would not have played it anyway without a tap first.

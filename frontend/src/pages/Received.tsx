@@ -10,7 +10,15 @@ const arrived = (iso: string) =>
 
 /** The capsules sent to your email, newest first (prd.md > Received). A lost link doesn't
  *  lose the capsule: open it here the same way, once, then see what was inside. */
-export function Received({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
+export function Received({
+  me,
+  onSignOut,
+  onMeChange,
+}: {
+  me: Me
+  onSignOut: () => void
+  onMeChange: (me: Me) => void
+}) {
   const [capsules, setCapsules] = useState<ReceivedCapsule[] | null>(null)
   const [error, setError] = useState(false)
 
@@ -33,7 +41,7 @@ export function Received({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
   return (
     <main className="page">
-      <AppHeader me={me} onSignOut={onSignOut} />
+      <AppHeader me={me} onSignOut={onSignOut} onMeChange={onMeChange} />
       <h1>Received</h1>
 
       {error && <p className="error">We couldn't load your capsules. Please reload the page.</p>}

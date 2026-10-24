@@ -38,6 +38,8 @@ class Sender(Base):
     google_sub: Mapped[str | None] = mapped_column(String(255), unique=True)
     email: Mapped[str] = mapped_column(String(320), unique=True)
     name: Mapped[str] = mapped_column(String(255))
+    # The owner chose this name (in the app): signing in with Google no longer replaces it
+    name_edited: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

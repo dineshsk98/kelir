@@ -91,6 +91,17 @@ async def test_signing_in_again_finds_the_same_sender(client, monkeypatch, sessi
         assert await s.scalar(select(func.count()).select_from(Sender)) == 1
 
 
+async def test_a_name_you_chose_is_kept_when_you_sign_in_with_google_again(client, monkeypatch):
+    fake_google(monkeypatch)
+    await client.post("/v1/auth/google", json={"credential": "good-token"})
+    assert (await client.patch("/v1/me", json={"name": "Sammy"})).json()["name"] == "Sammy"
+    await client.post("/v1/auth/logout")
+
+    fake_google(monkeypatch, {**CLAIMS, "name": "Sam S."})  # Google's name changed meanwhile
+    again = await client.post("/v1/auth/google", json={"credential": "good-token"})
+    assert again.json()["name"] == "Sammy"
+
+
 async def test_session_expires_12_hours_after_sign_in(client, monkeypatch, settings):
     import itsdangerous.timed
 

@@ -68,14 +68,14 @@ function SenderApp() {
       <Route path="/" element={me ? <Navigate to="/history" replace /> : <Welcome onSignedIn={setMe} />} />
       <Route
         path="/history"
-        element={me ? <History me={me} onSignOut={signOut} /> : <Navigate to="/" replace />}
+        element={me ? <History me={me} onSignOut={signOut} onMeChange={setMe} /> : <Navigate to="/" replace />}
       />
       <Route
         path="/received"
-        element={me ? <Received me={me} onSignOut={signOut} /> : <Navigate to="/" replace />}
+        element={me ? <Received me={me} onSignOut={signOut} onMeChange={setMe} /> : <Navigate to="/" replace />}
       />
       <Route path="/received/:id" element={me ? <ReceivedCapsule /> : <Navigate to="/" replace />} />
-      <Route path="/people" element={me ? <People me={me} onSignOut={signOut} /> : <Navigate to="/" replace />} />
+      <Route path="/people" element={me ? <People me={me} onSignOut={signOut} onMeChange={setMe} /> : <Navigate to="/" replace />} />
       <Route path="/capsules/new" element={me ? <CapsuleEditor me={me} /> : <Navigate to="/" replace />} />
       <Route path="/capsules/:id" element={me ? <CapsuleDetail /> : <Navigate to="/" replace />} />
       <Route path="/capsules/:id/edit" element={me ? <EditCapsule me={me} /> : <Navigate to="/" replace />} />

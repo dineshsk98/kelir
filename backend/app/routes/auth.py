@@ -101,7 +101,8 @@ async def sign_in_with_google(
         taken = await session.scalar(select(func.count()).select_from(Sender).where(Sender.email == email))
         if not taken:
             sender.email = email
-    sender.name = name
+    if not sender.name_edited:  # a name the owner chose in the app wins over Google's
+        sender.name = name
     await session.commit()
 
     auth.set_session_cookie(response, sender.id, settings)
@@ -228,5 +229,6 @@ async def me(sender: CurrentSender) -> Me:
 async def update_me(body: MeUpdate, sender: CurrentSender, session: Session) -> Me:
     """Change your name: it's how recipients see you ("Sam has sent you a surprise…")."""
     sender.name = body.name
+    sender.name_edited = True
     await session.commit()
     return _me(sender)
