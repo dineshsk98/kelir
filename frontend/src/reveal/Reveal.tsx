@@ -16,6 +16,8 @@ export type RevealCapsule = {
   messageLang?: string
   /** Photos, audio and video in the order the sender added them */
   media?: GalleryItem[]
+  /** The photo the sender chose for the photocard; none = the default picture */
+  photocardUrl?: string
   gift?: RevealGift
 }
 

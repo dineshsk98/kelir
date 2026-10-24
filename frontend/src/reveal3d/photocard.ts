@@ -1,6 +1,8 @@
-// The default photocard every capsule gets: original art drawn on a canvas, with her name
-// written on it live, in the capsule's language and handwriting. The canvas becomes the
-// texture on the 3D card.
+// The photocard: original art drawn on a canvas, with her name written on it live, in the
+// capsule's language and handwriting. The canvas becomes the texture on the 3D card.
+// Every capsule gets the default night-sky card; when the sender chose one of their photos, that
+// photo takes its place: the card is portrait for a tall (or square) photo and landscape for a
+// wide one, with the words in a strip underneath so they never cover a face.
 
 import { loadHandFont, type MessageLang } from '../languages'
 import { RECIPIENT_COPY } from '../recipientCopy'
@@ -26,7 +28,109 @@ function fitText(
   g.fillText(text, x, y)
 }
 
-export async function drawPhotocard(name: string, sender: string, lang: MessageLang): Promise<HTMLCanvasElement> {
+/** A card's size in the 3D scene, from its canvas's proportions. */
+export function cardSize(canvas: { width: number; height: number }): [number, number] {
+  const ratio = canvas.width / canvas.height
+  // A portrait card is as tall as the default one; a landscape card a little wider than the
+  // default is, so neither outgrows the box
+  return ratio <= 1 ? [1.24 * ratio, 1.24] : [1.2, 1.2 / ratio]
+}
+
+export async function drawPhotocard(
+  name: string,
+  sender: string,
+  lang: MessageLang,
+  photoUrl?: string,
+): Promise<HTMLCanvasElement> {
+  if (photoUrl) {
+    const photo = await loadPhoto(photoUrl)
+    if (photo) return drawPhotoCard(photo, name, sender, lang)
+  }
+  return drawDefaultCard(name, sender, lang)
+}
+
+function loadPhoto(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => resolve(img.naturalWidth > 0 && img.naturalHeight > 0 ? img : null)
+    img.onerror = () => resolve(null) // it did not load: the default card instead
+    img.src = url
+  })
+}
+
+const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x))
+
+/** The sender's photo on a card: the card's shape follows the photo's. */
+async function drawPhotoCard(
+  photo: HTMLImageElement,
+  name: string,
+  sender: string,
+  lang: MessageLang,
+): Promise<HTMLCanvasElement> {
+  const copy = RECIPIENT_COPY[lang]
+  const words = [copy.cardHappyBirthday, name, copy.from(sender)]
+  const family = await loadHandFont(lang, words.join(''))
+
+  const ratio = photo.naturalWidth / photo.naturalHeight
+  const landscape = ratio > 1 // wider than tall: a landscape card; square and tall: portrait
+  const M = 28 // the card's border
+  const W = landscape ? 900 : 640
+  const strip = landscape ? 165 : 190 // the words, under the photo
+  const pw = W - 2 * M
+  // The photo's own shape, kept within limits so the card stays a card. A landscape card is
+  // never made too tall to be landscape: a nearly square photo gets blurred sides instead.
+  const boxRatio = landscape ? clamp(ratio, 1.3, 1.8) : clamp(ratio, 0.7, 1)
+  const ph = Math.round(pw / boxRatio)
+  const H = M + ph + strip
+
+  const c = document.createElement('canvas')
+  c.width = W
+  c.height = H
+  const g = c.getContext('2d')
+  if (!g) return c
+
+  g.fillStyle = '#f7f1e6'
+  g.fillRect(0, 0, W, H)
+
+  // The photo, whole and never stretched. What the box has left over is a soft blur of the
+  // same photo (or a dark fill where the browser can't blur) rather than empty bars.
+  g.save()
+  g.beginPath()
+  g.rect(M, M, pw, ph)
+  g.clip()
+  g.fillStyle = '#2a2230'
+  g.fillRect(M, M, pw, ph)
+  if (Math.abs(ratio - pw / ph) > 0.01 && 'filter' in g) {
+    const cover = Math.max(pw / photo.naturalWidth, ph / photo.naturalHeight)
+    const cw = photo.naturalWidth * cover
+    const ch = photo.naturalHeight * cover
+    g.filter = 'blur(24px)'
+    g.drawImage(photo, M + (pw - cw) / 2, M + (ph - ch) / 2, cw, ch)
+    g.filter = 'none'
+    g.fillStyle = 'rgba(42, 34, 48, 0.35)'
+    g.fillRect(M, M, pw, ph)
+  }
+  const fit = Math.min(pw / photo.naturalWidth, ph / photo.naturalHeight)
+  const dw = photo.naturalWidth * fit
+  const dh = photo.naturalHeight * fit
+  g.drawImage(photo, M + (pw - dw) / 2, M + (ph - dh) / 2, dw, dh)
+  g.restore()
+
+  // The words, in the strip under the photo
+  const top = M + ph
+  g.textAlign = 'center'
+  const sizes = landscape ? [36, 54, 30] : [40, 58, 30]
+  const ys = landscape ? [top + 44, top + 100, top + 146] : [top + 56, top + 118, top + 166]
+  g.fillStyle = '#3a2a30'
+  fitText(g, family, words[0], W / 2, ys[0], sizes[0], pw - 40)
+  g.fillStyle = '#b8405c'
+  fitText(g, family, words[1], W / 2, ys[1], sizes[1], pw - 40)
+  g.fillStyle = '#6b5a5f'
+  fitText(g, family, words[2], W / 2, ys[2], sizes[2], pw - 40)
+  return c
+}
+
+async function drawDefaultCard(name: string, sender: string, lang: MessageLang): Promise<HTMLCanvasElement> {
   const copy = RECIPIENT_COPY[lang]
   const words = [copy.cardHappyBirthday, name, copy.from(sender)]
   const family = await loadHandFont(lang, words.join(''))

@@ -32,9 +32,14 @@ const kindOf = (file: File): MediaKind | null =>
 export function MediaPicker({
   items,
   onChange,
+  photocardKey,
+  onPhotocardChange,
 }: {
   items: PickedMedia[]
   onChange: (update: (items: PickedMedia[]) => PickedMedia[]) => void
+  /** The photo (its key) chosen for the photocard; null = the default picture */
+  photocardKey: string | null
+  onPhotocardChange: (key: string | null) => void
 }) {
   const photoInput = useRef<HTMLInputElement>(null)
   const clipInput = useRef<HTMLInputElement>(null)
@@ -91,7 +96,10 @@ export function MediaPicker({
       URL.revokeObjectURL(item.localUrl)
     }
     onChange((list) => list.filter((m) => m.key !== item.key))
+    if (item.key === photocardKey) onPhotocardChange(null) // its photo is gone: back to the default
   }
+
+  const photos = items.filter((m) => m.kind === 'image' && m.status === 'ready')
 
   return (
     <div className="media-picker">
@@ -125,6 +133,30 @@ export function MediaPicker({
             </li>
           ))}
         </ul>
+      )}
+      {photos.length > 0 && (
+        <fieldset className="photocard-picker">
+          <legend>Put one of your photos on their photocard?</legend>
+          <div className="photocard-options">
+            <label className="photocard-option">
+              <input type="radio" name="photocard" checked={photocardKey === null} onChange={() => onPhotocardChange(null)} />
+              <span className="photocard-thumb photocard-default">Default card</span>
+            </label>
+            {photos.map((m) => (
+              <label key={m.key} className="photocard-option">
+                <input
+                  type="radio"
+                  name="photocard"
+                  checked={photocardKey === m.key}
+                  onChange={() => onPhotocardChange(m.key)}
+                />
+                <span className="photocard-thumb">
+                  <img src={m.localUrl} alt={m.name} />
+                </span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
       )}
       {room > 0 && recording && (
         <Recorder

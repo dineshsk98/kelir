@@ -57,12 +57,14 @@ export type CapsuleCreate = Birthday & {
   send_mode: SendMode
   /** Uploaded photos/audio/video, in order */
   upload_ids: string[]
+  /** The one photo (an id from upload_ids) shown on the photocard; none = the default picture */
+  photocard_id?: string | null
 }
 
 export type MediaKind = 'image' | 'audio' | 'video'
-export type MediaItem = { id: string; kind: MediaKind; mime: string; size_bytes: number }
+export type MediaItem = { id: string; kind: MediaKind; mime: string; size_bytes: number; photocard?: boolean }
 
-export type Capsule = Omit<CapsuleCreate, 'upload_ids'> & {
+export type Capsule = Omit<CapsuleCreate, 'upload_ids' | 'photocard_id'> & {
   id: string
   media: MediaItem[]
   deliver_at: string

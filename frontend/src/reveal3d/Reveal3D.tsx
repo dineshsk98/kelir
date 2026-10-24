@@ -353,6 +353,7 @@ function Opening({
                 reduced={reduced}
                 recipientFirstName={firstName}
                 senderName={capsule.senderName}
+                photocardUrl={capsule.photocardUrl}
                 lang={lang}
                 onReady={onSceneReady}
               />

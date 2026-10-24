@@ -141,9 +141,11 @@ function validate(step: StepId, d: Draft, media: PickedMedia[]): Errors {
   return e
 }
 
-function toRequest(d: Draft, media: PickedMedia[]): CapsuleCreate {
+function toRequest(d: Draft, media: PickedMedia[], photocardKey: string | null): CapsuleCreate {
+  const chosen = media.find((m) => m.key === photocardKey && m.kind === 'image')
   return {
     upload_ids: media.flatMap((m) => (m.uploaded ? [m.uploaded.id] : [])),
+    photocard_id: chosen?.uploaded?.id ?? null,
     recipient_name: d.recipient_name.trim(),
     recipient_email: d.recipient_email.trim(),
     birth_month: d.birth_month!,
@@ -182,6 +184,8 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
   const locked: StepId[] = delivered ? ['who', 'when'] : []
   const [draft, setDraft] = useState<Draft>(() => (initial ? draftFrom(initial) : EMPTY))
   const [media, setMedia] = useState<PickedMedia[]>(() => (initial ? mediaFrom(initial) : []))
+  // Which photo goes on the photocard (the picked item's key); none = the default picture
+  const [photocardKey, setPhotocardKey] = useState<string | null>(() => initial?.media.find((m) => m.photocard)?.id ?? null)
   const [step, setStep] = useState<StepId>(delivered ? 'message' : 'who')
   const [reached, setReached] = useState(initial ? STEPS.length - 1 : 0)
   const [errors, setErrors] = useState<Errors>({})
@@ -279,10 +283,10 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
     setSaveError(null)
     try {
       if (initial) {
-        await api.updateCapsule(initial.id, toRequest(draft, media))
+        await api.updateCapsule(initial.id, toRequest(draft, media, photocardKey))
         navigate(`/capsules/${initial.id}`)
       } else {
-        await api.createCapsule(toRequest(draft, media))
+        await api.createCapsule(toRequest(draft, media, photocardKey))
         navigate('/history')
       }
     } catch (e) {
@@ -438,6 +442,8 @@ export function CapsuleEditor({ me, initial }: { me: Me; initial?: Capsule }) {
             </Field>
             <MediaPicker
               items={media}
+              photocardKey={photocardKey}
+              onPhotocardChange={setPhotocardKey}
               onChange={(update) => {
                 setMedia(update)
                 setErrors((e) => ({ ...e, media: undefined, message_text: undefined }))

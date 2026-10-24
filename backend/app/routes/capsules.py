@@ -85,10 +85,12 @@ async def create_capsule(
         body.send_mode, body.birth_month, body.birth_day, body.feb29_pref, body.tz, now
     )
     media = await _claim_uploads(session, sender.id, None, body.upload_ids)
+    _check_photocard(media, body.photocard_id)
+    _set_photocard(media, body.photocard_id)
     capsule = Capsule(
         sender_id=sender.id,
         person_id=await save_person(session, sender.id, body, now),
-        **body.model_dump(exclude={"upload_ids"}),
+        **body.model_dump(exclude={"upload_ids", "photocard_id"}),
         deliver_at=deliver_at,
         status="scheduled",
         created_at=now,
@@ -110,6 +112,20 @@ def _media_rejected(message: str) -> HTTPException:
     return HTTPException(
         422, detail=[{"loc": ["body", "upload_ids"], "msg": message, "type": "media_rejected"}]
     )
+
+
+def _check_photocard(media: list[CapsuleMedia], photocard_id: uuid.UUID | None) -> None:
+    """The photocard's picture must be one of the capsule's photos (not audio or video)."""
+    if photocard_id is None:
+        return
+    chosen = next((m for m in media if m.id == photocard_id), None)
+    if chosen is None or chosen.kind != "image":
+        raise _media_rejected("Only a photo can go on the photocard")
+
+
+def _set_photocard(media: list[CapsuleMedia], photocard_id: uuid.UUID | None) -> None:
+    for item in media:
+        item.photocard = item.id == photocard_id
 
 
 async def _claim_uploads(
@@ -188,7 +204,7 @@ async def update_capsule(
     capsule = await _own_capsule(session, sender.id, capsule_id, lock=True)
     if problem := _not_editable(capsule):
         raise problem
-    fields = body.model_dump(exclude={"upload_ids"})
+    fields = body.model_dump(exclude={"upload_ids", "photocard_id"})
 
     if capsule.status == "delivered":
         changed = [f for f in DELIVERED_LOCKED_FIELDS if getattr(capsule, f) != fields[f]]
@@ -199,6 +215,7 @@ async def update_capsule(
             raise UNDELIVERABLE_EMAIL
 
     wanted = await _claim_uploads(session, sender.id, capsule.id, body.upload_ids)
+    _check_photocard(wanted, body.photocard_id)
     current = list(capsule.media)
     removed = [m for m in current if m.id not in set(body.upload_ids)]
     removed_paths = [media_file(m, settings.uploads_dir) for m in removed]
@@ -207,11 +224,13 @@ async def update_capsule(
     session.expire(capsule, ["media"])
     for item in current:
         item.capsule_id = item.position = None
+        item.photocard = False  # at most one per capsule: set again below
     await session.flush()
     for item in removed:
         await session.delete(item)
     for position, item in enumerate(wanted):
         item.capsule_id, item.position = capsule.id, position
+    _set_photocard(wanted, body.photocard_id)
 
     for name, value in fields.items():
         setattr(capsule, name, value)

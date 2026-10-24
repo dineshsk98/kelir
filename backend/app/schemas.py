@@ -132,9 +132,13 @@ class CapsuleCreate(Birthday):
 
     # Uploaded photos/audio/video, in the order they appear in the capsule
     upload_ids: Annotated[list[uuid.UUID], Field(max_length=6)] = []
+    # The one uploaded photo to show on the photocard; none = the default picture
+    photocard_id: uuid.UUID | None = None
 
     @model_validator(mode="after")
     def _message_and_gift(self):
+        if self.photocard_id is not None and self.photocard_id not in self.upload_ids:
+            raise ValueError("the photocard photo must be one of the added files")
         if self.message_text is None and not self.upload_ids:
             raise ValueError("write a message or add a photo, audio or video")
         if len(set(self.upload_ids)) != len(self.upload_ids):
@@ -245,6 +249,8 @@ class MediaOut(BaseModel):
     kind: MediaKind
     mime: str
     size_bytes: int
+    # The photo shown on the photocard (at most one); none of them = the default picture
+    photocard: bool = False
 
 
 class CapsuleOut(BaseModel):

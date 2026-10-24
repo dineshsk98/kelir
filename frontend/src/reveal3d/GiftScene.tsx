@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'rea
 import * as THREE from 'three'
 import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js'
 import type { MessageLang } from '../languages'
-import { drawPhotocard } from './photocard'
+import { cardSize, drawPhotocard } from './photocard'
 import { DURATION, sceneStage, type Stage } from './stages'
 
 /** Her pull on the ribbon, written by the page's pointer handlers */
@@ -25,6 +25,8 @@ export type GiftSceneProps = {
   reduced: boolean
   recipientFirstName: string
   senderName: string
+  /** The photo the sender chose for the photocard (none: the default picture) */
+  photocardUrl?: string
   /** The capsule's language: the photocard is written in it */
   lang: MessageLang
   /** Called once the 3D view is up, so the opening can wait for it */
@@ -191,7 +193,7 @@ function Particles({ stage, reduced }: { stage: Stage; reduced: boolean }) {
   return <instancedMesh ref={mesh} args={[geo, mat, count]} />
 }
 
-function GiftBox({ stage, pull, reduced, recipientFirstName, senderName, lang }: GiftSceneProps) {
+function GiftBox({ stage, pull, reduced, recipientFirstName, senderName, photocardUrl, lang }: GiftSceneProps) {
   const clock = useStageClock(stage)
   const box = useRef<THREE.Group>(null!)
   const lid = useRef<THREE.Group>(null!)
@@ -229,7 +231,7 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName, lang }:
       tab: new THREE.SphereGeometry(0.075, 16, 16),
       glow: new THREE.PlaneGeometry(BODY_W - 0.08, BODY_W - 0.08),
       shadow: new THREE.CircleGeometry(0.95, 48),
-      card: new THREE.PlaneGeometry(1.0, 1.24),
+      card: new THREE.PlaneGeometry(1, 1), // sized per card: see cardDims
     }),
     [],
   )
@@ -255,21 +257,24 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName, lang }:
 
   // The photocard's face: drawn once the handwriting font is ready
   const [cardTexture, setCardTexture] = useState<THREE.CanvasTexture | null>(null)
+  // Portrait or landscape, as the card turned out (the default card is portrait)
+  const [cardDims, setCardDims] = useState<[number, number]>([1.0, 1.24])
   useEffect(() => {
     let cancelled = false
     let made: THREE.CanvasTexture | null = null
-    void drawPhotocard(recipientFirstName, senderName, lang).then((canvas) => {
+    void drawPhotocard(recipientFirstName, senderName, lang, photocardUrl).then((canvas) => {
       if (cancelled) return
       made = new THREE.CanvasTexture(canvas)
       made.colorSpace = THREE.SRGBColorSpace
       made.anisotropy = 4
+      setCardDims(cardSize(canvas))
       setCardTexture(made)
     })
     return () => {
       cancelled = true
       made?.dispose()
     }
-  }, [recipientFirstName, senderName, lang])
+  }, [recipientFirstName, senderName, lang, photocardUrl])
   useEffect(() => {
     mat.cardFront.map = cardTexture
     mat.cardFront.color.set(cardTexture ? '#ffffff' : '#f7f1e6')
@@ -448,8 +453,8 @@ function GiftBox({ stage, pull, reduced, recipientFirstName, senderName, lang }:
       </group>
 
       <group ref={card} visible={false}>
-        <mesh geometry={geo.card} material={mat.cardFront} />
-        <mesh geometry={geo.card} material={mat.cardBack} rotation-y={Math.PI} />
+        <mesh geometry={geo.card} material={mat.cardFront} scale={[cardDims[0], cardDims[1], 1]} />
+        <mesh geometry={geo.card} material={mat.cardBack} rotation-y={Math.PI} scale={[cardDims[0], cardDims[1], 1]} />
       </group>
     </>
   )

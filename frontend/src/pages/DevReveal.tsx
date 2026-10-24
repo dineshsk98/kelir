@@ -18,7 +18,42 @@ const samplePhoto = (label: string, from: string, to: string) =>
       `fill="#fff" font-family="sans-serif">${label}</text></svg>`,
   )}`
 
+/** A sample photo of any shape, to try the photocard on landscape, portrait and square photos */
+const sizedPhoto = (w: number, h: number, label: string, from: string, to: string) =>
+  `data:image/svg+xml;utf8,${encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><defs>` +
+      `<linearGradient id="g" x2="1" y2="1"><stop offset="0" stop-color="${from}"/><stop offset="1" stop-color="${to}"/>` +
+      `</linearGradient></defs><rect width="${w}" height="${h}" fill="url(#g)"/>` +
+      `<circle cx="${w / 2}" cy="${h * 0.4}" r="${Math.min(w, h) * 0.18}" fill="#fff" opacity=".85"/>` +
+      `<text x="${w / 2}" y="${h * 0.8}" font-size="${Math.min(w, h) * 0.09}" text-anchor="middle" fill="#fff" ` +
+      `font-family="sans-serif">${label}</text></svg>`,
+  )}`
+
 const SAMPLES: Record<string, RevealCapsule> = {
+  'Photocard: landscape photo (4:3)': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: 'A wide photo on the card.',
+    photocardUrl: sizedPhoto(1600, 1200, 'Landscape 4:3', '#ff8a6b', '#6aa8ff'),
+  },
+  'Photocard: wide photo (16:9)': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: 'A wider photo on the card.',
+    photocardUrl: sizedPhoto(1920, 1080, 'Wide 16:9', '#7cc6a4', '#2c7a5b'),
+  },
+  'Photocard: portrait photo (3:4)': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: 'A tall photo on the card.',
+    photocardUrl: sizedPhoto(1200, 1600, 'Portrait 3:4', '#b8a4ff', '#ff8a6b'),
+  },
+  'Photocard: square photo': {
+    senderName: 'Sam (sample)',
+    recipientName: 'Aiko (sample)',
+    messageText: 'A square photo on the card.',
+    photocardUrl: sizedPhoto(1200, 1200, 'Square 1:1', '#ffcf5c', '#e8604c'),
+  },
   'Text + photos + gift code': {
     senderName: 'Sam (sample)',
     recipientName: 'Aiko (sample)',

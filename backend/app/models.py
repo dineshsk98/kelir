@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -189,6 +190,9 @@ class CapsuleMedia(Base):
         CheckConstraint("position BETWEEN 0 AND 5", name="media_position_range"),
         CheckConstraint("(capsule_id IS NULL) = (position IS NULL)", name="media_attached_has_position"),
         UniqueConstraint("capsule_id", "position", name="uq_capsule_media_position"),
+        # The photo shown on the photocard: at most one per capsule, and it must be a photo
+        CheckConstraint("NOT photocard OR kind = 'image'", name="photocard_is_image"),
+        Index("uq_capsule_media_photocard", "capsule_id", unique=True, postgresql_where=text("photocard")),
         Index("ix_capsule_media_unattached", "created_at", postgresql_where=text("capsule_id IS NULL")),
     )
 
@@ -202,6 +206,8 @@ class CapsuleMedia(Base):
     mime: Mapped[str] = mapped_column(String(100))
     size_bytes: Mapped[int] = mapped_column(Integer)
     path: Mapped[str] = mapped_column(String(500))
+    # Shown on the photocard instead of the default picture (at most one photo per capsule)
+    photocard: Mapped[bool] = mapped_column(Boolean, default=False, server_default=text("false"))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

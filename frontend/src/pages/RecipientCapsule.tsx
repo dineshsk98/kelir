@@ -93,12 +93,14 @@ function CapsuleOpening({ target }: { target: CapsuleTarget }) {
       return { senderName: state.access.sender_first_name, recipientName: '', messageLang: state.access.message_lang }
     if (state.kind !== 'ready') return null
     const c = state.capsule
+    const photocard = c.media.find((m) => m.photocard) // the photo the sender chose for the card
     return {
       senderName: c.sender_name,
       recipientName: c.recipient_name,
       messageText: c.message_text ?? undefined,
       messageLang: c.message_lang,
       media: c.media.map((m) => ({ key: m.id, kind: m.kind, url: mediaUrl.forRecipient(target, m.id) })),
+      photocardUrl: photocard ? mediaUrl.forRecipient(target, photocard.id) : undefined,
       gift:
         c.gift_kind && c.gift_value
           ? { kind: c.gift_kind, value: c.gift_value, note: c.gift_note ?? undefined }
