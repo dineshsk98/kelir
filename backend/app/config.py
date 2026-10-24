@@ -18,6 +18,8 @@ class Settings(BaseSettings):
 
     smtp_user: str = ""
     smtp_app_password: str = ""
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587  # STARTTLS
     app_base_url: str = "http://localhost:8000"
     demo_mode: bool = False
     mailer: Literal["smtp", "console"] = "console"
@@ -25,6 +27,10 @@ class Settings(BaseSettings):
     session_hours: int = 12  # from sign-in; the cookie itself also ends when the browser closes
     frontend_dist: Path = REPO_ROOT / "frontend" / "dist"
     uploads_dir: Path = REPO_ROOT / "uploads"
+
+    # Shown on the privacy page; empty = the page leaves the contact line / the location out
+    support_email: str = ""
+    hosting_location: str = ""  # e.g. "Google Cloud, United States"
 
     # Shown in emails as "<Sender> via <app_name>"
     app_name: str = "Kelir"

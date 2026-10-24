@@ -32,6 +32,13 @@
   border-bottom-color: var(--color-accent);
 }
 
+/* Privacy: low-key, at the far end of the tabs */
+.app-tab-end {
+  margin-left: auto;
+  font-weight: 400;
+  font-size: 0.85rem;
+}
+
 /* Like unread mail: how many received capsules are waiting to be opened */
 .app-tab-count {
   display: inline-grid;

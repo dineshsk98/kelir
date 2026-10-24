@@ -65,6 +65,8 @@ commit it.
 | `SESSION_SECRET` | any long random string, e.g. from `python -c "import secrets; print(secrets.token_hex(24))"` |
 | `MAILER` | `console` to print emails (sign-in codes included) in the backend's terminal; `smtp` to send real ones |
 | `SMTP_USER`, `SMTP_APP_PASSWORD` | only with `MAILER=smtp`: a Gmail address and its [app password](https://myaccount.google.com/apppasswords) (needs 2-Step Verification) |
+| `SMTP_HOST`, `SMTP_PORT` | optional, with `MAILER=smtp`: another SMTP server (STARTTLS). Default `smtp.gmail.com` and `587` |
+| `SUPPORT_EMAIL`, `HOSTING_LOCATION` | optional, shown on the privacy page: the contact address and where the server runs. Empty = that line is left out |
 | `APP_BASE_URL` | `http://localhost:8000`: the address the links in emails point at |
 | `DEMO_MODE` | `true` shows a "Simulate their midnight" button, so a capsule can be delivered without waiting for a birthday |
 | `GOOGLE_CLIENT_ID` | optional. Empty = sign in by emailed code only. To add Google sign-in, create a Web OAuth client in the Google Cloud console with `http://localhost:8000` and `http://localhost:5173` as Authorized JavaScript origins |

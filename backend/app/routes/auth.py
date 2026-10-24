@@ -46,8 +46,14 @@ AppSettings = Annotated[Settings, Depends(get_settings)]
 
 @router.get("/config")
 async def public_config(settings: AppSettings) -> PublicConfig:
-    """What the web app needs to render the Google button (the client ID isn't secret)."""
-    return PublicConfig(google_client_id=settings.google_client_id, demo_mode=settings.demo_mode)
+    """What the web app needs from the deployment: the Google button's client ID (not secret),
+    the demo switch, and the contact and hosting lines of the privacy page."""
+    return PublicConfig(
+        google_client_id=settings.google_client_id,
+        demo_mode=settings.demo_mode,
+        support_email=settings.support_email,
+        hosting_location=settings.hosting_location,
+    )
 
 
 def _me(sender: Sender) -> Me:

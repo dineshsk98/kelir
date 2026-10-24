@@ -7,6 +7,7 @@ import { CapsuleEditor, EditCapsule } from './pages/CapsuleEditor'
 import { History } from './pages/History'
 import { NotFound } from './pages/NotFound'
 import { People } from './pages/People'
+import { Privacy } from './pages/Privacy'
 import { Received } from './pages/Received'
 import { ReceivedCapsule, RecipientCapsule } from './pages/RecipientCapsule'
 import { Welcome } from './pages/Welcome'
@@ -21,6 +22,8 @@ export function App() {
     <Routes>
       {/* The recipient has no account: their page never checks for a session */}
       <Route path="/c/:secret" element={<RecipientCapsule />} />
+      {/* Public (Google's consent screen links here): never checks for a session */}
+      <Route path="/privacy" element={<Privacy />} />
       {DevReveal && (
         <Route
           path="/dev/reveal"

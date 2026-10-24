@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api, type Me, type SignedIn } from '../api'
 import { SignInChoice } from '../components/SignIn'
 import './Welcome.css'
@@ -21,6 +22,9 @@ export function Welcome({ onSignedIn }: { onSignedIn: (me: Me) => void }) {
               <>
                 <SignInChoice onSignedIn={(me) => (me.created ? setNaming(me) : onSignedIn(me))} />
                 <p className="muted small welcome-received">Got a capsule? Sign in with the email it was sent to.</p>
+                <p className="muted small welcome-received">
+                  <Link to="/privacy">Privacy</Link>
+                </p>
               </>
             )}
           </div>

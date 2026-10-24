@@ -135,6 +135,9 @@ export function AppHeader({
         <NavLink to="/people" className={tab}>
           People
         </NavLink>
+        <NavLink to="/privacy" className="app-tab app-tab-end">
+          Privacy
+        </NavLink>
       </nav>
     </header>
   )

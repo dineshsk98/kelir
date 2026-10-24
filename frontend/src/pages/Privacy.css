@@ -1,0 +1,16 @@
+.privacy-section {
+  margin-top: 28px;
+}
+
+.privacy-section h2 {
+  font-size: 1.2rem;
+}
+
+.privacy-section p {
+  margin: 0 0 12px;
+  overflow-wrap: anywhere;
+}
+
+.privacy-section a {
+  color: var(--color-accent);
+}

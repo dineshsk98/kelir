@@ -40,18 +40,19 @@ class ConsoleMailer:
 
 
 class SmtpMailer:
-    """Gmail SMTP with STARTTLS, logging in with the app's Gmail address and app password."""
+    """SMTP with STARTTLS (Gmail by default), logging in with the app's address and app password."""
 
-    def __init__(self, user: str, app_password: str) -> None:
+    def __init__(self, user: str, app_password: str, host: str = "smtp.gmail.com", port: int = 587) -> None:
         if not user or not app_password:
             raise ValueError("MAILER=smtp needs SMTP_USER and SMTP_APP_PASSWORD in .env")
         self.user, self.app_password = user, app_password
+        self.host, self.port = host, port
 
     async def send(self, message: EmailMessage) -> None:
         await aiosmtplib.send(
             message,
-            hostname="smtp.gmail.com",
-            port=587,
+            hostname=self.host,
+            port=self.port,
             start_tls=True,
             username=self.user,
             password=self.app_password,
@@ -61,7 +62,7 @@ class SmtpMailer:
 
 def make_mailer(settings: Settings) -> Mailer:
     if settings.mailer == "smtp":
-        return SmtpMailer(settings.smtp_user, settings.smtp_app_password)
+        return SmtpMailer(settings.smtp_user, settings.smtp_app_password, settings.smtp_host, settings.smtp_port)
     return ConsoleMailer()
 
 

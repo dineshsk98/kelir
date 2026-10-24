@@ -6,6 +6,22 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-24 · A support email and other deployment facts were hard-coded in source
+- **Symptom:** the privacy page had the support email written into `Privacy.tsx` (found by the owner: "that is a config which is in code"). A scan then found the same kind of thing elsewhere: the SMTP host and port in `mailer.py`, and the hosting location in the privacy text.
+- **Cause:** the settings pattern (`config.py`) was used for secrets and the obvious URLs, but values written into new copy or into a client call were treated as "just text", so nobody asked "would another deployment need a different value?".
+- **Fix:** new settings `SUPPORT_EMAIL`, `HOSTING_LOCATION`, `SMTP_HOST`, `SMTP_PORT` in `backend/app/config.py` (and in `.env.example`, `deploy.env.example`, the settings tables in `README.md` and `DEPLOY.md`). The first two are public, so `GET /v1/config` returns them (`PublicConfig` in `schemas.py`, `routes/auth.py`, `frontend/src/api.ts`) and `Privacy.tsx` reads them at runtime, with wording that still works when they are empty. `delivery/mailer.py` takes the host and port from settings. Tests in `backend/tests/test_auth.py`.
+- **Lesson:** values that differ per deployment or per operator (addresses, hosts, ports, places) go in settings from the start, and the browser gets its share from the server at runtime, not from a build-time variable. Limits, timings and copy are product rules and stay as named constants.
+
+---
+
+## 2026-10-24 · Google's "Publish app" stayed disabled without a privacy policy page
+- **Symptom:** in the Google Cloud console, "Publish app" for the sign-in consent screen stayed disabled: "Valid app name, support email, homepage url, and privacy policy url are required for switching the app to external production mode".
+- **Cause:** the app had no privacy policy at all, and Google needs a home page URL and a privacy policy URL on the app's own domain before the consent screen can leave testing mode.
+- **Fix:** a public `/privacy` page that needs no sign-in (`frontend/src/pages/Privacy.tsx`, `Privacy.css`, route in `frontend/src/App.tsx`), with a "Privacy" link on the welcome page (`pages/Welcome.tsx`) and at the end of the signed-in tabs (`components/AppHeader.tsx`, `.css`). The backend already answers any unknown non-API path with the web app, so a direct visit to `/privacy` needed no new route; `backend/tests/test_auth.py` now includes it in the deep-link check. The text was written from the code (what `models.py` stores, how sign-in codes and the cookie work, what delete and cancel remove), not from memory.
+- **Lesson:** a Google OAuth consent screen needs public pages on your own domain, so add them before the day you publish. Write a privacy policy by reading the code, and say plainly what is not there yet (here, deleting an account in the app).
+
+---
+
 ## 2026-10-24 · Renaming yourself rewrote the name on capsules already made
 - **Symptom:** after changing your name from the header, the Received tab, the capsule page, the "who is this from" step and the birthday email of capsules you had already made showed the new name.
 - **Cause:** every recipient-facing view read `senders.name` through the join, so the name was looked up fresh each time instead of being part of what was made. The first fix froze it at delivery, but a capsule can be edited until it is opened, so "when does the name stop changing" had to be decided with the owner: content stays editable, the name does not.

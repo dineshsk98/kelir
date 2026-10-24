@@ -42,6 +42,8 @@ class PublicConfig(BaseModel):
 
     google_client_id: str
     demo_mode: bool
+    support_email: str
+    hosting_location: str
 
 
 # --- Capsules -----------------------------------------------------------------

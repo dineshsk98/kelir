@@ -134,7 +134,7 @@ async def test_web_app_is_served_with_cache_rules(client, settings, tmp_path):
     (tmp_path / "secret.txt").write_text("outside the web app")
     settings.frontend_dist = dist
 
-    for path in ("/", "/history", "/capsules/new"):
+    for path in ("/", "/history", "/capsules/new", "/privacy"):
         r = await client.get(path)
         assert r.text == "<!doctype html>app" and r.headers["cache-control"] == "no-cache"
     r = await client.get("/assets/index-abc123.js")
@@ -147,3 +147,36 @@ async def test_unknown_api_path_is_json_404_not_the_web_app(client):
     r = await client.get("/v1/nope")
     assert r.status_code == 404
     assert r.headers["content-type"].startswith("application/json")
+
+
+async def test_public_config_has_the_deployment_values(client, settings):
+    settings.support_email = "help@example.org"
+    settings.hosting_location = "Somewhere, Earth"
+    r = await client.get("/v1/config")
+    assert r.status_code == 200
+    assert r.json() == {
+        "google_client_id": settings.google_client_id,
+        "demo_mode": True,
+        "support_email": "help@example.org",
+        "hosting_location": "Somewhere, Earth",
+    }
+
+
+async def test_public_config_values_default_to_empty(client):
+    r = await client.get("/v1/config")
+    assert r.json()["support_email"] == "" and r.json()["hosting_location"] == ""
+
+
+async def test_smtp_mailer_uses_the_configured_server(monkeypatch):
+    from app.delivery.mailer import make_mailer
+
+    seen = {}
+
+    async def fake_send(message, **kw):
+        seen.update(kw)
+
+    monkeypatch.setattr("app.delivery.mailer.aiosmtplib.send", fake_send)
+    s = Settings(session_secret="x", database_url="x", mailer="smtp", smtp_user="u@example.org",
+                 smtp_app_password="p", smtp_host="mail.example.org", smtp_port=2525)
+    await make_mailer(s).send(object())
+    assert (seen["hostname"], seen["port"]) == ("mail.example.org", 2525)

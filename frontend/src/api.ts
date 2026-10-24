@@ -31,7 +31,12 @@ export type CapsuleAccess = {
   allowed: boolean
   signed_in_as: string | null
 }
-export type PublicConfig = { google_client_id: string; demo_mode: boolean }
+export type PublicConfig = {
+  google_client_id: string
+  demo_mode: boolean
+  support_email: string
+  hosting_location: string
+}
 
 export type Feb29Pref = 'FEB_28' | 'MAR_1'
 export type SendMode = 'birthday' | 'now'

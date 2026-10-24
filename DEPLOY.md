@@ -67,6 +67,11 @@ them up before you delete a machine: `docker compose exec db pg_dump -U capsule 
   session cookie is only marked secure when it starts with `https://`.
 - `DEMO_MODE=true` shows the "Simulate their midnight" button to every signed-in user. Fine for a
   judged demo, off for real use.
+- `SUPPORT_EMAIL` and `HOSTING_LOCATION` fill in the privacy page (`/privacy`): who to write to, and
+  where the server runs (e.g. a provider and country). Set both before publishing the Google
+  sign-in screen; empty, the page leaves those lines out.
+- `SMTP_HOST` and `SMTP_PORT` default to Gmail (`smtp.gmail.com`, `587`, STARTTLS). Change them
+  only to use another mail provider.
 - `SESSION_SECRET` signs the session cookie: changing it signs everyone out.
 
 ## Automatic checks and updates (any CI service)
