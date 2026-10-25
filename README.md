@@ -1,5 +1,7 @@
 # Kelir
 
+[![CI](https://github.com/dineshsk98/kelir/actions/workflows/ci.yml/badge.svg)](https://github.com/dineshsk98/kelir/actions/workflows/ci.yml)
+
 Kelir (கேளிர், Tamil for "kin and friends") delivers a birthday capsule (a written message, photos,
 voice notes or videos, and an optional gift link or code) by email at 00:00 in the recipient's own
 time zone. The recipient signs in with that email address and opens it as a 3D gift box.
