@@ -6,6 +6,22 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-25 · Automatic deploys don't survive on the GCP VM: its agent removes our key
+- **Symptom:** the deploy after the CI badge commit failed again with `Permission denied (publickey)`, one run after the restored key had worked. On the server, `~/.ssh/authorized_keys` no longer existed at all.
+- **Cause:** Google's guest agent on the VM manages `~/.ssh/authorized_keys` for the browser SSH button's temporary keys, and rewrites or removes the file as those keys come and go, taking any line added by hand with it. So the fix in the entry below only lasted until the next reconnect.
+- **Fix:** turned automatic deploys off (`DEPLOY_ENABLED=false`) and kept deploying by hand on this VM; no code change. Setting up deploys properly is left for the next server.
+- **Lesson:** on a cloud VM, a key added by hand to `authorized_keys` may not survive an agent that owns that file; give the CI key its own user, or use the provider's own key mechanism. And one green run isn't proof: check the deploy again after a reconnect.
+
+---
+
+## 2026-10-25 · The first automatic deploy was refused: Permission denied (publickey)
+- **Symptom:** with the deploy secrets and `DEPLOY_ENABLED` set, the "Deploy to the server" job failed with `Permission denied (publickey)` and exit code 255. The host key matched, so the runner did reach the server.
+- **Cause:** the restricted CI key's line was not in `~/.ssh/authorized_keys` on the server (`grep -c ' ci$'` printed 0). The file had been rewritten when the browser SSH session reconnected; either the `echo … >> authorized_keys` step never ran, or the VM's guest agent replaced the file while adding its own browser-SSH key. OS Login was ruled out: `sshd -T` showed no `AuthorizedKeysCommand` and the normal `AuthorizedKeysFile`.
+- **Fix:** no code change: added the `command="…",restrict` line again from the kept `ci_key.pub`, checked it with `grep -c`, and re-ran only the failed deploy job, which passed.
+- **Lesson:** after editing `authorized_keys` on a cloud VM, check the line is there before testing, and check again after a reconnect; keep the public half of a deploy key on the server so the line can be restored without making a new key. Exit code 255 is ssh's own failure: read the line above it before changing anything.
+
+---
+
 ## 2026-10-24 · No "Continue with Google" on the deployed app
 - **Symptom:** the live site offered only the emailed code; `GET /v1/config` returned `"google_client_id":""`. Even after a redeploy that picked up the other new settings, it stayed empty.
 - **Cause:** `GOOGLE_CLIENT_ID` had been left empty in the server's `deploy.env` since the first deploy (the line from `deploy.env.example` was there, with no value), and the first attempt to fill it in on the server didn't land. The web app hides the Google button when the ID is empty, so nothing looked broken.
