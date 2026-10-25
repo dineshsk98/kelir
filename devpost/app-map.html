@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kelir app map</title>
+<style>
+  :root { --bg:#fbf8f3; --fg:#25201c; --muted:#6b625a; --card:#fff; --line:#e3dacd; --accent:#b4432f; --code:#f3ede4; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#1a1613; --fg:#f0e9e0; --muted:#a79d92; --card:#241f1b; --line:#3a332d; --accent:#ef8a6f; --code:#2d2722; }
+  }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.55 system-ui, sans-serif; }
+  main { max-width:50rem; margin:0 auto; padding:1.5rem 16px 3rem; }
+  h1 { margin:.2rem 0; } h2 { margin-top:2.2rem; border-bottom:1px solid var(--line); padding-bottom:.3rem; }
+  p.meta { color:var(--muted); margin:0; }
+  code { background:var(--code); padding:.08em .35em; border-radius:4px; font-size:.92em; }
+  pre { background:var(--code); padding:.8rem 1rem; border-radius:8px; overflow-x:auto; font-size:.88rem; }
+  pre code { background:none; padding:0; }
+  .stop { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:.9rem 1.1rem; margin:1rem 0; }
+  .stop h3 { margin:.1rem 0 .4rem; } .stop .n { color:var(--accent); }
+  details { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:.5rem 1rem; margin:.6rem 0; }
+  summary { cursor:pointer; font-weight:600; } summary:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+  svg { width:100%; height:auto; } svg text { fill:var(--fg); font:13px system-ui, sans-serif; }
+  svg .box { fill:var(--card); stroke:var(--accent); stroke-width:1.5; } svg .store { fill:var(--code); stroke:var(--muted); }
+  svg .arrow { stroke:var(--accent); stroke-width:1.8; fill:none; } svg .small { fill:var(--muted); font-size:11px; }
+  li { margin:.35rem 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>Kelir: app map</h1>
+<p class="meta">Snapshot of commit <code>c376a3e</code>. The code moves on, so check a symbol still exists (search for it) before trusting a path.</p>
+
+<h2>What it is</h2>
+<p>Kelir is a birthday capsule: a sender writes a message and adds photos, voice notes or video. It is emailed at 00:00 in the recipient's time zone, and the recipient opens it as a 3D gift. Four pieces do the work:</p>
+<ul>
+  <li><b>Sender app</b> (<code>frontend/src/pages</code>): make, schedule and edit capsules.</li>
+  <li><b>API</b> (<code>backend/app/routes</code>): FastAPI; the sender's side is <code>capsules.py</code>, the recipient's is <code>recipient.py</code>.</li>
+  <li><b>Delivery loop</b> (<code>backend/app/delivery</code>): wakes on a timer, delivers what is due and sends the email.</li>
+  <li><b>3D opening</b> (<code>frontend/src/reveal3d</code>): three.js scene the recipient sees.</li>
+</ul>
+
+<h2>One action, followed: "Send now"</h2>
+<svg viewBox="0 0 720 200" role="img" aria-label="Send now: create_capsule saves a capsule in Postgres, the delivery loop claims and emails it, the recipient opens the link and sees the 3D gift">
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#b4432f"/></marker></defs>
+  <rect class="box" x="5" y="20" width="150" height="70" rx="8"/><text x="80" y="48" text-anchor="middle">1 create_capsule</text><text class="small" x="80" y="68" text-anchor="middle">routes/capsules.py</text>
+  <rect class="box" x="205" y="20" width="150" height="70" rx="8"/><text x="280" y="48" text-anchor="middle">2 run_tick</text><text class="small" x="280" y="68" text-anchor="middle">delivery/scheduler.py</text>
+  <rect class="box" x="405" y="20" width="150" height="70" rx="8"/><text x="480" y="48" text-anchor="middle">3 open_capsule</text><text class="small" x="480" y="68" text-anchor="middle">routes/recipient.py</text>
+  <rect class="box" x="565" y="110" width="150" height="70" rx="8"/><text x="640" y="138" text-anchor="middle">Reveal3D</text><text class="small" x="640" y="158" text-anchor="middle">reveal3d/Reveal3D.tsx</text>
+  <rect class="store" x="130" y="130" width="300" height="50" rx="8"/><text x="280" y="160" text-anchor="middle">Postgres: capsules (status, sender_name)</text>
+  <path class="arrow" d="M155,55 L205,55" marker-end="url(#a)"/><path class="arrow" d="M355,55 L405,55" marker-end="url(#a)"/>
+  <path class="arrow" d="M555,70 L600,110" marker-end="url(#a)"/>
+  <path class="arrow" d="M80,90 L160,130" marker-end="url(#a)"/><path class="arrow" d="M280,90 L280,130" marker-end="url(#a)"/>
+  <text class="small" x="355" y="45">email link</text>
+</svg>
+
+<div class="stop">
+  <h3><span class="n">Stop 1.</span> The sender saves it: <code>create_capsule</code></h3>
+  <p><code>backend/app/routes/capsules.py</code>, search <code>async def create_capsule</code>. It checks the email domain, works out <code>deliver_at</code> (<code>due_now</code>), claims the uploaded files, copies the sender's name onto the capsule and commits. If <code>deliver_at &lt;= now</code> (Send now, or a birthday already begun) it starts <code>run_tick</code> as a background task instead of waiting for the timer.</p>
+</div>
+<div class="stop">
+  <h3><span class="n">Stop 2.</span> The delivery loop: <code>_deliver_due</code>, <code>_claim_emails</code>, <code>run_tick</code></h3>
+  <p><code>backend/app/delivery/scheduler.py</code>. <code>_deliver_due</code> flips <code>scheduled</code> to <code>delivered</code> for capsules whose time has come; <code>_claim_emails</code> picks delivered capsules with no <code>emailed_at</code>, makes a fresh link secret (only its hash is stored) and leases the row. Both use <code>FOR UPDATE SKIP LOCKED</code>, so two loops never double-send. <code>run_tick</code> sends the email after the database commit and records success, or a retry with back-off. <code>delivery_loop</code> calls it every <code>scheduler_interval_seconds</code>; <code>main.py</code> starts it in <code>lifespan</code>.</p>
+</div>
+<div class="stop">
+  <h3><span class="n">Stop 3.</span> The recipient opens the link: <code>open_capsule</code> then <code>Reveal3D</code></h3>
+  <p>The emailed link loads <code>frontend/src/pages/RecipientCapsule.tsx</code>, which calls <code>api.capsuleAccess</code> then <code>api.openCapsule</code> (<code>frontend/src/api.ts</code>) and renders <code>Reveal3D</code> (<code>frontend/src/reveal3d/Reveal3D.tsx</code>). On the server, <code>open_capsule</code> in <code>backend/app/routes/recipient.py</code> only reads; the capsule becomes <code>opened</code> when the page reaches the open box and calls <code>POST /opened</code> (<code>mark_opened</code> → <code>_mark_opened</code>), which is conditional so the first time is the one kept.</p>
+</div>
+<details><summary>See the key lines (copied from the code)</summary>
+<pre><code>capsule = Capsule(
+    sender_id=sender.id,
+    sender_name=sender.name,  # frozen now; renaming later only affects new capsules
+    ...
+    status="scheduled",
+)
+...
+if deliver_at &lt;= now:
+    background.add_task(run_tick, sessionmaker, mailer, settings, now)</code></pre>
+</details>
+
+<h2>To change this, start here</h2>
+<ul>
+  <li><b>When a capsule becomes due:</b> <code>due_now</code> in <code>backend/app/engine/schedule.py</code> (called from <code>create_capsule</code>).</li>
+  <li><b>Email wording or layout:</b> <code>birthday_email</code> in <code>backend/app/delivery/email_templates.py</code>; texts per language in <code>email_copy.py</code>.</li>
+  <li><b>Retry timing or attempts:</b> <code>retry_delay</code>, <code>MAX_SEND_ATTEMPTS</code>, <code>SEND_LEASE</code> at the top of <code>scheduler.py</code>.</li>
+  <li><b>What the recipient's page receives:</b> <code>capsule_out</code> in <code>routes/recipient.py</code> and <code>RecipientCapsule</code> in <code>frontend/src/api.ts</code>.</li>
+  <li><b>The 3D opening:</b> <code>frontend/src/reveal3d/</code>; <code>stages.ts</code> orders the steps, <code>GiftScene.tsx</code> is the scene.</li>
+  <li><b>A new column on a capsule:</b> <code>backend/app/models.py</code> plus an Alembic migration in <code>backend/alembic/</code> (see the next section for why this matters).</li>
+</ul>
+
+<h2>A practice to reuse: decide <i>when</i> a copied value freezes, then pin it with a test</h2>
+<p><b>Decision.</b> A capsule shows the sender's name. First it was read through a join, so renaming yourself changed already-made capsules. The first fix froze the name at delivery, but a capsule stays editable until opened, so the real question was <i>which moment</i>. It now freezes when the capsule is saved: <code>sender_name</code> is set once in <code>create_capsule</code> and no edit schema accepts it.</p>
+<p><b>Evidence.</b> The entry "Renaming yourself rewrote the name on capsules already made" in <code>devpost/learnings.md</code>, and <code>backend/tests/test_sender_name_frozen.py</code>, which renames before delivery, after delivery, and after an edit, and checks the email, the recipient page and the sender's list.</p>
+<p><b>Reuse.</b> Whenever something you hand to another person shows a value that can change later, name the moment it stops changing before building, copy it onto the thing at that moment, and write the test as "change the source, then check every place it shows".</p>
+
+<h2>Run it again</h2>
+<pre><code># backend/ (virtualenv active, after alembic upgrade head)
+uvicorn app.main:app --reload
+# frontend/
+npm run dev
+# backend tests
+python -m pytest</code></pre>
+<p>Full setup (database, <code>.env</code>, SMTP) is in the repository's <code>README.md</code>. With <code>DEMO_MODE=true</code> a "Simulate their midnight" button delivers a capsule without waiting for a birthday.</p>
+<p class="meta">This map is a reference route written from the code at the commit above; open it any time by double-clicking <code>devpost/app-map.html</code>. No network needed.</p>
+</main>
+</body>
+</html>

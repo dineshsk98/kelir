@@ -166,7 +166,7 @@ Commits: Dinesh makes every commit himself (per his global rules). The agent nev
 
 - [x] Early usable behavior explored — after slice 4 (the full kernel: schedule → simulate midnight → real email → opens). Dinesh tried it on 2026-09-30: opening the capsule and seeing the message "gave me a rush"; no changes requested. The real-inbox email check still waits on SMTP setup.
 - [x] Slice 6 opening tried — 2026-09-30, Dinesh: "decent v1"; build-up not enough (lengthened and intensified); the separate thank-you card is important. The look-and-feel pick (Sunrise vs Midnight, photocard style) moved to the separate design session; Sunrise stays the default until then.
-- [ ] Final kick-the-tires exploration and feedback completed
+- [x] Final kick-the-tires exploration and feedback completed — 2026-10-25, Dinesh's live end-to-end test on the deployed site. Findings: (1) latency, because it is hosted on US servers; a closer region or regional subnets would be better, and the US was chosen on the assumption that judging happens there; (2) privacy and security exposure of user data was a large concern; (3) he wanted to know every page reachable from the link, which surfaced the public API docs (removed, see `devpost/learnings.md`). Region and deeper privacy hardening are deferred past judging, and the site must stay where it is until 30 Oct.
 
 ## Final Review
 
@@ -178,34 +178,44 @@ Refinements Dinesh asked for during slice 3's learner check (2026-09-30), to do 
 
 - [x] Birthday day/month picker: refine the UI/UX (currently two plain dropdowns). Done 2026-10-05: month and day as tap grids (`BirthdayFields.tsx`); awaiting Dinesh's look.
 - [x] Message: accept the placeholder text with Tab (like inline text prediction). Keep the handwritten font and the placeholder wording.
-- [ ] Recipient email: tighten validation; showing the error when Next is pressed stays as is. Built early, in slice 3: stricter format (browser and API), "Did you mean …?" typo hint, and a server-side MX lookup on Next and on save. Awaiting Dinesh's retry.
+- [x] Recipient email: tighten validation; showing the error when Next is pressed stays as is. Built early, in slice 3: stricter format (browser and API), "Did you mean …?" typo hint, and a server-side MX lookup on Next and on save. Dinesh retried it (2026-10-25) and it works.
 - [x] City search shortcuts and aliases: abbreviations such as "nyc" → New York City and "la" → Los Angeles, and alternate/former names such as "bangalore" ↔ Bengaluru (GeoNames has alternate names that can feed this).
 - [x] Better thank-you preset wording (still birthday-focused). Done 2026-10-05: all four reworded to mention the birthday and a fifth added ("first to wish me"), in 10 languages (`backend/app/replies.py`); awaiting Dinesh's read of the wording.
-- [ ] UI/UX polish across every screen with the look chosen in slice 6; less text on screen. Less text done 2026-10-05 (subtitles and hints trimmed); the look (Sunrise vs Midnight) is still Dinesh's pick.
+- [x] UI/UX polish across every screen with the look chosen in slice 6; less text on screen. Less text done 2026-10-05 (subtitles and hints trimmed). Dinesh, 2026-10-25: the look is final for this stage; the app's default theme stays as it is (`APP_THEME` in `frontend/src/theme.ts`), both token sets remain.
 - [x] Mobile/portrait layout across every screen (done 2026-10-05 for the sender screens: header, step bar, People; welcome and editor checked at 375px; the 3D opening has its own portrait rules and was not re-audited). The welcome page is now a desktop split (sign-in left, about right, built 2026-10-05) and is not yet designed for portrait; its stacked fallback below 800px is only a stopgap. Address together with the polish pass.
 - [x] People as trading cards, not a plain list (done 2026-10-05), after the TCG reference Dinesh picked: ornate foil frame, a gem for days-to-go, an arched picture window holding an initials placeholder, a name ribbon, a parchment panel, birthday and collector-number orbs, a holo sheen on the next birthday; Edit and Remove under the card (`People.tsx`, `People.css`, `Avatar.tsx`). Light and Midnight; two across on phones.
 - [x] Illustrated gift unwrap: explored 2026-10-05 (reference: Dribbble "Unwrapping the present"; drawn from scratch) and dropped. Dinesh decided to keep the existing 3D gift box and its opening animation as they are. The exploration (`reveal/UnwrapArt.tsx`, its preview at `/dev/reveal`) is not used by the app.
-- [ ] Real photos for people (upload, crop, show on the cards and in the capsule editor): needs a photo field on a person, storage and tests. The placeholder avatar is built to be replaced.
+- [x] Real photos for people (upload, crop, show on the cards and in the capsule editor): needs a photo field on a person, storage and tests. The placeholder avatar is built to be replaced. Deferred past the hackathon (Dinesh, 2026-10-25).
 - [x] History list redesign: scrollable container and filters (e.g. by status). Done 2026-10-05 (`History.tsx`, `History.css`): status chips with counts, empty ones hidden, the list scrolls inside its own box.
 - [x] City picker inline completion: as each character is typed, the top prefix match fills in ahead of the cursor as ghost text with a short animation (trie-style prefix search), accepted with Tab.
 
-- [ ] Hosting on a server. Prepared 2026-10-05, host-agnostic: `Dockerfile`, `docker-compose.yml` (Postgres, the app, Caddy for HTTPS), `Caddyfile`, `deploy.env.example`, `DEPLOY.md`. Not yet done: choosing a host, creating the machine and domain, a Gmail app password, the first `docker compose up` (the image has never been built: Docker isn't installed on this laptop), and the checks in `DEPLOY.md`.
+- [x] Hosting on a server. Live at https://kelir.duckdns.org on a Google Cloud VM (Docker Compose: Postgres, the app, Caddy for HTTPS; see `DEPLOY.md`). Deployed by hand: the automatic deploy from CI was tried and turned off (`DEPLOY_ENABLED=false`) because the VM's guest agent removes the CI key. The site stays up through judging (27–30 Oct).
 
-- [ ] Final review complete — feedback resolved and learner confirms ready to ship
+- [x] Final review complete — feedback resolved and learner confirms ready to ship (Dinesh confirmed the PoC is ready, 2026-10-25)
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: [what actually happened; real document/test/code references; unfinished work if interrupted]
-Route and stops: [actual paths and symbols; guided stops completed, or reference-only route]
-Edit outcome: [tried/kept/reverted/declined/not applicable; verification if changed]
-Reflection: [offered/answered/declined/already covered — personal answer belongs only in the ignored profile]
-Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
+Activity and evidence: Focused alternative, built on a decision made during the build: the sender's name freezes when a capsule is saved, not at delivery (the entry "Renaming yourself rewrote the name on capsules already made" in `devpost/learnings.md`; `backend/tests/test_sender_name_frozen.py`). The agent walked the decision, the test (renaming before delivery, after delivery and after an edit; the page, access step, Received list and email checked) and the gap (a new surface showing the name is only covered once added to the test). The learner contributed a question about the goal of the exercise rather than answering which piece enforces the rule, so this was a walkthrough with one learner question, not hands-on practice.
+Route and stops: Reference route in the map: `create_capsule` in `backend/app/routes/capsules.py` → `_deliver_due`, `_claim_emails`, `run_tick` in `backend/app/delivery/scheduler.py` → `open_capsule` in `backend/app/routes/recipient.py` → `Reveal3D` in `frontend/src/reveal3d/Reveal3D.tsx`. Not toured live.
+Edit outcome: Not applicable (no edit offered; the activity was an investigation).
+Reflection: Offered and answered (the answer is in the ignored learner profile only).
+Activity mode: Focused alternative (static, no editor session). Map: `devpost/app-map.html`, snapshot of commit `c376a3e`; opened in the browser pane in light mode. Dark mode and the `<details>` toggle were not checked.
 
 ## Revisions
+
+- Public API docs switched off (2026-10-25): `/docs`, `/redoc` and `/openapi.json` were reachable on the live site; now disabled in `backend/app/main.py`, with a test. Needs a manual deploy to reach the live site.
+
+- Automatic deploy attempted, then disabled (2026-10-25): CI could deploy to the GCP VM once, but the VM's guest agent rewrites `authorized_keys` and drops the CI key. Deploys are by hand for now (`DEPLOY.md`); details in `devpost/learnings.md`.
+- README and CI badge (2026-10-24/25): setup, running, tests, hosting and license; CI pinned to `ubuntu-24.04` with current action versions.
+- Public `/privacy` page, and `SUPPORT_EMAIL`, `HOSTING_LOCATION`, `SMTP_HOST` and `SMTP_PORT` moved from source into settings (2026-10-24), so the deployment's own facts aren't hard-coded; the page was needed for Google's "Publish app".
+- The birthday tune plays on every visit, from the first tap (2026-10-24), including when an opened capsule is revisited from Received.
+- The sender's name is frozen on a capsule when it is saved (migration 0012, 2026-10-24): renaming yourself no longer rewrites capsules already made, with disclaimers in the app. Dinesh's decision after weighing freezing at delivery or at opening.
+- Edit your name from the header (migration 0011, 2026-10-24): `PATCH /v1/me`, kept across later Google sign-ins.
+- Photocard photo choice (migration 0010): the sender can put one of their own photos on the recipient's photocard.
 
 - Slice 12 follow-up (2026-10-04), at Dinesh's request: the recipient's whole opening (titles, buttons, photocard, viewers, players, gift, thank-you panel) follows the capsule's language, and the thank-you has its own language picker (`replies.lang`, migration 0007). Automatic language/keyboard detection was wanted but left for later: the dropdown is fine for the demo.
 - Slice 13 split into 13a and 13b (2026-10-04). Dinesh's calls: fill People from existing capsules; keep a person updated when a scheduled capsule is edited; don't remember a per-person language; soonest birthday first by their midnight, ties by name.

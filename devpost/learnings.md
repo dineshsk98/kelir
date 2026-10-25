@@ -6,6 +6,14 @@ Newest first. Each entry: **Symptom** (what we saw) → **Cause** (the real reas
 
 ---
 
+## 2026-10-25 · The live site listed every API route at /docs
+- **Symptom:** while listing which pages the public link exposes, `/docs` and `/openapi.json` turned out to be reachable on the deployed app: an interactive map of every API route.
+- **Cause:** FastAPI serves interactive docs by default, and nothing in the app turned them off for production.
+- **Fix:** `backend/app/main.py` creates the app with `docs_url`, `redoc_url` and `openapi_url` set to `None`; `backend/tests/test_no_api_docs.py` checks the three paths return no docs. Takes effect on the live site at the next manual deploy.
+- **Lesson:** before going live, list every URL the server answers, not just the pages you built; framework defaults count.
+
+---
+
 ## 2026-10-25 · Automatic deploys don't survive on the GCP VM: its agent removes our key
 - **Symptom:** the deploy after the CI badge commit failed again with `Permission denied (publickey)`, one run after the restored key had worked. On the server, `~/.ssh/authorized_keys` no longer existed at all.
 - **Cause:** Google's guest agent on the VM manages `~/.ssh/authorized_keys` for the browser SSH button's temporary keys, and rewrites or removes the file as those keys come and go, taking any line added by hand with it. So the fix in the entry below only lasted until the next reconnect.

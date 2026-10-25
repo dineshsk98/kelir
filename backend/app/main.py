@@ -44,7 +44,8 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
 
 
-app = FastAPI(title="Kelir", lifespan=lifespan)
+# No interactive API docs: they would publish a map of every route on the live site
+app = FastAPI(title="Kelir", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None)
 app.include_router(auth.router)
 app.include_router(capsules.router)
 app.include_router(media.router)
